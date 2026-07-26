@@ -240,8 +240,13 @@ def ocr_cache_signature() -> str:
     NUTEV_OCR_CONFIG (or the DPI ladder) automatically invalidates old entries.
     """
     import hashlib
+    import os
 
     from nutev.extract.image_ocr import _DEFAULT_CONFIG, _DEFAULT_LANG
 
-    raw = f"{_DEFAULT_LANG}|{_DEFAULT_CONFIG}|{_OCR_DPI_LADDER}".encode()
+    # The selected OCR backend is part of the settings: switching to/from olmOCR
+    # must invalidate the Tesseract-produced cache (different engine, different
+    # output), so it is folded into the signature.
+    backend = os.environ.get("NUTEV_OCR_BACKEND", "tesseract").strip().lower()
+    raw = f"{backend}|{_DEFAULT_LANG}|{_DEFAULT_CONFIG}|{_OCR_DPI_LADDER}".encode()
     return hashlib.sha1(raw).hexdigest()[:10]  # noqa: S324  (cache key, not security)

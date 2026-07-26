@@ -29,6 +29,28 @@ nutev guides --project-root SAIDA
 #   --fresh        -> ignora o checkpoint e refaz tudo do zero
 ```
 
+### Backend de OCR: Tesseract (padrão) ou olmOCR (opt-in)
+
+Por padrão o OCR usa **Tesseract** — **determinístico e offline**, com cache
+content-addressed (mesmo PDF + mesmas settings ⇒ mesmo texto, sem reprocessar).
+É a escolha certa para reprodutibilidade.
+
+Opcionalmente é possível usar o **olmOCR** (allenai/olmocr), um backend por
+VLM (Qwen2.5-VL) que gera Markdown limpo de PDFs com **tabelas, equações e
+layout multi-coluna**. Ative com `NUTEV_OCR_BACKEND=olmocr`. Observações
+importantes:
+
+- **Opt-in e com fallback seguro:** se o `olmocr` não estiver instalado, sem GPU,
+  ou falhar, o fluxo **volta automaticamente para o Tesseract** — nunca quebra.
+- **O NutEV não empacota pesos de modelo.** Você instala o `olmocr` por conta
+  própria (precisa de GPU ≥12 GB) e é responsável por **revisar a licença dos
+  pesos** do modelo. O nosso repositório só invoca o binário que você instalou.
+- **Não é determinístico** (VLM). Trate a saída como **extração assistiva** (a
+  revisão humana continua valendo) e registre isso no relato de reprodutibilidade.
+  Trocar de backend invalida o cache de OCR automaticamente.
+- Variáveis: `NUTEV_OCR_BACKEND=tesseract|olmocr`, `NUTEV_SKIP_OLMOCR=1` (força
+  desligar), `NUTEV_OLMOCR_TIMEOUT` (segundos, padrão 600).
+
 ### Relatório de corpus (`--report`)
 
 Precisa das dependências opcionais: `pip install -e ".[report]"` (scikit-learn +

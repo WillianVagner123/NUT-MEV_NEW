@@ -10,6 +10,18 @@ from nutev.extract.pdf_text import (
     is_probably_pdf_file,
     missing_ocr_dependencies,
 )
+from nutev.extract.olmocr_backend import ocr_pdf_olmocr
+
+
+def _ocr_pdf_pages_backend(path: Path, logger) -> tuple[list[str], list[int]]:
+    """Dispatch scanned-PDF OCR to the selected backend, always with a safe
+    fallback. When NUTEV_OCR_BACKEND=olmocr and a user-provided olmOCR install
+    yields text, use it; otherwise fall back to the deterministic Tesseract path.
+    """
+    olm = ocr_pdf_olmocr(path, logger)
+    if olm:
+        return olm, []
+    return ocr_scanned_pdf_pages(path, logger)
 
 
 def _sha256_file(path: Path) -> str | None:
@@ -45,7 +57,7 @@ def _ocr_pdf_with_cache(path: Path, ocr_dir: Path, logger) -> tuple[list[str], l
                     return [str(p) for p in pages], []
             except Exception:
                 logger.debug("cache de OCR corrompido em %s — refazendo OCR", cache_file, exc_info=True)
-    pages, failed = ocr_scanned_pdf_pages(path, logger)
+    pages, failed = _ocr_pdf_pages_backend(path, logger)
     if cache_file is not None and any(p.strip() for p in pages):
         try:
             cache_file.parent.mkdir(parents=True, exist_ok=True)
