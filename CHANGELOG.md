@@ -9,6 +9,34 @@ Methodological changes are additionally tracked in
 
 ## [Unreleased]
 
+### Added
+- Scientific search connectors: DOAJ, ClinicalTrials.gov, SciELO (via Crossref
+  prefix 10.1590), Semantic Scholar and arXiv. Each follows the shared connector
+  contract (timeout + exponential backoff, reproducible single-page default with
+  opt-in bounded pagination via `NUTEV_<PROVIDER>_MAX_RESULTS`, cross-page dedup,
+  normalization to the shared row schema, fully mockable network).
+- Search Strategy page in the dashboard: authors a PICOS/PECO question into the
+  exact per-base expression grid (PubMed/Europe PMC/Crossref/OpenAlex ×
+  broad/balanced/specific), surfacing the existing `nutev strategy` builder (C4).
+  Runnable `examples/picos.json` added.
+- Optional olmOCR extraction backend (`NUTEV_OCR_BACKEND=olmocr`) for scanned
+  PDFs, off by default. Non-deterministic and GPU-bound, so it is strictly
+  opt-in and always falls back to the deterministic Tesseract path; NutEV ships
+  no model weights.
+
+### Changed
+- SciELO and DOAJ are now part of the default `source_priority` of the search
+  workstreams (versioned in `docs/CHANGELOG_METODOLOGICO.md`); default runs stay
+  single-page/reproducible.
+
+### Fixed
+- The master pipeline now dispatches every provider a workstream opts into via
+  `source_priority` (previously gated on a stale hardcoded map, silently dropping
+  opted-in providers). `_provider_map()` derives from the orchestrator registry.
+- Reconciled `source_priority` with executable providers: removed phantom
+  `google_cse`/`ddg_web` entries (renamed to the real `google_pse`; dropped the
+  unimplemented `ddg_web`) so every declared provider is dispatchable.
+
 ## [0.1.0-alpha] — first organized public release
 
 First public, organized alpha focused on making the repository reproducible,
