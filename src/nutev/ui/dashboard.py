@@ -167,67 +167,81 @@ def run_dashboard(project_root: Path) -> None:
                 st.dataframe(convergence, use_container_width=True)
 
     elif page == "Search Strategy":
-        render_header("Search Strategy Builder", "Question / PICOS -> the exact expression sent to each base (C4)")
+        render_header("Pesquisa global NutEV", "Um único campo de pesquisa para todos os artigos")
         info_banner(
-            "Transparent, question-first strategy authoring. One synonym per line; "
-            "synonyms are OR-ed within a block and AND-ed across blocks. This is "
-            "additive to the taxonomy-driven querypacks the pipeline already runs."
+            "A consulta é construída uma única vez e enviada às bases selecionadas. "
+            "A associação com os Artigos 1 a 5 acontece depois da recuperação, "
+            "sem duplicar o registro bibliográfico. Separe termos alternativos por "
+            "vírgula, ponto e vírgula ou nova linha."
         )
         import json
 
-        from nutev.search.strategy_builder import BREADTHS, build_all, picos_from_text
+        from nutev.search.strategy_builder import BREADTHS, build_all, parse_strategy, unified_from_text
 
-        col_a, col_b = st.columns(2)
-        with col_a:
-            population = st.text_area("Population / Patient", placeholder="adults\nobesity", height=90)
-            intervention = st.text_area("Intervention", placeholder="dietary adherence\nmeal planning", height=90)
-            exposure = st.text_area("Exposure (PECO)", placeholder="ultra-processed food", height=90)
-        with col_b:
-            comparison = st.text_area("Comparison", placeholder="usual care", height=90)
-            outcome = st.text_area("Outcome", placeholder="weight loss", height=90)
-            context = st.text_area("Context / Setting", placeholder="primary care\nBrazil", height=90)
+        query_text = st.text_area(
+            "O que você deseja pesquisar?",
+            placeholder=(
+                "adesão alimentar\n"
+                "competências alimentares\n"
+                "guias alimentares\n"
+                "implementação de intervenções nutricionais"
+            ),
+            height=180,
+            help=(
+                "Este é o único campo de pesquisa. Os termos informados são usados "
+                "em todos os artigos e classificados posteriormente."
+            ),
+        )
 
-        col_y1, col_y2, col_y3, col_y4 = st.columns(4)
-        with col_y1:
-            year_from = st.number_input("Year from", min_value=0, max_value=3000, value=0, step=1)
-        with col_y2:
-            year_to = st.number_input("Year to", min_value=0, max_value=3000, value=0, step=1)
-        with col_y3:
-            languages = st.text_input("Languages", placeholder="eng, por, spa")
-        with col_y4:
-            publication_types = st.text_input("Publication types", placeholder="Guideline")
+        with st.expander("Opções avançadas", expanded=False):
+            col_y1, col_y2, col_y3, col_y4 = st.columns(4)
+            with col_y1:
+                year_from = st.number_input("Ano inicial", min_value=0, max_value=3000, value=0, step=1)
+            with col_y2:
+                year_to = st.number_input("Ano final", min_value=0, max_value=3000, value=0, step=1)
+            with col_y3:
+                languages = st.text_input("Idiomas", placeholder="eng, por, spa")
+            with col_y4:
+                publication_types = st.text_input("Tipos de publicação", placeholder="Guideline")
 
-        spec_dict = picos_from_text(
-            population=population,
-            intervention=intervention,
-            exposure=exposure,
-            comparison=comparison,
-            outcome=outcome,
-            context=context,
+        spec_dict = unified_from_text(
+            query_text,
             year_from=year_from,
             year_to=year_to,
             languages=languages,
             publication_types=publication_types,
         )
 
-        concept_keys = [k for k in ("population", "intervention", "exposure", "comparison", "outcome", "context") if k in spec_dict]
-        if not concept_keys:
-            empty_state("No concepts yet", "Add at least one block above (e.g. Population or Intervention) to build a strategy.")
+        if not spec_dict:
+            empty_state("Nenhuma pesquisa informada", "Digite um tema, pergunta ou conjunto de termos no campo acima.")
         else:
-            from nutev.search.strategy_builder import parse_picos
-
-            grid = build_all(parse_picos(spec_dict))
-            st.caption("broad = core blocks only (recall) - balanced = all blocks - specific = balanced + filters (precision)")
+            grid = build_all(parse_strategy(spec_dict))
+            st.caption(
+                "broad e balanced usam o mesmo campo global; specific acrescenta "
+                "os filtros opcionais de ano, idioma e tipo de publicação."
+            )
             for provider, by_breadth in grid.items():
                 st.subheader(provider)
                 for breadth in BREADTHS:
                     expression = by_breadth.get(breadth) or "(empty)"
                     st.markdown(f"**{breadth}**")
                     st.code(expression, language="text")
+
+            strategy_payload = {
+                "article_scope": spec_dict["article_scope"],
+                "query": spec_dict["query"],
+                "filters": {
+                    "year_from": spec_dict.get("year_from"),
+                    "year_to": spec_dict.get("year_to"),
+                    "languages": spec_dict.get("languages", []),
+                    "publication_types": spec_dict.get("publication_types", []),
+                },
+                "providers": grid,
+            }
             st.download_button(
-                "Download strategy grid (JSON)",
-                json.dumps(grid, ensure_ascii=False, indent=2).encode("utf-8"),
-                file_name="NUTEV_SEARCH_STRATEGY.json",
+                "Baixar estratégia global (JSON)",
+                json.dumps(strategy_payload, ensure_ascii=False, indent=2).encode("utf-8"),
+                file_name="NUTEV_GLOBAL_SEARCH_STRATEGY.json",
                 mime="application/json",
             )
 
@@ -271,9 +285,6 @@ def run_dashboard(project_root: Path) -> None:
     elif page == "Provider Settings":
         render_header("Provider Settings", "Local providers and LLM governance")
         info_banner("Use environment variables for provider credentials. LLMs are assistive only and cannot approve protocol items.")
-        # Read the REAL credential env-var names from the provider registry —
-        # never infer them by convention (that produced wrong names like
-        # CROSSREF_EMAIL instead of CROSSREF_MAILTO). Single source of truth.
         from nutev.search.provider_registry import provider_credential_rows
 
         st.dataframe(pd.DataFrame(provider_credential_rows()), use_container_width=True)
