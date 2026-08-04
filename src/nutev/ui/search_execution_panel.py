@@ -6,6 +6,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from nutev.search.corpus_build_ledger import list_corpus_builds
+from nutev.search.corpus_builder import build_corpus_from_search_run
 from nutev.search.strategy_execution_ledger import (
     list_execution_artifacts,
     list_search_runs,
@@ -51,6 +53,29 @@ def _artifacts_table(rows: list[dict]) -> pd.DataFrame:
                 "total informado": row["total_found"],
                 "snapshot": row["snapshot_path"],
                 "sha256": row["snapshot_sha256"][:12],
+            }
+            for row in rows
+        ]
+    )
+
+
+def _corpus_builds_table(rows: list[dict]) -> pd.DataFrame:
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(
+        [
+            {
+                "build_id": row["build_id"],
+                "status": row["status"],
+                "identificados": row["input_records"],
+                "únicos": row["unique_records"],
+                "duplicatas removidas": row["duplicates_removed"],
+                "possíveis duplicatas": row["possible_duplicates"],
+                "PRISMA após deduplicação": row[
+                    "prisma_records_after_deduplication"
+                ],
+                "metadata mestre": row["metadata_csv_path"],
+                "manifesto": row["manifest_path"],
             }
             for row in rows
         ]
@@ -177,7 +202,11 @@ def render_search_execution_panel(project_root: Path, *, registry_path: Path) ->
         )
         if recent_runs:
             st.markdown("**Execuções recentes desta versão**")
-            st.dataframe(_runs_table(recent_runs), use_container_width=True, hide_index=True)
+            st.dataframe(
+                _runs_table(recent_runs),
+                use_container_width=True,
+                hide_index=True,
+            )
             latest_run_id = str(recent_runs[0]["run_id"])
             artifacts = list_execution_artifacts(
                 registry_path,
@@ -188,6 +217,77 @@ def render_search_execution_panel(project_root: Path, *, registry_path: Path) ->
                 st.markdown("**Artefatos da execução mais recente**")
                 st.dataframe(
                     _artifacts_table(artifacts),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+            st.markdown("**Normalização e deduplicação auditável**")
+            st.caption(
+                "DOI, PMID, PMCID e URL exatos são deduplicados automaticamente. "
+                "Coincidências apenas por título e ano permanecem separadas e entram "
+                "na fila de revisão humana."
+            )
+            run_labels = [
+                f'{row["run_id"]} · {row["status"]} · {row["records_identified"]} registros'
+                for row in recent_runs
+            ]
+            run_by_label = {
+                label: row for label, row in zip(run_labels, recent_runs)
+            }
+            selected_run_label = st.selectbox(
+                "Execução para construir o corpus mestre",
+                run_labels,
+                key="search_corpus_run",
+            )
+            selected_run = run_by_label[selected_run_label]
+            selected_run_id = str(selected_run["run_id"])
+
+            if st.button(
+                "Normalizar e deduplicar esta execução",
+                type="secondary",
+                disabled=selected_run["status"] == "RUNNING",
+                key="search_corpus_build",
+            ):
+                try:
+                    with st.spinner(
+                        "Verificando snapshots e construindo o corpus mestre..."
+                    ):
+                        corpus = build_corpus_from_search_run(
+                            project_root,
+                            registry_path=registry_path,
+                            run_id=selected_run_id,
+                        )
+                except (OSError, TypeError, ValueError, RuntimeError) as exc:
+                    st.error(str(exc))
+                else:
+                    st.success("Corpus mestre construído e registrado com sucesso.")
+                    metrics = corpus["metrics"]
+                    metric_a, metric_b, metric_c, metric_d = st.columns(4)
+                    metric_a.metric("Registros de entrada", metrics["input_records"])
+                    metric_b.metric("Documentos únicos", metrics["unique_records"])
+                    metric_c.metric(
+                        "Duplicatas removidas",
+                        metrics["duplicates_removed"],
+                    )
+                    metric_d.metric(
+                        "Possíveis duplicatas",
+                        metrics["possible_duplicates"],
+                    )
+                    st.caption(
+                        "PRISMA após deduplicação automática: "
+                        f'{metrics["prisma_records_after_deduplication"]}. '
+                        f'Metadata mestre: `{corpus["metadata_csv_path"]}`'
+                    )
+
+            corpus_builds = list_corpus_builds(
+                registry_path,
+                run_id=selected_run_id,
+                limit=20,
+            )
+            if corpus_builds:
+                st.markdown("**Construções de corpus desta execução**")
+                st.dataframe(
+                    _corpus_builds_table(corpus_builds),
                     use_container_width=True,
                     hide_index=True,
                 )
