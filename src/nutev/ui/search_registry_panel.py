@@ -14,6 +14,7 @@ from nutev.search.strategy_registry import (
     list_strategy_versions,
     save_strategy_version,
 )
+from nutev.ui.article_screening_panel import render_article_screening_panel
 from nutev.ui.search_execution_panel import render_search_execution_panel
 
 
@@ -144,3 +145,4 @@ def render_search_registry_panel(
             st.info("Nenhuma estratégia foi salva neste projeto ainda.")
 
     render_search_execution_panel(project_root, registry_path=registry_path)
+    render_article_screening_panel(project_root, registry_path=registry_path)
