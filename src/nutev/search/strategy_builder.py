@@ -1,20 +1,22 @@
-"""Transparent search-strategy builder: question / PICOS → per-base expressions.
+"""Unified research field -> auditable per-provider search expressions.
 
-Turns a structured research question (concept blocks, optionally tagged with
-PICOS roles and MeSH terms) into the exact query string sent to each base, at
-three escalating breadth levels:
+The public interface uses one article-independent research field. Researchers
+enter terms or phrases once; the same input is rendered for every supported
+provider. Article assignment happens after retrieval, so the search form never
+requires choosing Article 1, 2, 3, 4, or 5.
 
-- ``broad``     — AND of the *core* blocks only (population ∧ intervention): recall.
-- ``balanced``  — AND of every conceptual block (adds comparison/outcome/context).
-- ``specific``  — balanced + filters (date window, language, publication type): precision.
+The builder keeps three breadth levels for compatibility with existing exports:
 
-Within a block, synonyms are OR-ed; across blocks they are AND-ed — the classic
-block-building method. Each provider gets syntax it actually understands
-(PubMed field tags + MeSH, Europe PMC boolean + PUB_YEAR, Crossref/OpenAlex
-free-text + filter params), so the interface can show *exactly* what was sent.
+- ``broad``     - the global research concept, without filters;
+- ``balanced``  - the same global concept, without filters;
+- ``specific``  - the global concept plus date/language/publication filters.
 
-This is additive: it does not replace the taxonomy-driven querypacks the pipeline
-already runs — it gives a question-first, auditable way to author a strategy.
+Within the unified field, alternatives separated by a new line, semicolon, or
+comma form one global concept. Boolean-capable providers OR those alternatives;
+Crossref and OpenAlex receive the equivalent combined free-text query.
+Provider-specific syntax remains explicit and auditable.
+Legacy PICOS/PECO parsing is preserved for existing integrations, but the unified
+``query`` key takes precedence whenever it is present.
 """
 from __future__ import annotations
 
@@ -22,18 +24,15 @@ from dataclasses import dataclass, field
 
 PROVIDERS = ("pubmed", "europepmc", "crossref", "openalex")
 BREADTHS = ("broad", "balanced", "specific")
+ARTICLE_SCOPE_ALL = "all_articles"
 
-# PICOS/PECO roles considered "core" for the broad (highest-recall) level.
-CORE_ROLES = ("population", "intervention", "exposure")
+CORE_ROLES = ("query", "population", "intervention", "exposure")
 
 
 @dataclass
 class Concept:
-    """One concept block: a set of synonyms (OR-ed), plus optional MeSH terms.
+    """One concept block: a set of synonyms (OR-ed), plus optional MeSH terms."""
 
-    ``role`` tags the block for PICOS/PECO breadth logic (population, intervention,
-    exposure, comparison, outcome, context). ``mesh`` is used only by PubMed.
-    """
     name: str
     terms: list[str]
     role: str = "context"
@@ -45,13 +44,9 @@ class StrategySpec:
     concepts: list[Concept]
     year_from: int | None = None
     year_to: int | None = None
-    languages: list[str] = field(default_factory=list)      # ISO-ish: eng/por/spa
-    publication_types: list[str] = field(default_factory=list)  # e.g. Guideline
+    languages: list[str] = field(default_factory=list)
+    publication_types: list[str] = field(default_factory=list)
 
-
-# --------------------------------------------------------------------------- #
-# Parsing helpers — build a StrategySpec from plain dict/JSON input.
-# --------------------------------------------------------------------------- #
 
 _PICOS_ROLE_KEYS = {
     "population": "population",
@@ -76,13 +71,38 @@ def _as_terms(value: object) -> list[str]:
     return [str(value).strip()]
 
 
-def parse_picos(spec: dict) -> StrategySpec:
-    """Build a StrategySpec from a PICOS/PECO dict.
+def _filters_from_spec(spec: dict) -> dict:
+    return {
+        "year_from": spec.get("year_from"),
+        "year_to": spec.get("year_to"),
+        "languages": _as_terms(spec.get("languages")),
+        "publication_types": _as_terms(spec.get("publication_types")),
+    }
 
-    Each of population/intervention(or exposure)/comparison/outcome/context may be
-    a term, a list of synonyms, or a dict ``{"terms": [...], "mesh": [...]}``.
-    Optional: ``year_from``, ``year_to``, ``languages``, ``publication_types``.
+
+def parse_strategy(spec: dict) -> StrategySpec:
+    """Build a strategy from the unified field, with PICOS compatibility.
+
+    When ``query`` has content, it becomes the sole research concept and applies
+    to every article. Any legacy PICOS/PECO blocks in the same payload are ignored.
     """
+    filters = _filters_from_spec(spec)
+    raw_query = spec.get("query")
+    query_mesh: list[str] = []
+    if isinstance(raw_query, dict):
+        query_terms = _as_terms(raw_query.get("terms"))
+        query_mesh = _as_terms(raw_query.get("mesh"))
+    elif isinstance(raw_query, str):
+        query_terms = _split_unified_terms(raw_query)
+    else:
+        query_terms = _as_terms(raw_query)
+
+    if query_terms:
+        return StrategySpec(
+            concepts=[Concept("global_query", query_terms, role="query", mesh=query_mesh)],
+            **filters,
+        )
+
     concepts: list[Concept] = []
     for key, role in _PICOS_ROLE_KEYS.items():
         if key not in spec:
@@ -96,21 +116,15 @@ def parse_picos(spec: dict) -> StrategySpec:
             terms = _as_terms(raw)
         if terms:
             concepts.append(Concept(name=key, terms=terms, role=role, mesh=mesh))
-    return StrategySpec(
-        concepts=concepts,
-        year_from=spec.get("year_from"),
-        year_to=spec.get("year_to"),
-        languages=_as_terms(spec.get("languages")),
-        publication_types=_as_terms(spec.get("publication_types")),
-    )
+    return StrategySpec(concepts=concepts, **filters)
+
+
+def parse_picos(spec: dict) -> StrategySpec:
+    """Backward-compatible alias for historical PICOS/PECO integrations."""
+    return parse_strategy(spec)
 
 
 def _split_terms(text: object) -> list[str]:
-    """Split a free-text field into synonyms on newlines and semicolons.
-
-    Commas are intentionally *not* delimiters so multiword terms that contain a
-    comma survive intact. Blank fragments are dropped.
-    """
     if text is None:
         return []
     out: list[str] = []
@@ -119,6 +133,59 @@ def _split_terms(text: object) -> list[str]:
         if term:
             out.append(term)
     return out
+
+
+def _split_unified_terms(text: object) -> list[str]:
+    """Split the single research field into deduplicated OR alternatives."""
+    if text is None:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    normalized = str(text).replace(";", "\n").replace(",", "\n")
+    for chunk in normalized.split("\n"):
+        term = chunk.strip()
+        key = term.casefold()
+        if term and key not in seen:
+            out.append(term)
+            seen.add(key)
+    return out
+
+
+def _year(value: object) -> int | None:
+    try:
+        year = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return year or None
+
+
+def unified_from_text(
+    query: object = "",
+    *,
+    year_from: object = None,
+    year_to: object = None,
+    languages: object = "",
+    publication_types: object = "",
+) -> dict:
+    """Assemble the article-independent strategy payload used by the dashboard."""
+    terms = _split_unified_terms(query)
+    if not terms:
+        return {}
+
+    spec: dict = {"query": terms, "article_scope": ARTICLE_SCOPE_ALL}
+    year_lo = _year(year_from)
+    year_hi = _year(year_to)
+    if year_lo is not None:
+        spec["year_from"] = year_lo
+    if year_hi is not None:
+        spec["year_to"] = year_hi
+    langs = _split_terms(str(languages).replace(",", "\n"))
+    if langs:
+        spec["languages"] = langs
+    pts = _split_terms(publication_types)
+    if pts:
+        spec["publication_types"] = pts
+    return spec
 
 
 def picos_from_text(
@@ -134,18 +201,7 @@ def picos_from_text(
     languages: object = "",
     publication_types: object = "",
 ) -> dict:
-    """Assemble a PICOS dict (the input to :func:`parse_picos`) from raw text
-    fields, one synonym per line. Streamlit-free so the UI stays thin and this
-    assembly logic is testable on its own. Roles with no terms are omitted, and
-    ``year_from``/``year_to`` of 0 or blank are treated as unset.
-    """
-    def _year(value: object) -> int | None:
-        try:
-            year = int(value)  # type: ignore[arg-type]
-        except (TypeError, ValueError):
-            return None
-        return year or None
-
+    """Legacy six-field assembler retained for external compatibility."""
     spec: dict = {}
     for key, value in (
         ("population", population),
@@ -174,23 +230,19 @@ def picos_from_text(
 
 
 def parse_concepts(blocks: list) -> StrategySpec:
-    """Build a StrategySpec from a plain list of concept blocks.
-
-    Each block is a list of synonyms, or a dict ``{"name","terms","role","mesh"}``.
-    Blocks with no explicit role are treated as core ``intervention`` blocks so a
-    bare list of concepts still yields a meaningful AND-of-blocks query.
-    """
     concepts: list[Concept] = []
     for i, block in enumerate(blocks):
         if isinstance(block, dict):
             terms = _as_terms(block.get("terms"))
             if terms:
-                concepts.append(Concept(
-                    name=str(block.get("name") or f"block{i + 1}"),
-                    terms=terms,
-                    role=str(block.get("role") or "intervention"),
-                    mesh=_as_terms(block.get("mesh")),
-                ))
+                concepts.append(
+                    Concept(
+                        name=str(block.get("name") or f"block{i + 1}"),
+                        terms=terms,
+                        role=str(block.get("role") or "intervention"),
+                        mesh=_as_terms(block.get("mesh")),
+                    )
+                )
         else:
             terms = _as_terms(block)
             if terms:
@@ -198,23 +250,14 @@ def parse_concepts(blocks: list) -> StrategySpec:
     return StrategySpec(concepts=concepts)
 
 
-# --------------------------------------------------------------------------- #
-# Breadth selection.
-# --------------------------------------------------------------------------- #
-
 def _blocks_for_breadth(spec: StrategySpec, breadth: str) -> list[Concept]:
     if breadth == "broad":
         core = [c for c in spec.concepts if c.role in CORE_ROLES]
-        return core or spec.concepts[:1]  # never empty if any concept exists
-    return list(spec.concepts)  # balanced + specific use every block
+        return core or spec.concepts[:1]
+    return list(spec.concepts)
 
-
-# --------------------------------------------------------------------------- #
-# Per-provider term formatting.
-# --------------------------------------------------------------------------- #
 
 def _quote(term: str, provider: str) -> str:
-    """Phrase-quote multiword terms per provider (single words unquoted)."""
     term = term.strip()
     if " " not in term:
         return term
@@ -240,8 +283,8 @@ def _pubmed_filters(spec: StrategySpec, breadth: str) -> list[str]:
         lo = spec.year_from or 1900
         hi = spec.year_to or 3000
         out.append(f'("{lo}"[dp] : "{hi}"[dp])')
-    _lang = {"eng": "english", "por": "portuguese", "spa": "spanish"}
-    langs = [f"{_lang.get(x, x)}[lang]" for x in spec.languages]
+    language_names = {"eng": "english", "por": "portuguese", "spa": "spanish"}
+    langs = [f"{language_names.get(x, x)}[lang]" for x in spec.languages]
     if langs:
         out.append("(" + " OR ".join(langs) + ")")
     pts = [f'{_quote(pt, "pubmed")}[pt]' for pt in spec.publication_types]
@@ -287,12 +330,7 @@ def _openalex_filter_param(spec: StrategySpec, breadth: str) -> str:
     return ",".join(parts)
 
 
-# --------------------------------------------------------------------------- #
-# Public API.
-# --------------------------------------------------------------------------- #
-
 def build_query(spec: StrategySpec, provider: str, breadth: str = "balanced") -> str:
-    """The exact expression to send to ``provider`` at the given breadth level."""
     if provider not in PROVIDERS:
         raise ValueError(f"unknown provider: {provider!r}")
     if breadth not in BREADTHS:
@@ -303,26 +341,22 @@ def build_query(spec: StrategySpec, provider: str, breadth: str = "balanced") ->
 
     if provider == "pubmed":
         expr = " AND ".join(_pubmed_block(c) for c in blocks)
-        for f in _pubmed_filters(spec, breadth):
-            expr += f" AND {f}"
+        for item in _pubmed_filters(spec, breadth):
+            expr += f" AND {item}"
         return expr
 
     if provider == "europepmc":
         expr = " AND ".join(_plain_block(c, provider) for c in blocks)
-        for f in _europepmc_filters(spec, breadth):
-            expr += f" AND {f}"
+        for item in _europepmc_filters(spec, breadth):
+            expr += f" AND {item}"
         return expr
 
-    # Crossref / OpenAlex: free-text relevance query + a separate filter param
-    # (these APIs do not honour rich boolean in the query itself). Shown as
-    # `query=... | filter=...` so the researcher sees exactly what is sent.
     terms = " ".join(_quote(t, provider) for c in blocks for t in c.terms)
     filt = _crossref_filter_param(spec, breadth) if provider == "crossref" else _openalex_filter_param(spec, breadth)
     return f"query={terms} | filter={filt}" if filt else f"query={terms}"
 
 
 def build_all(spec: StrategySpec) -> dict[str, dict[str, str]]:
-    """Every provider × every breadth level: ``{provider: {breadth: expression}}``."""
     return {
         provider: {breadth: build_query(spec, provider, breadth) for breadth in BREADTHS}
         for provider in PROVIDERS
