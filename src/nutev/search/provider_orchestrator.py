@@ -78,8 +78,16 @@ def _optional_missing(provider: str) -> str | None:
 def _registry() -> dict[str, Callable[[str, int, dict[str, Any]], ProviderResult | list[dict[str, Any]]]]:
     return {
         "europepmc": lambda q, limit, ctx: search_europepmc(q, page_size=limit),
-        "openalex": lambda q, limit, ctx: search_openalex(q, per_page=limit),
-        "crossref": lambda q, limit, ctx: search_crossref(q, rows=limit),
+        "openalex": lambda q, limit, ctx: search_openalex(
+            q,
+            per_page=limit,
+            filter_value=str(ctx.get("provider_filter") or ""),
+        ),
+        "crossref": lambda q, limit, ctx: search_crossref(
+            q,
+            rows=limit,
+            filter_value=str(ctx.get("provider_filter") or ""),
+        ),
         "doaj": lambda q, limit, ctx: search_doaj(q, page_size=limit),
         "clinicaltrials": lambda q, limit, ctx: search_clinicaltrials(q, page_size=limit),
         "scielo": lambda q, limit, ctx: search_scielo(q, rows=limit),
