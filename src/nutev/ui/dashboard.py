@@ -177,6 +177,7 @@ def run_dashboard(project_root: Path) -> None:
         import json
 
         from nutev.search.strategy_builder import BREADTHS, build_all, parse_strategy, unified_from_text
+        from nutev.ui.search_registry_panel import render_search_registry_panel
 
         query_text = st.text_area(
             "O que você deseja pesquisar?",
@@ -238,6 +239,11 @@ def run_dashboard(project_root: Path) -> None:
                 },
                 "providers": grid,
             }
+            render_search_registry_panel(
+                project_root,
+                query_text=query_text,
+                strategy_payload=strategy_payload,
+            )
             st.download_button(
                 "Baixar estratégia global (JSON)",
                 json.dumps(strategy_payload, ensure_ascii=False, indent=2).encode("utf-8"),
