@@ -75,19 +75,27 @@ def _optional_missing(provider: str) -> str | None:
     return None
 
 
+def _search_openalex_with_context(query: str, limit: int, context: dict[str, Any]):
+    kwargs: dict[str, Any] = {"per_page": limit}
+    filter_value = str(context.get("provider_filter") or "").strip()
+    if filter_value:
+        kwargs["filter_value"] = filter_value
+    return search_openalex(query, **kwargs)
+
+
+def _search_crossref_with_context(query: str, limit: int, context: dict[str, Any]):
+    kwargs: dict[str, Any] = {"rows": limit}
+    filter_value = str(context.get("provider_filter") or "").strip()
+    if filter_value:
+        kwargs["filter_value"] = filter_value
+    return search_crossref(query, **kwargs)
+
+
 def _registry() -> dict[str, Callable[[str, int, dict[str, Any]], ProviderResult | list[dict[str, Any]]]]:
     return {
         "europepmc": lambda q, limit, ctx: search_europepmc(q, page_size=limit),
-        "openalex": lambda q, limit, ctx: search_openalex(
-            q,
-            per_page=limit,
-            filter_value=str(ctx.get("provider_filter") or ""),
-        ),
-        "crossref": lambda q, limit, ctx: search_crossref(
-            q,
-            rows=limit,
-            filter_value=str(ctx.get("provider_filter") or ""),
-        ),
+        "openalex": _search_openalex_with_context,
+        "crossref": _search_crossref_with_context,
         "doaj": lambda q, limit, ctx: search_doaj(q, page_size=limit),
         "clinicaltrials": lambda q, limit, ctx: search_clinicaltrials(q, page_size=limit),
         "scielo": lambda q, limit, ctx: search_scielo(q, rows=limit),
