@@ -84,7 +84,27 @@ def _resolve_max_results(default: int, max_results: int | None) -> int:
     return int(env) if env.isdigit() and int(env) > 0 else default
 
 
-def search_openalex(query: str, per_page: int = 12, max_results: int | None = None) -> list[dict]:
+def _request_params(
+    query: str,
+    per_page: int,
+    *,
+    filter_value: str = "",
+    cursor: str | None = None,
+) -> dict:
+    params: dict = {"search": query, "per-page": per_page, **_mailto()}
+    if filter_value.strip():
+        params["filter"] = filter_value.strip()
+    if cursor is not None:
+        params["cursor"] = cursor
+    return params
+
+
+def search_openalex(
+    query: str,
+    per_page: int = 12,
+    max_results: int | None = None,
+    filter_value: str = "",
+) -> list[dict]:
     if os.environ.get("NUTEV_DISABLE_NETWORK") == "1":
         return []
 
@@ -92,7 +112,9 @@ def search_openalex(query: str, per_page: int = 12, max_results: int | None = No
 
     # Single-page path — identical to the historical request (no cursor).
     if target <= per_page:
-        data = _openalex_get({"search": query, "per-page": per_page, **_mailto()})
+        data = _openalex_get(
+            _request_params(query, per_page, filter_value=filter_value)
+        )
         if not data:
             return []
         return [_normalize_openalex_item(item, query) for item in data.get("results", []) or []]
@@ -102,12 +124,14 @@ def search_openalex(query: str, per_page: int = 12, max_results: int | None = No
     seen: set[str] = set()
     cursor = "*"
     while len(collected) < target:
-        data = _openalex_get({
-            "search": query,
-            "per-page": min(per_page, target - len(collected)),
-            "cursor": cursor,
-            **_mailto(),
-        })
+        data = _openalex_get(
+            _request_params(
+                query,
+                min(per_page, target - len(collected)),
+                filter_value=filter_value,
+                cursor=cursor,
+            )
+        )
         if not data:
             break
         results = data.get("results", []) or []

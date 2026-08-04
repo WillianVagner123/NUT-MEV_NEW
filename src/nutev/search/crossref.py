@@ -81,7 +81,21 @@ def _resolve_max_results(default: int, max_results: int | None) -> int:
     return int(env) if env.isdigit() and int(env) > 0 else default
 
 
-def search_crossref(query: str, rows: int = 18, max_results: int | None = None) -> list[dict]:
+def _request_params(query: str, rows: int, *, filter_value: str = "", offset: int | None = None) -> dict:
+    params: dict = {"query": query, "rows": rows, **_mailto()}
+    if filter_value.strip():
+        params["filter"] = filter_value.strip()
+    if offset is not None:
+        params["offset"] = offset
+    return params
+
+
+def search_crossref(
+    query: str,
+    rows: int = 18,
+    max_results: int | None = None,
+    filter_value: str = "",
+) -> list[dict]:
     if os.environ.get("NUTEV_DISABLE_NETWORK") == "1":
         return []
 
@@ -89,7 +103,7 @@ def search_crossref(query: str, rows: int = 18, max_results: int | None = None) 
 
     # Single-page path — identical to the historical request (no offset).
     if target <= rows:
-        data = _crossref_get({"query": query, "rows": rows, **_mailto()})
+        data = _crossref_get(_request_params(query, rows, filter_value=filter_value))
         if not data:
             return []
         items = data.get("message", {}).get("items", []) or []
@@ -101,7 +115,9 @@ def search_crossref(query: str, rows: int = 18, max_results: int | None = None) 
     offset = 0
     while len(collected) < target:
         page = min(rows, target - len(collected))
-        data = _crossref_get({"query": query, "rows": page, "offset": offset, **_mailto()})
+        data = _crossref_get(
+            _request_params(query, page, filter_value=filter_value, offset=offset)
+        )
         if not data:
             break
         items = data.get("message", {}).get("items", []) or []
