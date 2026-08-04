@@ -14,6 +14,7 @@ from nutev.search.strategy_registry import (
     list_strategy_versions,
     save_strategy_version,
 )
+from nutev.ui.search_execution_panel import render_search_execution_panel
 
 
 def _strategy_option_label(item: dict) -> str:
@@ -47,7 +48,7 @@ def render_search_registry_panel(
     query_text: str,
     strategy_payload: dict,
 ) -> None:
-    """Render save/version controls and recent immutable strategy versions."""
+    """Render save/version controls, execution controls and recent versions."""
     registry_path = default_registry_path(project_root)
     strategies = list_strategies(registry_path)
     labels = ["Criar nova estratégia"] + [_strategy_option_label(item) for item in strategies]
@@ -141,3 +142,5 @@ def render_search_registry_panel(
             st.dataframe(_version_table(recent_versions), use_container_width=True, hide_index=True)
         else:
             st.info("Nenhuma estratégia foi salva neste projeto ainda.")
+
+    render_search_execution_panel(project_root, registry_path=registry_path)
