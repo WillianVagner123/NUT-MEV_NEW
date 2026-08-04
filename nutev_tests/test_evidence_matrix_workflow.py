@@ -450,7 +450,14 @@ def test_initialize_adds_tables_to_existing_registry(tmp_path):
     assert expected <= actual
 
 
-def test_search_registry_panel_imports_complete_workflow():
-    from nutev.ui.search_registry_panel import render_search_registry_panel
-
-    assert callable(render_search_registry_panel)
+def test_search_registry_panel_wires_complete_workflow_without_streamlit():
+    panel = (
+        Path(__file__).parents[1]
+        / "src"
+        / "nutev"
+        / "ui"
+        / "search_registry_panel.py"
+    ).read_text(encoding="utf-8")
+    assert "render_data_extraction_quality_panel" in panel
+    assert "10. Extração" in panel
+    assert "12. Matriz final" in panel
