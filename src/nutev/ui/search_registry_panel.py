@@ -15,6 +15,9 @@ from nutev.search.strategy_registry import (
     save_strategy_version,
 )
 from nutev.ui.article_screening_panel import render_article_screening_panel
+from nutev.ui.data_extraction_quality_panel import (
+    render_data_extraction_quality_panel,
+)
 from nutev.ui.full_text_assessment_panel import render_full_text_assessment_panel
 from nutev.ui.search_execution_panel import render_search_execution_panel
 
@@ -44,25 +47,45 @@ def _version_table(rows: list[dict]) -> pd.DataFrame:
     )
 
 
+def _render_workflow_map() -> None:
+    st.markdown("**Fluxo científico desta pesquisa**")
+    st.caption(
+        "1. Pesquisa global → 2. Expressões por base → 3. Versão imutável → "
+        "4. Execução → 5. Corpus mestre → 6. Duplicatas → 7. Triagem → "
+        "8. Texto completo → 9. Elegibilidade → 10. Extração → "
+        "11. Qualidade → 12. Matriz final e PRISMA."
+    )
+    st.progress(1.0, text="O painel oferece todas as 12 etapas no mesmo fluxo.")
+
+
 def render_search_registry_panel(
     project_root: Path,
     *,
     query_text: str,
     strategy_payload: dict,
 ) -> None:
-    """Render save/version controls, execution controls and recent versions."""
+    """Render the complete registered-search and review workflow."""
     registry_path = default_registry_path(project_root)
     strategies = list_strategies(registry_path)
-    labels = ["Criar nova estratégia"] + [_strategy_option_label(item) for item in strategies]
+    labels = ["Criar nova estratégia"] + [
+        _strategy_option_label(item) for item in strategies
+    ]
     by_label = {_strategy_option_label(item): item for item in strategies}
 
-    with st.expander("Registro e versionamento", expanded=True):
+    _render_workflow_map()
+
+    with st.expander("3 · Registro e versionamento", expanded=True):
         st.caption(
             "Cada salvamento cria uma versão imutável. Buscas piloto não entram "
-            "automaticamente no PRISMA; buscas formais e suplementares entram por padrão."
+            "automaticamente no PRISMA; buscas formais e suplementares entram "
+            "por padrão."
         )
 
-        selected_label = st.selectbox("Estratégia", labels, key="search_registry_strategy")
+        selected_label = st.selectbox(
+            "Estratégia",
+            labels,
+            key="search_registry_strategy",
+        )
         selected = by_label.get(selected_label)
         selected_strategy_id = str(selected["strategy_id"]) if selected else None
 
@@ -111,12 +134,18 @@ def render_search_registry_panel(
 
         notes = st.text_area(
             "Notas da versão",
-            placeholder="Ex.: versão aprovada após teste piloto e calibração da equipe.",
+            placeholder=(
+                "Ex.: versão aprovada após teste piloto e calibração da equipe."
+            ),
             height=90,
             key="search_registry_notes",
         )
 
-        if st.button("Salvar versão no registro", type="primary", key="search_registry_save"):
+        if st.button(
+            "Salvar versão no registro",
+            type="primary",
+            key="search_registry_save",
+        ):
             try:
                 saved = save_strategy_version(
                     registry_path,
@@ -141,10 +170,18 @@ def render_search_registry_panel(
         recent_versions = list_strategy_versions(registry_path, limit=20)
         if recent_versions:
             st.markdown("**Versões recentes**")
-            st.dataframe(_version_table(recent_versions), use_container_width=True, hide_index=True)
+            st.dataframe(
+                _version_table(recent_versions),
+                use_container_width=True,
+                hide_index=True,
+            )
         else:
             st.info("Nenhuma estratégia foi salva neste projeto ainda.")
 
     render_search_execution_panel(project_root, registry_path=registry_path)
     render_article_screening_panel(project_root, registry_path=registry_path)
     render_full_text_assessment_panel(project_root, registry_path=registry_path)
+    render_data_extraction_quality_panel(
+        project_root,
+        registry_path=registry_path,
+    )
