@@ -1,76 +1,70 @@
 # NOTICE
 
-This project, **NutEV/NutMEV** (`nutev-nutmev`), is built on top of an inherited
-open-source engine and adds a distinct scientific/methodological layer. This
-notice records provenance, licensing and the boundary between inherited code and
-NutEV contributions, as required for a responsible public release.
+This project, **NutEV/NutMEV** (`nutev-nutmev`), evolved from an inherited open-source codebase and now contains a distinct scientific/methodological implementation under the NutEV Evidence Engine. This notice records provenance, licensing and the boundary between inherited history and the current source tree.
 
 ## 1. Inherited project
 
 - **Inherited engine:** Local Deep Research (LDR)
 - **Original copyright:** Copyright (c) 2025 **LearningCircuit** (see `LICENSE`)
 - **Original license:** MIT License (retained in `LICENSE`, unchanged)
-- **Original project URL:** https://github.com/LearningCircuit/local-deep-research
-  <!-- REVIEW REQUIRED: confirm the exact upstream repository URL and release/commit
-       the inherited code was derived from before public release. -->
+- **Upstream repository:** https://github.com/LearningCircuit/local-deep-research
+- **Exact derivation point:** HUMAN INPUT REQUIRED before final DOI minting if a specific upstream commit/release is to be stated. Do not invent it.
 
-The inherited code lives under `src/local_deep_research/` and retains its MIT
-license and copyright attribution. **That attribution must not be removed.**
+The inherited LDR engine is **not present in the current working tree**. Its historical code remains in Git history, and its MIT attribution is preserved by the repository license and this NOTICE.
 
-## 2. Modifications
+## 2. Current NutEV contributions
 
-NutEV/NutMEV modifies and extends the inherited base by:
+The current repository contains the NutEV Evidence Engine, including:
 
-- adding a **canonical NutEV engine** under `src/nutev/` (analysis, audit, engine,
-  export, global_watch, pipelines, protocol, querypacks, review, search, ui, api,
-  demo, extract, download);
-- adding NutEV rule/ontology/scoring/taxonomy configuration under `config/`;
-- adding the canonical test suite `nutev_tests/`;
-- adding NutEV methodology, governance and reproducibility documentation under
-  `docs/`;
-- decoupling package identity, entrypoints and dependencies from the inherited
-  package (the `nutev` command and core no longer depend on LDR).
+- the canonical NutEV engine under `src/nutev/`;
+- NutEV configuration, taxonomy and methodological rules under `config/`;
+- the canonical test suite under `nutev_tests/`;
+- methodology, governance, reproducibility and release documentation under `docs/`;
+- the `nutev` command-line entry point and associated dashboard/API components.
 
-The inherited engine (`src/local_deep_research/**`), the legacy test suite
-(`tests/**`) and the legacy frontend/Docker infrastructure have now been
-**removed** from the working tree (see `docs/LEGACY_MIGRATION_PLAN.md`). The code
-remains in Git history and its copyright/attribution is preserved (see `LICENSE`
-and §1). This NOTICE documents that derivation.
+The current `src/nutev/` runtime does not depend on the removed `src/local_deep_research/` tree.
 
-## 3. Boundary: inherited vs NutEV code
+## 3. Boundary: inherited history vs current tree
 
-| Path | Provenance | License |
+| Path / component | Current status | Provenance / licensing note |
 |---|---|---|
-| `src/local_deep_research/**` (removed from tree; in history) | Inherited (LDR) | MIT (LearningCircuit) |
-| `tests/**` (removed from tree; in history) | Inherited (LDR) | MIT (LearningCircuit) |
-| `src/sitecustomize.py`, `src/usercustomize.py` | NutEV runtime hooks (retained; used by `nutev_tests`) | MIT (this repository) |
-| `src/nutev/**` | NutEV contribution | MIT (this repository) |
-| `config/**`, `nutev_tests/**` | NutEV contribution | MIT (this repository) |
-| NutEV `docs/**` (methodology/governance) | NutEV contribution | see doc headers |
+| `src/local_deep_research/**` | Removed from current tree; retained only in Git history | Inherited LDR code, MIT / LearningCircuit |
+| legacy `tests/**` | Removed from current tree; retained only in Git history | Inherited historical test suite |
+| `src/nutev/**` | Present | NutEV contribution; repository distributed under MIT |
+| `config/**` | Present | NutEV project configuration/methodology files |
+| `nutev_tests/**` | Present | NutEV canonical tests |
+| NutEV `docs/**` | Present | NutEV scientific/methodological documentation |
+
+Historical runtime compatibility shims such as `src/sitecustomize.py` and `src/usercustomize.py` are no longer part of the current tree and must not be described as retained runtime components.
 
 ## 4. NutEV authorship
 
-- **NutEV/NutMEV contributions:** the NutEV/NutMEV Project.
-  <!-- REVIEW REQUIRED: confirm the human author name(s), affiliation(s) and
-       ORCID(s) for the NutEV contributions and record them in CITATION.cff.
-       Do not invent this information. -->
+Current release metadata identifies:
+
+- **Willian Vagner Dorneles Schneider** — NutEV Evidence Engine creator metadata.
+
+Before minting the DOI, confirm and synchronize the following human metadata across `.zenodo.json` and `CITATION.cff`:
+
+- exact institutional affiliation;
+- ORCID;
+- any additional creators/contributors and their order, if applicable.
+
+Do not derive scientific authorship automatically from commit history and do not invent missing identifiers.
 
 ## 5. Third-party dependencies and assets
 
-- Python dependencies are declared in `pyproject.toml`; each carries its own
-  upstream license. Optional/heavy stacks (LLM providers, OCR, browser capture)
-  are only pulled in via optional extras.
-- Bundled assets that were inherited from LDR (e.g. `local_deep_research/web/static`
-  icons/fonts/favicon) may carry their own licenses.
-  <!-- REVIEW REQUIRED: verify licenses of bundled fonts/icons/images before
-       redistribution. -->
+- Python dependencies are declared in `pyproject.toml`; each dependency carries its own upstream license.
+- Optional document, OCR, dashboard, API, watch and reporting stacks are installed through optional dependency groups.
+- The current source tree should be audited before every citable release for third-party binary assets, copied code, generated outputs and other material whose redistribution terms may differ from the repository MIT license.
 
-## 6. Open licensing / authorship questions (pending human/legal review)
+## 6. Release provenance gates
 
-1. Confirm exact upstream repository URL and derivation point (§1).
-2. Confirm licenses of bundled binary assets (§5).
-3. Confirm NutEV human authorship/affiliation/ORCID (§4) and mirror into
-   `CITATION.cff`.
-4. Confirm whether any part of the codebase needs a different license than MIT;
-   if so, document per-part licensing here. Do not change the license on
-   assumption.
+Before a citable Zenodo release:
+
+1. Confirm the exact upstream derivation point if it will be stated publicly.
+2. Confirm that no inherited binary/static assets remain without documented redistribution rights.
+3. Confirm NutEV creator/contributor names, affiliations and ORCIDs.
+4. Confirm that the release contains no protected PDFs/full text, personal/clinical data, credentials or non-redistributable outputs.
+5. Keep the LearningCircuit MIT attribution in `LICENSE` and this NOTICE; do not remove historical attribution.
+
+This NOTICE is a provenance record, not a claim that every current line of code originated in the upstream project.
