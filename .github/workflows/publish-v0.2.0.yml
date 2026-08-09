@@ -78,7 +78,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --name nutev-v0.2.0-release-validation \
             --dir release-assets
-          find release-assets -type f -maxdepth 4 -print
+          find release-assets -maxdepth 4 -type f -print
 
       - name: Write immutable validation record
         if: steps.existing.outputs.exists != 'true'
@@ -120,11 +120,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,targetCommitish,url,name
-          REMOTE_TAG_SHA=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
-          if [ -z "$REMOTE_TAG_SHA" ]; then
-            echo "ERROR: published tag cannot be resolved"
-            exit 1
-          fi
+          git fetch --force origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
           TAG_COMMIT=$(git rev-list -n 1 "$RELEASE_TAG")
           test "$TAG_COMMIT" = "$VALIDATED_SHA"
           echo "Published $RELEASE_TAG at validated SHA $VALIDATED_SHA"
