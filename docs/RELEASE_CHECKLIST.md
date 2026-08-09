@@ -1,31 +1,24 @@
-# Release Checklist — v0.2.0
+# Release Checklist — reusable template
 
-Prepare the first **citation-grade reconciled release** of the **NutEV Evidence Engine**. The software remains at **alpha scientific maturity**, while the release identifier is **0.2.0** and the Git tag is **v0.2.0**.
+This checklist applies to **future NutEV Evidence Engine releases**. The completed historical record for `v0.2.0` is `docs/RELEASE_RECORD_v0.2.0.md`; do not reuse this template to reinterpret or move that immutable tag.
 
-The repository already contains historical tags `v0.1.0`–`v0.1.8`; they must remain immutable and must not be reused or moved.
+Scientific maturity may remain **alpha** even when a new software version is published. Maturity and version identity are separate concepts.
 
 ## 0. Candidate identity
 
-- **Software version:** `0.2.0`
-- **Planned Git tag:** `v0.2.0`
-- **Scientific maturity:** alpha
-- **Candidate commit SHA:** record from the final validated `main`
-- **Validation date:** record from the final release workflow
+Record before validation:
 
-The same version must appear in `src/nutev/__version__.py`, `.zenodo.json`, `CITATION.cff`, `CHANGELOG.md`, the Git tag, GitHub Release title and Zenodo version record.
+- **Software version:** `<VERSION>`
+- **New Git tag:** `v<VERSION>`
+- **Scientific maturity:** `<MATURITY>`
+- **Candidate commit SHA:** `<SHA>`
+- **Validation date:** `<DATE>`
+
+The same version must appear in the canonical version source, `.zenodo.json`, `CITATION.cff`, CHANGELOG, Git tag and GitHub Release metadata.
 
 ### Blocking tag-collision check
 
-Before publication:
-
-```bash
-if git rev-parse -q --verify refs/tags/v0.2.0 >/dev/null; then
-  echo "ERROR: v0.2.0 already exists; do not overwrite or move it."
-  exit 1
-fi
-```
-
-- [ ] `v0.2.0` does not already exist.
+- [ ] target tag does not already exist;
 - [ ] no historical tag will be deleted, moved or force-recreated.
 
 ## 1. Human metadata gate
@@ -33,40 +26,48 @@ fi
 Do not invent missing metadata.
 
 - [ ] creator name/order confirmed;
-- [ ] ORCID confirmed if it will be included;
-- [ ] exact institutional affiliation confirmed if it will be included;
+- [ ] ORCID included only if verified;
+- [ ] exact institutional affiliation included only if verified;
 - [ ] funding/grant metadata confirmed if applicable;
-- [ ] Article 1 DOI added only if it exists and the relation is appropriate;
-- [ ] upstream derivation point confirmed if stated publicly.
+- [ ] related publication DOI added only if it exists and the relation is correct;
+- [ ] upstream derivation statements verified.
 
-ORCID and affiliation are valuable metadata but absence must be represented as absence, never as fabricated placeholders in the final Zenodo record.
-
-## 2. Provenance and licensing gate
+## 2. Provenance and licensing
 
 - [ ] `NOTICE.md` matches the current tree;
-- [ ] removed inherited paths are historical only;
-- [ ] LearningCircuit MIT attribution is preserved;
-- [ ] third-party/static/binary assets have documented redistribution rights or are excluded;
+- [ ] removed inherited paths are described as historical only;
+- [ ] LearningCircuit/Local Deep Research MIT attribution is preserved;
+- [ ] third-party assets have redistribution rights or are excluded;
 - [ ] protected third-party full text is not bundled;
 - [ ] no license change is made by assumption.
 
 ## 3. Clean-environment installation
 
-Validate Python **3.12** and **3.13**, matching `>=3.12,<3.14`.
+Validate the Python versions declared by the package metadata.
 
-- [ ] Python 3.12 canonical suite passes.
-- [ ] Python 3.13 canonical suite passes.
-- [ ] exact SHA and interpreter versions are recorded.
+- [ ] canonical suite passes on every declared CI interpreter;
+- [ ] exact candidate SHA and interpreter versions are recorded;
+- [ ] failures capable of changing scientific outputs are resolved or explicitly block publication.
 
-The release-reconciliation CI already demonstrated 703 passed / 8 skipped / 1 xpassed on both interpreters; the final release candidate must still be validated at its own SHA.
+## 4. Canonical tests and quality gates
 
-## 4. Zero-key demonstration
+- [ ] full canonical pytest suite passes;
+- [ ] blocking Ruff checks pass;
+- [ ] CodeQL passes;
+- [ ] security-scan/gitleaks/repository hygiene passes;
+- [ ] dependency review **actually executes** and passes.
 
-```bash
-nutev --help
-nutev demo-data --project-root ./project_output_demo
-test -f project_output_demo/07_logs/run_summary.json
-```
+### Dependency-review requirement
+
+A green workflow conclusion is insufficient if the dependency-review action was skipped/unsupported. Before treating this gate as PASS:
+
+- [ ] GitHub Dependency Graph is enabled;
+- [ ] dependency-review action executes successfully;
+- [ ] the step is blocking (no `continue-on-error: true` around the security gate).
+
+The `v0.2.0` release predates this correction; its dependency review is documented as **NOT VALIDATED** in the historical release record.
+
+## 5. Zero-key demonstration
 
 - [ ] CLI works;
 - [ ] demo requires no private API key;
@@ -74,112 +75,109 @@ test -f project_output_demo/07_logs/run_summary.json
 - [ ] `run_summary.json` exists;
 - [ ] demo is visibly synthetic and not scientific evidence.
 
-## 5. Canonical tests
-
-```bash
-PYTHONPATH=src python -m pytest -q nutev_tests
-```
-
-Record exact passed/failed/skipped/xfailed/xpassed values. Any failure capable of changing corpus composition, extraction, deduplication, coding, provenance, screening, export or audit output is a release blocker until resolved or methodologically justified.
-
-- [ ] full canonical suite passes on the final candidate.
-
 ## 6. Build distribution artifacts
 
-```bash
-python -m pip install build twine
-python -m build
-python -m twine check dist/*
-```
-
-- [ ] wheel builds as `0.2.0`;
-- [ ] sdist builds as `0.2.0`;
+- [ ] wheel builds with candidate version;
+- [ ] sdist builds with candidate version;
 - [ ] `twine check` passes;
-- [ ] installed wheel exposes `nutev`;
-- [ ] installed wheel can run the zero-key demo if this is claimed.
+- [ ] clean installed wheel exposes `nutev`;
+- [ ] zero-key demo works from the installed artifact if claimed.
 
-## 7. Configuration / package boundary
+## 7. Configuration/package boundary
 
-The repository checkout is the canonical path for complete scientific runs unless wheel-only full-pipeline reproduction is explicitly demonstrated.
+- [ ] repository-checkout scientific path is validated;
+- [ ] wheel-only claims match what was actually tested;
+- [ ] configuration assets required for scientific runs are available through the documented route.
 
-- [ ] repository checkout + editable install path validated;
-- [ ] wheel-only demo validated;
-- [ ] wheel-only full scientific pipeline either verified or explicitly described as not guaranteed.
+## 8. Search provenance and Article 1 scientific contract
 
-## 8. Documentation consistency
+If the release can be used for Article 1 execution, verify `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`.
 
-- [ ] Python support is `>=3.12,<3.14`;
-- [ ] release identity is `0.2.0` / `v0.2.0`;
-- [ ] alpha is described as maturity only;
+- [ ] generated queries are stored separately from executed queries;
+- [ ] every expression described as executed maps to an actual attempt record;
+- [ ] `query_execution_ledger.json/.csv` is generated for generic-pipeline runs;
+- [ ] frozen indexed-database runs preserve exact expressions, snapshots and SHA-256 values;
+- [ ] official-source track preserves manifest/config provenance and artifact hashes where applicable;
+- [ ] provider limits/pagination/truncation are explicit;
+- [ ] SciELO-prefix retrieval is not described as comprehensive native SciELO search;
+- [ ] computational completion is separate from `scientific_readiness`;
+- [ ] manuscript readiness cannot be inferred without explicit human/manuscript gates.
+
+## 9. Documentation consistency
+
+- [ ] Python support matches package metadata;
+- [ ] release identity is consistent everywhere;
+- [ ] alpha/beta/etc. is described as maturity rather than a competing version;
 - [ ] output locations match code;
 - [ ] workflow names match `.github/workflows/`;
 - [ ] Evidence Engine vs Decision Engine boundary is consistent;
 - [ ] human review requirements are consistent;
 - [ ] protected-content policy is consistent;
-- [ ] no current instruction tells maintainers to publish a historical `v0.1.x` tag.
-
+- [ ] provider documentation matches the current tree/runtime;
+- [ ] release documentation uses published/past tense only after publication;
 - [ ] relative Markdown link check passes.
 
-## 9. Security, privacy and repository hygiene
+## 10. Security, privacy and repository hygiene
 
-- [ ] security-scan/gitleaks passes on exact candidate SHA;
-- [ ] CodeQL passes;
 - [ ] no secrets/tokens/private keys;
 - [ ] no unsafe `.env`;
 - [ ] no patient/participant/identifiable clinical data;
 - [ ] no local DB/dumps;
 - [ ] no protected PDFs/full texts;
 - [ ] no real `project_output*` tree;
-- [ ] no unreviewed gitleaks suppression.
+- [ ] no unreviewed gitleaks suppression;
+- [ ] security Actions used for release gating are pinned/reviewed according to repository policy.
 
-## 10. Reproducibility record
+## 11. Reproducibility record
 
-The release-validation workflow must capture:
+Capture for the candidate:
 
-- version;
-- candidate SHA;
-- runner OS;
-- Python version;
-- exact installed dependency snapshot;
-- built wheel and sdist;
-- test result;
-- zero-key demo result.
+- software version/tag/SHA;
+- runner OS and Python version;
+- exact resolved dependency snapshot;
+- build artifacts;
+- canonical test result;
+- zero-key demo result;
+- documentation-link validation;
+- security results;
+- known limitations.
 
-Scientific runs cited in manuscripts should additionally record `config_digest`, config provenance, frozen search strategy, reviewer/adjudication ledger, coverage-loss/full-text report and exact publication tables.
+For manuscript scientific runs additionally retain:
 
-- [ ] release environment artifact exists.
-
-## 11. Scientific traceability gate
-
-Verify `docs/ARTICLE1_SOFTWARE_TRACEABILITY.md`.
-
-- [ ] method claim → module → test → output → human boundary is documented;
-- [ ] no manuscript claim exceeds the tagged implementation;
-- [ ] no automated output is described as a final scientific/clinical decision.
+- protocol/search-strategy version;
+- `config_digest` and per-config hashes;
+- exact query execution ledger;
+- retrieval dates;
+- provider limits/truncation/pagination;
+- raw snapshots/checksums where required;
+- official-source manifest/artifact provenance;
+- deduplication state;
+- full-text/recoverability state;
+- coverage-loss state;
+- human screening/adjudication state;
+- final PRISMA/manuscript export identifiers.
 
 ## 12. Metadata validation
 
 ### `.zenodo.json`
 
 - [ ] valid JSON;
-- [ ] version `0.2.0`;
+- [ ] candidate version correct;
 - [ ] title/creator/license correct;
 - [ ] no fake DOI;
 - [ ] optional human metadata included only when confirmed.
 
 ### `CITATION.cff`
 
-- [ ] valid CFF 1.2.0;
-- [ ] version `0.2.0`;
+- [ ] valid CFF;
+- [ ] candidate version correct;
 - [ ] creator/title/license synchronized;
-- [ ] release date added only when known;
-- [ ] DOI added only after Zenodo minting.
-
-For GitHub→Zenodo archival, `.zenodo.json` is the deposit metadata file; keep `CITATION.cff` synchronized for citation tooling.
+- [ ] release date only when known;
+- [ ] DOI only after a real archive exists.
 
 ## 13. GO / NO-GO
 
-Required statuses:
+Required minimum gates:
 
 - VERSIONING — PASS
 - TAG COLLISION — PASS
@@ -188,6 +186,7 @@ Required statuses:
 - ZERO-KEY DEMO — PASS
 - REPRODUCIBILITY — PASS
 - SECURITY — PASS
+- DEPENDENCY REVIEW — PASS (actually executed)
 - PRIVACY — PASS
 - COPYRIGHT — PASS
 - PROVENANCE — PASS
@@ -196,31 +195,15 @@ Required statuses:
 - SCIENTIFIC CONSISTENCY — PASS
 - DOCUMENTATION — PASS
 
-Only `READY FOR RELEASE` authorizes publication.
+Only an explicit `READY FOR RELEASE` decision authorizes a new publication.
 
-## 14. Tag and GitHub Release
+## 14. Publication and post-release record
 
-After every gate passes, create **new** tag `v0.2.0` from the exact validated `main` SHA. Never retag an existing release.
+After every gate passes:
 
-Release title:
-
-**NutEV Evidence Engine v0.2.0**
-
-The release notes must state **alpha research-software maturity** and link to `docs/RELEASE_NOTES_v0.2.0.md`.
-
-## 15. Zenodo archival
-
-When the GitHub→Zenodo integration is enabled:
-
-- [ ] publish the GitHub Release;
-- [ ] verify Zenodo archived exact tag `v0.2.0`;
-- [ ] record Version DOI;
-- [ ] record Concept DOI if applicable;
-- [ ] verify actual Zenodo title/creators/version/license/keywords;
-- [ ] use the Version DOI for manuscript reproducibility.
-
-Do not claim a DOI until the Zenodo record actually exists.
-
-## 16. Post-release record
-
-Record release date, tag, commit SHA, GitHub Release, Zenodo Version DOI, Concept DOI if applicable, final metadata snapshot and known limitations. The archived `v0.2.0` release must remain immutable.
+- create a **new** immutable tag from the exact validated SHA;
+- publish the GitHub Release;
+- record release date, tag, commit SHA and known limitations;
+- verify any Zenodo archival from the actual public record before adding a DOI;
+- never move an already-published tag to add metadata;
+- make DOI/documentation corrections in later commits/releases while preserving historical immutability.
