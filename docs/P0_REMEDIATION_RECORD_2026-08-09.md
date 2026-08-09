@@ -4,7 +4,7 @@
 
 This record tracks remediation of the P0 findings identified in `docs/COMPLETE_CODE_SCIENTIFIC_AUDIT_2026-08-09.md` after publication of the immutable `v0.2.0` release.
 
-The published `v0.2.0` tag is not modified or repointed by this work. The post-release source tree now identifies itself as **`0.3.0.dev0`** so development code cannot be mistaken for the exact published `0.2.0` software object. Public citation/archive metadata remains on the latest real release until a future release candidate is deliberately synchronized.
+The published `v0.2.0` tag is not modified or repointed by this work. The post-release source tree identifies itself as **`0.3.0.dev0`** so development code cannot be mistaken for the exact published `0.2.0` software object. Public citation/archive metadata remains on the latest real release until a future release candidate is deliberately synchronized.
 
 ## Current branch / pull request
 
@@ -22,13 +22,15 @@ The published `v0.2.0` tag is not modified or repointed by this work. The post-r
 | Methods writer could consume generated rather than actually attempted expressions | **REMEDIATED IN PR #976** | Methods docs now use finalized attempt evidence and explicitly name the JSON/CSV execution ledgers. |
 | Definitive providers/search mechanisms were split across paths without one explicit manuscript contract | **REMEDIATED AT CONTRACT LEVEL IN PR #976** | `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` defines frozen indexed-database, official-source/institutional, and supplementary discovery tracks with minimum provenance requirements. |
 | Provider/pipeline completion could be conflated with scientific readiness | **REMEDIATED IN PR #976** | `run_summary.json` receives separate `execution_status` and `scientific_readiness` semantics. `manuscript_ready` requires explicit human-review and manuscript-gate flags. |
-| Dependency review could appear green without running | **CODE REMEDIATED / REPOSITORY SETTING BLOCKED** | `continue-on-error` was removed. The check now fails honestly because GitHub Dependency Graph is disabled. Dependency Graph must be enabled before this gate can PASS. |
+| Dependency review could appear green without running | **CODE REMEDIATED / REPOSITORY SETTING BLOCKED** | `continue-on-error` was removed and the action is SHA-pinned. The check now fails honestly because GitHub Dependency Graph is disabled. |
 | Public docs contained pre-release/stale provider statements | **REMEDIATED IN PR #976** | README, Code Availability, Reproducibility, Search Providers, Zenodo setup, validation/release records and release/settings checklists were reconciled. |
-| Search-source registry lagged implemented providers | **REMEDIATED IN PR #976** | `source_registry.json` is now the canonical search/evidence-source registry with an explicit crosswalk to `provider_registry.json`; a regression test requires full search-provider coverage. |
-| No coverage regression gate | **HARDENED IN PR #976** | Branch-aware baseline measured at 73%; CI floor set conservatively at 70%, with room to raise as low-coverage optional/UI modules gain tests. |
+| Search-source registry lagged implemented providers | **REMEDIATED IN PR #976** | `source_registry.json` is the canonical search/evidence-source registry with an explicit crosswalk to `provider_registry.json`; a regression test requires full search-provider coverage. |
+| No coverage regression gate | **HARDENED IN PR #976** | Branch-aware baseline measured at 73.16%; CI floor set conservatively at 70%. |
 | Linux-only canonical verification | **HARDENED IN PR #976** | Added Windows Python 3.12 install, CLI-help and zero-key-demo smoke job. |
-| No type-check gate on provenance-critical code | **HARDENED IN PR #976** | Added incremental mypy gate for logs/methods writer/strategy executor/strategy ledger rather than pretending the whole historical codebase is strictly typed. |
+| No type-check gate on provenance-critical code | **HARDENED IN PR #976** | Added incremental mypy gate for logs/methods writer/strategy executor/strategy ledger. |
 | Python syntax depended on indirect tooling | **HARDENED IN PR #976** | Added explicit `python -m compileall -q src/nutev` gate. |
+| Critical official Actions referenced mutable release lines | **HARDENED IN PR #976** | Validated revisions of `actions/checkout`, `actions/setup-python`, `github/codeql-action` and `actions/dependency-review-action` are pinned to full commit SHAs. |
+| SHA-pinned Actions could become stale | **HARDENED IN PR #976** | `.github/dependabot.yml` now schedules weekly `github-actions` update PRs for review. |
 | Old PR backlog was not methodologically triaged | **TRIAGED IN PR #976** | `docs/OPEN_PR_TRIAGE_2026-08-09.md` groups historical July proposals by scientific family and forbids stale as-is merges. |
 
 ## Query provenance contract after remediation
@@ -78,7 +80,7 @@ The earlier advanced CodeQL workflow could complete successfully while retaining
 
 The investigation found that the module's original first docstring line contained `coding: tracks`, which the CodeQL extractor could interpret like an encoding marker. That wording was changed to `coding for tracks`; the PR diff changes only the docstring line and does not alter Article 1 coding logic.
 
-CodeQL was upgraded from Action v3 to v4. Because pull-request analysis can use an incremental/overlay database based on the target branch, a **fresh standalone CodeQL database** was also created from only the current `article1_coding.py`. A blocking diagnostic step searched the fresh extractor logs for `parse error`, `Could not process`, or an encoding diagnostic and completed successfully with no match.
+CodeQL was upgraded from Action v3 to v4. Because pull-request analysis can use an incremental/overlay database based on the target branch, a **fresh standalone CodeQL database** was also created from only the current `article1_coding.py`. A blocking diagnostic searched the fresh extractor logs for `parse error`, `Could not process`, or an encoding diagnostic and completed successfully with no match.
 
 Conclusion:
 
@@ -89,6 +91,19 @@ Conclusion:
 
 A full post-merge CodeQL run on the new `main` SHA remains part of final audit closure so the base database itself is refreshed.
 
+## Supply-chain hardening
+
+The remediation branch now pins the critical **official GitHub/Actions** revisions used by the validated paths to full immutable commit SHAs:
+
+- `actions/checkout`;
+- `actions/setup-python`;
+- `github/codeql-action`;
+- `actions/dependency-review-action`.
+
+The chosen SHAs correspond to revisions already exercised in the remediation validation path rather than untested tag movement. `.github/dependabot.yml` schedules weekly `github-actions` update PRs so these pins remain reviewable and maintainable.
+
+The third-party `gitleaks/gitleaks-action` remains on its reviewed v2 release line pending a separate upstream/runtime review and is not misrepresented as SHA-pinned.
+
 ## Automated validation established during PR #976 development
 
 The remediation branch has demonstrated across its validation cycles:
@@ -96,7 +111,7 @@ The remediation branch has demonstrated across its validation cycles:
 - canonical CI, Python 3.12: **PASS**;
 - canonical CI, Python 3.13: **PASS**;
 - focused provenance/readiness regression tests: **PASS**;
-- measured branch-aware total coverage: **73%**;
+- measured branch-aware total coverage: **73.16%**;
 - blocking coverage floor: **70%**;
 - Windows Python 3.12 installation/CLI/zero-key demo: **PASS**;
 - provenance-core mypy gate: **PASS**;
@@ -107,7 +122,7 @@ The remediation branch has demonstrated across its validation cycles:
 - fresh standalone CodeQL parse/extraction diagnostic for current `article1_coding.py`: **PASS**;
 - dependency-review: **FAIL — expected repository-setting blocker**.
 
-The final PR-head SHA must pass the same non-external gates after this record is committed; old green runs are not substituted for validation of a newer SHA.
+The exact final PR-head SHA must pass the same non-external gates after the last documentation/supply-chain commit; old green runs are not substituted for validation of a newer SHA.
 
 The dependency-review failure is not a reported vulnerable dependency. The GitHub action explicitly reports that dependency review is unsupported because Dependency Graph is disabled, so dependency analysis cannot currently start.
 
@@ -148,4 +163,4 @@ After Dependency Graph is enabled, dependency-review passes and PR #976 is merge
 4. confirm the new `main` package identity is not confused with the frozen `v0.2.0` release;
 5. confirm public docs no longer describe `v0.2.0` as planned;
 6. close the P0 audit as `AUDIT CLOSED FOR DEFINITIVE ARTICLE 1 EXECUTION`, subject to a real definitive run satisfying the execution contract;
-7. continue remaining P1 hardening separately (immutable Action SHA pinning, dependency-update automation decision, wheel/config packaging boundary, broader typing/coverage targets and thematic scientific review of the historical PR proposals).
+7. continue the remaining P1 items separately: wheel/config packaging boundary, broader typing/coverage targets, third-party Action/runtime review, Python dependency-update policy and thematic scientific review of historical PR proposals.
