@@ -1,6 +1,18 @@
 # NutEV search providers
 
-`src/nutev` is the canonical NutEV/NutMEV runtime. `src/local_deep_research` remains in the repository only as legacy/reference code.
+`src/nutev` is the canonical NutEV Evidence Engine runtime. The historical `src/local_deep_research` runtime is **not present in the current source tree**; its attribution/provenance is retained in `NOTICE.md`, `LICENSE`, and Git history.
+
+For the Article 1 manuscript contract, also read `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`.
+
+## Provider roles are methodological, not merely technical
+
+A provider being implemented does not automatically make it part of a definitive Article 1 search. The protocol/search-strategy version must declare its role. Distinguish:
+
+1. **frozen indexed-database track** — immutable strategy versions executed through the strategy executor where supported;
+2. **official guideline/institutional track** — organizations, food guidelines, society documents and official sources;
+3. **supplementary discovery track** — optional providers used only when declared by the protocol.
+
+Different tracks may remain separate, but no source/query may be described as executed without run-level evidence.
 
 ## PubMed / NCBI
 
@@ -13,51 +25,88 @@ Recommended variables:
 - `NCBI_API_KEY`: optional; increases allowed NCBI rate.
 - `NCBI_TOOL`: defaults to `nutev_pipeline`.
 
-Without an API key, NutEV sleeps about 0.40 seconds between NCBI requests. With an API key it sleeps about 0.13 seconds.
+Without an API key, NutEV uses conservative request pacing; with a key, a shorter interval is permitted by the client configuration.
 
 ## Europe PMC, OpenAlex and Crossref
 
-These scientific providers are independent of Google. Each provider has timeout/retry protection and failures are converted into provider failure events instead of crashing the pipeline. Use `OPENALEX_MAILTO` and `CROSSREF_MAILTO` where possible.
+These scientific providers are independent of Google. Each provider has timeout/retry protection and failures are converted into provider failure events instead of crashing the whole pipeline. Use `OPENALEX_MAILTO` and `CROSSREF_MAILTO` where possible.
 
-## DOAJ (Directory of Open Access Journals)
+## DOAJ
 
-Open-access bibliographic provider via the public DOAJ REST API — **no API key required**. It follows the same connector contract as Europe PMC/OpenAlex/Crossref (timeout, exponential backoff, a reproducible single-page default with opt-in bounded pagination via `NUTEV_DOAJ_MAX_RESULTS`). It is declared in `config/provider_registry.json` and wired into the orchestrator, but is **not** in the default run set — enable it by adding `"doaj"` to a workstream's `source_priority` (or set `NUTEV_SKIP_DOAJ=1` to force it off). Rows are normalized to the shared schema and flagged `is_open_access`.
+DOAJ uses the public DOAJ REST API and requires no API key. It is implemented in the orchestrator but is not automatically part of every definitive run. Enable it only through the relevant workstream/protocol configuration. Rows are normalized to the shared schema and can carry open-access state.
 
-## ClinicalTrials.gov and SciELO
+## ClinicalTrials.gov
 
-Two more no-key providers, same connector contract (timeout, exponential backoff, reproducible single-page default with opt-in `NUTEV_CLINICALTRIALS_MAX_RESULTS` / `NUTEV_SCIELO_MAX_RESULTS`), declared in the registry and wired into the orchestrator but **off the default run set** (enable per workstream via `source_priority`):
+ClinicalTrials.gov uses the v2 REST API. It provides registry evidence distinct from journal articles. Rows carry the NCT identifier where available and are normalized to the shared provider schema. It is optional unless the protocol explicitly includes it.
 
-- **ClinicalTrials.gov** — the v2 REST API. Adds clinical-trial registry evidence (distinct from journal articles); rows carry `registry_id` (NCT id), `article_type=clinical_trial`, and the lead sponsor as `source_institution`.
-- **SciELO** — SciELO has no clean public free-text search JSON API and scraping is out of scope, so this connector retrieves SciELO content through the **stable Crossref API restricted to SciELO's DOI prefix `10.1590`** (SciELO Brazil, the majority of the corpus). Coverage is prefix-scoped and honest about it; rows reuse the Crossref normalization, re-tagged `scielo`.
+## SciELO connector
+
+The current SciELO connector is **not a comprehensive native SciELO platform free-text search**. It retrieves SciELO-associated content through Crossref restricted to DOI prefix `10.1590`.
+
+Therefore manuscript wording must describe this precisely (for example, `SciELO-prefix/Crossref retrieval`) and must not claim comprehensive SciELO platform coverage unless a future implementation and execution record support that claim.
 
 ## Semantic Scholar and arXiv
 
-Two more optional providers on the same connector contract (timeout, exponential backoff, reproducible single-page default with opt-in `NUTEV_SEMANTIC_SCHOLAR_MAX_RESULTS` / `NUTEV_ARXIV_MAX_RESULTS`), declared in the registry and wired into the orchestrator but **off the default run set** (enable per workstream via `source_priority`, or force off with `NUTEV_SKIP_SEMANTIC_SCHOLAR=1` / `NUTEV_SKIP_ARXIV=1`):
+Both are optional supplementary providers:
 
-- **Semantic Scholar** — broad academic coverage via the public Graph API. A key is **optional**: set `S2_API_KEY` to raise the shared rate limit. Without one the connector still works but fails safe (returns `[]`) on throttling. Rows normalize external ids (DOI/PubMed/PubMedCentral) and prefer the open-access PDF url when present.
-- **arXiv** — preprint coverage via the public arXiv export API (**no key required**). The API returns Atom XML, parsed with the Python stdlib (`xml.etree.ElementTree`) so no extra dependency is added. Rows carry `article_type=preprint` and the arXiv id as `registry_id`.
+- **Semantic Scholar** — public Graph API, with an optional `S2_API_KEY` for higher rate limits;
+- **arXiv** — public export API using Atom XML and no API key.
 
-## Optional Google / gray literature
+Their presence in the runtime is capability, not proof they were included in a scientific run.
 
-Google Programmable Search Engine, SerpAPI and Brave are optional gray-literature providers. They are skipped unless their API keys are configured. A Google quota/configuration failure does not invalidate the scientific search; PubMed, Europe PMC, OpenAlex, Crossref and official sources continue.
+## Official sources
+
+Official organization/guideline discovery is a separate methodological track. The executed run should preserve:
+
+- source/organization manifest state;
+- `config_digest` and config provenance;
+- provider attempt in the query execution ledger;
+- URL/resolved URL where available;
+- retrieval/download/extraction state;
+- failure reason when applicable;
+- artifact SHA-256 for locally retained downloaded documents.
+
+When identification logic differs from bibliographic databases, official-source identification should remain distinguishable in methods/PRISMA reporting.
+
+## Optional web / gray-literature providers
+
+Google Programmable Search Engine, SerpAPI and Brave are optional. Missing credentials produce an explicit `skipped` provider result rather than silently pretending that the provider was searched.
+
+A quota/configuration failure for an optional provider does not erase results from other providers, but it remains visible in the execution/failure logs and can block scientific readiness when that provider was declared as required by the protocol.
 
 ## Checkpoint / resume
 
-Provider checkpoints are written under `07_logs/checkpoints/<provider>/`. PubMed checkpoints include the query hash, `WebEnv`, `query_key`, completed `retstart`, collected IDs, partial rows and status. Re-run with resume-enabled commands to continue from saved checkpoints without duplicating rows.
+Provider checkpoints are written under `07_logs/checkpoints/<provider>/`. Checkpoint use is recorded at the provider-attempt level. `resume_used` must mean that a checkpoint was actually consumed; enabling resume capability alone is not scientific evidence that resume occurred.
+
+## Generated versus executed query evidence
+
+The canonical semantics are:
+
+- `querypack_generated.json/.csv`: generated workstream query space before execution constraints;
+- `provider_querypack_generated.json/.csv`: provider-rendered generated query space before execution constraints;
+- `provider_performance.csv`: terminal record produced for each actual provider call;
+- `query_execution_ledger.json/.csv`: canonical current-run attempt ledger derived from provider performance records;
+- `querypack_executed.json/.csv`: compatibility view containing only expressions with a real attempt record;
+- `provider_querypack_executed.json/.csv`: provider-specific compatibility view containing only expressions with a real attempt record.
+
+Query budgets, routing and provider availability can make the generated set larger than the executed set. Generated artifacts must never be used as proof that a query was submitted.
 
 ## Logs
 
-Important provider observability files are in `07_logs`:
+Important provider observability files under `07_logs` include:
 
-- `run_events.jsonl`: provider_started/provider_completed/provider_failed/provider_skipped/provider_partial events.
-- `provider_failures.csv`: recoverable provider failures and skip reasons.
-- `provider_performance.csv`: provider durations and returned rows.
-- `run_summary.json`: high-level counts and partial/completed status.
+- `run_events.jsonl`: provider lifecycle events;
+- `provider_failures.csv`: recoverable provider failures and skip reasons;
+- `provider_performance.csv`: provider attempts, status, query hash, query, counts and timing;
+- `query_execution_ledger.json/.csv`: canonical attempt-level query evidence for the current/latest run;
+- `config_provenance.json`: configuration inputs/hashes and overall `config_digest`;
+- `artifact_manifest.csv`: locally retained artifact hashes where applicable;
+- `run_summary.json`: computational status plus a separate `scientific_readiness` state.
 
-## Optional provider implementations
+Provider performance fields include `run_id`, `provider`, `workstream`, `query_hash`, `query`, `status`, `total_found`, `rows_returned`, `duration_seconds`, `resume_used`, and `checkpoint_path`.
 
-The canonical runtime now includes optional clients for Google Programmable Search Engine (`google_pse`), SerpAPI (`serpapi`) and Brave Search (`brave`). They run only when their keys are present. Missing keys produce `status=skipped`, a `provider_skipped` event, and a recoverable row in `provider_failures.csv`; scientific providers continue normally.
+## Frozen strategy executor
 
-Provider performance logs use these columns: `run_id`, `provider`, `workstream`, `query_hash`, `query`, `status`, `total_found`, `rows_returned`, `duration_seconds`, `resume_used`, and `checkpoint_path`. Failure logs include `stage`, `status`, `error_type`, `error_message`, `recoverable`, `fallback_used`, and `checkpoint_path`.
+For immutable indexed-database searches, the strategy registry/executor additionally stores exact frozen provider expressions, provider filters, raw result snapshots, snapshot SHA-256 values, run manifests and manifest SHA-256 values. This is the preferred manuscript-grade provenance layer for the providers covered by a frozen formal strategy.
 
-If `NUTEV_PUBMED_FETCH_ABSTRACTS=1`, PubMed additionally calls `efetch.fcgi` for XML abstracts. XML errors are logged as warnings and do not discard already collected `esummary` metadata.
+A completed provider execution remains distinct from scientific approval. See `scientific_readiness` and the Article 1 execution contract before treating any run as definitive.
