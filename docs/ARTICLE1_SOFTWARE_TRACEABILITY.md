@@ -1,6 +1,6 @@
 # Article 1 — software traceability matrix
 
-This document links methodological claims that may be reported for Article 1 to the concrete NutEV Evidence Engine implementation, tests, and publication-facing outputs. It is a release-control artifact for `v0.1.0`; it does not replace the study protocol or human methodological decisions.
+This document links methodological claims that may be reported for Article 1 to the concrete NutEV Evidence Engine implementation, tests, and publication-facing outputs. It is a release-control artifact for `v0.2.0`; it does not replace the study protocol or human methodological decisions.
 
 ## Scope rule
 
@@ -28,8 +28,7 @@ The software **supports** identification, organization, deduplication, extractio
 
 For an analysis cited in a manuscript, record at minimum:
 
-- software version and Git tag;
-- exact Git commit SHA;
+- software version `0.2.0`, Git tag `v0.2.0`, and exact commit SHA;
 - execution date/time;
 - Python version and environment snapshot;
 - `config_digest` and config provenance file;
