@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: >-
   If you use this software or its methodology, please cite it using the metadata
-  below. Fields tagged with a TODO comment are not yet verified and must be
-  completed by a human before a citable release/DOI is minted.
+  below. Human metadata marked as pending must be confirmed before the citable
+  release/DOI is minted.
 title: "NutEV Evidence Engine: reproducible evidence engine for lifestyle nutrition research"
 abstract: >-
   Computational infrastructure that supports a scoping review by identifying,
@@ -13,10 +13,7 @@ abstract: >-
   (RecommendationCandidates) are candidates that require human adjudication and are
   not final clinical recommendations.
 type: software
-version: "0.1.0-alpha"
-# date-released is the date THIS version was tagged/archived. Align it with the
-# exact tag date of the citable release (see docs/ZENODO_SETUP.md) before citing.
-date-released: "2026-07-14"  # TODO: alinhar com a data real da tag/release e do Zenodo
+version: "0.1.0"
 license: MIT
 repository-code: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
 url: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
@@ -32,20 +29,19 @@ keywords:
 authors:
   - given-names: "Willian Vagner Dorneles"
     family-names: "Schneider"
-    # affiliation: "Programa de Pós-Graduação em Nutrição Humana (PPGNH), Universidade de Brasília (UnB)"  # TODO: confirmar a redação exata da afiliação
-    # orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO: inserir ORCID real (não inventar)
-# doi identifies the archived, permanent version of this software.
-# doi: "10.5281/zenodo.XXXXXXX"  # TODO: preencher após depósito no Zenodo (ver docs/ZENODO_SETUP.md)
+    # affiliation: "HUMAN INPUT REQUIRED — confirmar redação institucional exata"
+    # orcid: "HUMAN INPUT REQUIRED — inserir ORCID real"
+# date-released must be added only after the v0.1.0 GitHub release date is known.
+# doi must be added only after Zenodo archives the exact v0.1.0 release.
 preferred-citation:
   type: software
   title: "NutEV Evidence Engine: reproducible evidence engine for lifestyle nutrition research"
-  version: "0.1.0-alpha"
+  version: "0.1.0"
   license: MIT
   repository-code: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
   url: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
-  year: 2026  # TODO: confirmar o ano da release citável
-  # doi: "10.5281/zenodo.XXXXXXX"  # TODO: preencher após depósito no Zenodo
+  year: 2026
   authors:
     - given-names: "Willian Vagner Dorneles"
       family-names: "Schneider"
-      # orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO: inserir ORCID real
+      # orcid: "HUMAN INPUT REQUIRED — inserir ORCID real"

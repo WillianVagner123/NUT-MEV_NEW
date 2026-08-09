@@ -1,78 +1,148 @@
 # Depositar no Zenodo e obter o DOI permanente
 
-O artigo (Artigo 1) promete um **identificador permanente** para o software. O
-GitHub sozinho **não** fornece isso — uma URL de repositório pode mudar ou
-desaparecer. O Zenodo emite um **DOI** que aponta para uma cópia arquivada e
-imutável de uma *release* específica. Este guia é o passo a passo exato.
+O artigo (Artigo 1) pode citar uma versão arquivada do **NutEV Evidence Engine**. O GitHub fornece o repositório e o histórico de desenvolvimento; o Zenodo preserva uma *release* específica e emite um DOI persistente para o software arquivado.
 
-> O `.zenodo.json` na raiz já descreve os metadados do depósito (título, autores,
-> licença MIT, keywords). O Zenodo lê esse arquivo automaticamente ao arquivar a
-> release, então os campos abaixo virão pré-preenchidos.
+> Para esta primeira release citável, a identidade foi padronizada como **software version `0.1.0` / Git tag `v0.1.0`**. O projeto continua descrito como **alpha** em termos de maturidade científica. Não use `0.1.0-alpha` ou `v1.0-artigo1` como identidades alternativas da mesma release.
 
-## 1. Conectar o Zenodo ao GitHub (uma vez)
+## 1. Fonte de metadados
 
-1. Acesse <https://zenodo.org> e entre com **"Log in with GitHub"**.
-2. Autorize o Zenodo a ver seus repositórios.
-3. Vá em **Zenodo → seu nome (canto superior) → GitHub**.
-4. Encontre `WillianVagner123/NutEV-Evidence-Engine` na lista e **ligue o botão
-   (toggle) para ON**.
+O repositório mantém dois arquivos complementares:
 
-A partir daqui, toda nova *release* do GitHub gera automaticamente um depósito no
-Zenodo com um DOI.
+- `.zenodo.json` — metadados do depósito GitHub→Zenodo;
+- `CITATION.cff` — metadados de citação para GitHub e ferramentas compatíveis com CFF.
 
-## 2. Antes de criar a release — completar os TODOs
+Eles devem representar o mesmo objeto científico e permanecer sincronizados em título, versão, criadores e licença.
 
-Edite o `.zenodo.json` e o `CITATION.cff` e preencha (não invente nada):
+## 2. Conectar o Zenodo ao GitHub
 
-- **ORCID** do autor (crie grátis em <https://orcid.org> se ainda não tiver).
-- **Afiliação** (redação exata do PPGNH/UnB).
-- Se o manuscrito do Artigo 1 já tiver DOI, adicione-o em `related_identifiers`.
+Na interface atual do Zenodo/GitHub:
 
-## 3. Criar a release no GitHub
+1. entre no Zenodo usando a conta apropriada;
+2. habilite a integração com GitHub;
+3. localize `WillianVagner123/NutEV-Evidence-Engine`;
+4. habilite o repositório para arquivamento de releases.
 
-No GitHub: **Releases → Draft a new release**.
+Antes do primeiro depósito definitivo, confirme o fluxo na documentação oficial atual do Zenodo. Se desejar testar o processo, use o ambiente de sandbox do Zenodo antes de publicar a release citable definitiva.
 
-- **Tag:** `v1.0-artigo1` (ou a versão que você for citar — veja
-  `docs/RELEASE_CHECKLIST.md`).
-- **Title:** `NutEV Evidence Engine v1.0-artigo1`
-- **Description:** resuma o que esta versão congela (schema, trilhas, codificação
-  A/B/C/D). Pode reaproveitar o `CHANGELOG.md`.
-- Clique em **Publish release**.
+## 3. Antes da release — HUMAN INPUT REQUIRED
 
-## 4. Obter o DOI
+Não publique enquanto estes campos não estiverem confirmados:
 
-1. Poucos minutos após publicar a release, volte ao Zenodo → **GitHub**.
-2. O repositório agora mostra um **badge de DOI**. Clique nele.
-3. O Zenodo mostra **dois DOIs**:
-   - **Concept DOI** (`...zenodo.XXXXXX0`) — sempre aponta para a *versão mais
-     recente*. Use este para "o software em geral".
-   - **Version DOI** (`...zenodo.XXXXXX1`) — aponta para *esta release exata*.
-     **Use este no artigo**, porque a reprodutibilidade exige a versão exata.
+- **ORCID** do(s) creator(s);
+- **afiliação institucional** na redação exata;
+- autores/contributors adicionais e ordem, se aplicável;
+- DOI do Artigo 1, se já existir e for apropriado registrá-lo como identificador relacionado;
+- ponto exato de derivação do projeto upstream, caso seja declarado publicamente.
 
-## 5. Onde inserir o DOI depois de obtê-lo
+Não invente nenhum desses valores.
 
-Substitua os `TODO`/`XXXXXXX` nestes três lugares:
+## 4. Executar o GO / NO-GO
 
-1. **`CITATION.cff`** — descomente e preencha o campo `doi:` (e o `doi:` dentro de
-   `preferred-citation`).
-2. **`README.md`** — troque o placeholder do **badge de DOI** no topo pelo badge
-   real do Zenodo (o Zenodo fornece o Markdown pronto na página do DOI).
-3. **`docs/CODE_AVAILABILITY.md`** — insira o DOI no parágrafo de disponibilidade
-   de código, que é o texto que vai para o manuscrito.
+Antes de criar a tag, complete `docs/RELEASE_CHECKLIST.md` para o commit candidato final.
 
-## 6. Releases futuras
+A release somente pode ser publicada quando estiverem aprovados:
 
-Cada nova release gera um **novo Version DOI**, e o Concept DOI passa a apontar
-para ela. Se você citar uma versão específica no artigo, **não** atualize aquela
-citação — o Version DOI antigo continua válido e imutável, que é exatamente o
-ponto.
+- versionamento;
+- testes;
+- build;
+- reprodução zero-key;
+- segurança e privacidade;
+- copyright/proveniência;
+- documentação;
+- `.zenodo.json`;
+- `CITATION.cff`;
+- coerência software ↔ Artigo 1.
+
+Registrar o SHA exato do commit aprovado.
+
+## 5. Criar a tag e a GitHub Release
+
+Após o GO final:
+
+```bash
+git tag -a v0.1.0 -m "NutEV Evidence Engine v0.1.0"
+git push origin v0.1.0
+```
+
+Na GitHub Release:
+
+- **Tag:** `v0.1.0`
+- **Title:** `NutEV Evidence Engine v0.1.0`
+- **Maturity:** deixar explícito nas notas que o software permanece em estágio **alpha**;
+- **Description:** resumir o escopo científico, capacidades metodológicas, revisão humana obrigatória, reprodutibilidade e limitações conhecidas.
+
+A tag deve apontar exatamente para o SHA que passou pelo GO / NO-GO.
+
+## 6. Arquivamento no Zenodo
+
+Com a integração habilitada, a publicação da GitHub Release deve iniciar o arquivamento no Zenodo.
+
+Depois do processamento:
+
+1. abra o registro Zenodo criado;
+2. confirme que ele corresponde à release `v0.1.0`;
+3. verifique os metadados efetivamente publicados;
+4. registre o DOI da versão específica;
+5. registre o DOI do conceito/software geral quando apresentado pelo Zenodo.
+
+Para o manuscrito que precisa reproduzir a análise, cite preferencialmente o **DOI correspondente à versão exata do software usada no estudo**.
+
+## 7. Auditoria do registro Zenodo real
+
+Compare o depósito com o GitHub:
+
+| Campo | GitHub / arquivos | Zenodo | Status |
+|---|---|---|---|
+| título | | | |
+| versão | `0.1.0` | | |
+| criadores | | | |
+| ORCID | | | |
+| afiliação | | | |
+| licença | MIT | | |
+| descrição | | | |
+| keywords | | | |
+| related identifiers | | | |
+| release/tag | `v0.1.0` | | |
+
+Não encerre o processo enquanto houver divergência material.
+
+## 8. Depois de obter o DOI
+
+O DOI só existe depois do depósito. Portanto, não coloque placeholders como se fossem identificadores reais.
+
+Em commits posteriores à release arquivada, atualize conforme apropriado:
+
+1. `CITATION.cff` — adicionar o DOI real e a data real da release;
+2. `README.md` — substituir o badge de DOI pendente pelo badge/identificador real;
+3. `docs/CODE_AVAILABILITY.md` — inserir versão e DOI reais;
+4. manuscrito — inserir a declaração de disponibilidade de código e a referência do software.
+
+Esses commits pós-release pertencem ao desenvolvimento posterior e **não alteram os arquivos já congelados no registro Zenodo da versão `v0.1.0`**.
+
+## 9. Releases futuras
+
+Cada nova release deve:
+
+- receber novo número de versão e nova tag;
+- passar pelo mesmo GO / NO-GO;
+- gerar um novo registro de versão no Zenodo;
+- manter versões antigas imutáveis e citáveis.
+
+Nunca mova silenciosamente uma tag já publicada para outro commit.
 
 ---
 
-### Checklist rápido
+## Checklist rápido
 
-- [ ] Zenodo conectado ao GitHub e toggle do repositório ON
-- [ ] ORCID e afiliação preenchidos em `.zenodo.json` e `CITATION.cff`
-- [ ] Release `v1.0-artigo1` publicada no GitHub
-- [ ] Version DOI copiado
-- [ ] DOI inserido em `CITATION.cff`, `README.md` (badge) e `docs/CODE_AVAILABILITY.md`
+- [ ] identidade única: `0.1.0` / `v0.1.0`
+- [ ] maturidade `alpha` documentada separadamente da versão
+- [ ] ORCID confirmado
+- [ ] afiliação confirmada
+- [ ] autoria/contributors confirmados
+- [ ] provenance revisada
+- [ ] `docs/RELEASE_CHECKLIST.md` com todos os gates PASS
+- [ ] Zenodo conectado ao repositório
+- [ ] GitHub Release `v0.1.0` publicada somente após GO
+- [ ] registro Zenodo conferido
+- [ ] Version DOI registrado
+- [ ] DOI inserido posteriormente em citação, README e manuscrito

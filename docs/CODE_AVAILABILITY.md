@@ -1,62 +1,42 @@
 # Disponibilidade de código / Code availability
 
-Parágrafos prontos para a seção de **Disponibilidade de código** do manuscrito.
-Substitua os `TODO`/`XXXXXXX` pelos valores reais antes da submissão (o DOI vem do
-Zenodo — ver `docs/ZENODO_SETUP.md`; o ORCID e a versão exata da release).
+Parágrafos preparados para a seção de **Disponibilidade de código** do manuscrito.
+
+> Antes da submissão, substitua apenas os campos `HUMAN INPUT REQUIRED` pelos valores reais. Não invente DOI, ORCID, afiliação ou data de release.
 
 ---
 
-## Português (pronto para colar)
+## Português
 
-O software utilizado neste estudo — **NutEV Evidence Engine** — está disponível
-publicamente sob licença **MIT** em
-<https://github.com/WillianVagner123/NutEV-Evidence-Engine>, e a versão exata
-empregada foi arquivada de forma permanente no Zenodo sob o DOI
-`TODO: 10.5281/zenodo.XXXXXXX` (versão `v1.0-artigo1`). O projeto evoluiu de uma
-base de código aberto sob licença MIT (*Local Deep Research*, LearningCircuit),
-da qual o motor herdado foi **removido** da árvore do projeto; sua proveniência e
-atribuição de autoria original são preservadas no arquivo `NOTICE.md` do
-repositório. O software encontra-se em estágio de maturidade **alpha** e foi
-utilizado para apoiar a **organização, a rastreabilidade e a auditoria** do corpus
-documental (identificação, deduplicação, classificação e extração estruturada de
-registros). **Todas as decisões de inclusão, exclusão, codificação e interpretação
-foram realizadas por revisores humanos.** O sistema **não produz recomendação
-clínica**: as saídas do tipo `RecommendationCandidate` são candidatas sujeitas a
-adjudicação humana e não constituem recomendação final. Este repositório apoia a
-camada de **evidência** (a revisão de escopo) e **não contém nem executa** o motor
-de decisão clínica (*Decision Engine*), que é um artefato distinto. Em conformidade
-com o direito autoral, o repositório redistribui apenas **metadados, URLs oficiais,
-DOI e trechos mínimos necessários à auditoria**; **PDFs e textos integrais
-protegidos de terceiros não são redistribuídos**.
+O software utilizado neste estudo — **NutEV Evidence Engine** — está disponível publicamente sob licença **MIT** no repositório GitHub `WillianVagner123/NutEV-Evidence-Engine`. A versão de software definida para a primeira release citável é **0.1.0** (tag Git **`v0.1.0`**), mantendo-se a classificação de maturidade científica **alpha**. Após a aprovação do checklist de release e o arquivamento da release exata no Zenodo, o DOI da versão utilizada deverá ser inserido aqui: **HUMAN INPUT REQUIRED — DOI da versão Zenodo**.
 
-## English (ready to paste)
+O projeto evoluiu de uma base de código aberto sob licença MIT (*Local Deep Research*, LearningCircuit). O motor herdado foi removido da árvore atual do projeto; sua proveniência histórica e a atribuição original permanecem documentadas no `NOTICE.md`, no `LICENSE` e no histórico Git. O software foi desenvolvido para apoiar a **organização, rastreabilidade, deduplicação, classificação, extração estruturada, auditoria e revisão humana** do corpus documental relacionado à Nutrição do Estilo de Vida.
 
-The software used in this study — the **NutEV Evidence Engine** — is publicly
-available under the **MIT license** at
-<https://github.com/WillianVagner123/NutEV-Evidence-Engine>, and the exact version
-used was permanently archived on Zenodo under DOI
-`TODO: 10.5281/zenodo.XXXXXXX` (version `v1.0-artigo1`). The project evolved from
-an open-source MIT-licensed base (*Local Deep Research*, LearningCircuit); the
-inherited engine was **removed** from the project tree, and its provenance and
-original authorship attribution are preserved in the repository's `NOTICE.md`. The
-software is at an **alpha** maturity stage and was used to support the
-**organization, traceability and auditing** of the document corpus (identification,
-deduplication, classification and structured extraction of records). **All
-inclusion, exclusion, coding and interpretation decisions were made by human
-reviewers.** The system **does not produce clinical recommendations**:
-`RecommendationCandidate` outputs are candidates subject to human adjudication and
-are not final recommendations. This repository supports the **evidence** layer (the
-scoping review) and **does not contain or run** the clinical Decision Engine, which
-is a separate artifact. In compliance with copyright, the repository redistributes
-only **metadata, official URLs, DOIs and the minimal excerpts required for
-auditing**; **third-party protected PDFs and full texts are not redistributed**.
+O sistema **não fornece diagnóstico, prescrição individual ou recomendação clínica final**. Saídas computacionais, incluindo `RecommendationCandidate`, permanecem candidatas sujeitas à revisão e adjudicação humana. Decisões de inclusão, exclusão, codificação e interpretação científica permanecem sob responsabilidade de revisores humanos conforme a governança metodológica do projeto. Este repositório corresponde à camada de **Evidence Engine** e **não contém nem executa** o *Clinical Decision Engine*, que constitui artefato distinto.
+
+Em conformidade com direitos autorais e governança de dados, a release do software não deve redistribuir PDFs ou textos integrais protegidos, dados pessoais ou clínicos, credenciais, bases locais privadas ou outputs científicos não autorizados. A documentação pública deve priorizar metadados, URLs oficiais, DOI e os trechos mínimos necessários à auditoria.
+
+## English
+
+The software used in this study — the **NutEV Evidence Engine** — is publicly available under the **MIT license** in the GitHub repository `WillianVagner123/NutEV-Evidence-Engine`. The software version defined for the first citable release is **0.1.0** (Git tag **`v0.1.0`**), while its scientific maturity remains explicitly classified as **alpha**. After the release checklist has passed and the exact release has been permanently archived on Zenodo, the version-specific DOI used in the study must be inserted here: **HUMAN INPUT REQUIRED — Zenodo Version DOI**.
+
+The project evolved from an MIT-licensed open-source base (*Local Deep Research*, LearningCircuit). The inherited engine has been removed from the current source tree; its historical provenance and original attribution remain documented in `NOTICE.md`, `LICENSE`, and the Git history. The software supports the **organization, traceability, deduplication, classification, structured extraction, auditing, and human review** of the documentary corpus related to Lifestyle Nutrition.
+
+The system **does not provide diagnosis, individual prescription, or final clinical recommendations**. Computational outputs, including `RecommendationCandidate`, remain candidates subject to human review and adjudication. Inclusion, exclusion, coding, and scientific interpretation decisions remain the responsibility of human reviewers under the project's methodological governance. This repository represents the **Evidence Engine** layer and **does not contain or execute** the separate *Clinical Decision Engine*.
+
+In accordance with copyright and data-governance requirements, the software release must not redistribute protected third-party PDFs/full texts, personal or clinical data, credentials, private local databases, or unauthorized scientific outputs. Public documentation should preferentially share metadata, official URLs, DOIs, and only the minimum excerpts required for verification.
 
 ---
 
-## Campos a preencher antes da submissão
+## Campos a confirmar antes da submissão
 
-| Campo | Onde obter |
-|-------|-----------|
-| DOI do Zenodo | `docs/ZENODO_SETUP.md` (após criar a release) |
-| Versão exata | a tag citada (ex.: `v1.0-artigo1`) |
-| ORCID do autor | <https://orcid.org> (não inventar) |
+| Campo | Estado |
+|---|---|
+| Versão do software | `0.1.0` |
+| Tag planejada | `v0.1.0` |
+| Maturidade | alpha |
+| DOI da versão Zenodo | HUMAN INPUT REQUIRED — após release |
+| ORCID do(s) creator(s) | HUMAN INPUT REQUIRED |
+| Afiliação institucional exata | HUMAN INPUT REQUIRED |
+| Data real da release | HUMAN INPUT REQUIRED |
+| DOI do Artigo 1 relacionado | preencher somente se existir e for pertinente |

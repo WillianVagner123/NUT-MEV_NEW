@@ -1,74 +1,67 @@
 # Changelog
 
-All notable changes to this project are documented here. The format is based on
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-Methodological changes are additionally tracked in
-`docs/CHANGELOG_METODOLOGICO.md`.
+All notable changes to this project are documented here. The format is based on Keep a Changelog and the project uses Semantic Versioning for software releases. Methodological changes are additionally tracked in `docs/CHANGELOG_METODOLOGICO.md`.
 
 ## [Unreleased]
 
-## [0.1.0-alpha] — first organized public release
+### Release reconciliation
 
-First public, organized alpha focused on making the repository reproducible,
-safe, easy to install and centered on NutEV/NutMEV.
+- Standardized the first citable software release identity as **`0.1.0` / `v0.1.0`**.
+- Kept **alpha** as the scientific/software maturity designation rather than as a competing version identifier.
+- Reconciled Zenodo/CFF metadata, provenance documentation and release instructions.
+- Final DOI, release date, ORCID and exact institutional affiliation remain human-confirmed post-validation fields.
+
+## [0.1.0] — first citable release candidate (alpha maturity)
+
+This release candidate consolidates the NutEV Evidence Engine as a reproducible, auditable research-software object supporting the evidence layer of the NutEV project. It is **not** the separate clinical Decision Engine and does not produce final clinical recommendations.
 
 ### Added
-- `docs/PUBLIC_RELEASE_AUDIT.md` — pre-change public-release audit.
-- `src/nutev/__version__.py` — canonical version source (0.1.0).
-- Minimal core dependencies + optional extras (`search`, `documents`,
-  `dashboard`, `api`/`platform`, `llm`, `watch`, `mcp`, `dev`, `legacy`, `all`);
-  `requirements/nutev-core.txt`; `docs/DEPENDENCY_ARCHITECTURE.md`.
-- `docs/LEGACY_MIGRATION_PLAN.md` — sequenced legacy isolation.
-- Provenance & citation: `NOTICE.md`, `CITATION.cff`, `CODE_OF_CONDUCT.md`.
-- Open-science governance: `docs/SCIENTIFIC_GOVERNANCE.md`,
-  `docs/AI_USE_AND_HUMAN_OVERSIGHT.md`, `docs/DATA_GOVERNANCE.md`,
-  `docs/COPYRIGHT_AND_FULL_TEXT_POLICY.md`, `docs/REPRODUCIBILITY.md`,
-  `docs/ROADMAP.md`.
-- Community templates: `.github/PULL_REQUEST_TEMPLATE.md` and issue forms
-  (`bug`, `feature`, `methodology`, `new-source`).
-- Security workflows: gitleaks + repo-hygiene guard, dependency-review, CodeQL.
-- Sanitized CI artifact builder `.github/scripts/build-safe-artifact.sh`.
-- Reproducible examples: `examples/article1_pilot/`, `examples/minimal/`.
-- `docs/GITHUB_PUBLIC_SETTINGS_CHECKLIST.md`, `docs/RELEASE_CHECKLIST.md`.
+
+- Canonical NutEV package and CLI under `src/nutev/`.
+- Reproducible search, normalization, deduplication, retrieval, extraction and audit pipelines.
+- Article 1 support for guideline/document discovery, A/B/C/D domain coding, page-linked evidence snippets, document/version/family registries and denominator handling.
+- Two-reviewer screening structures, conflict/adjudication logic and screening-agreement reporting.
+- PRISMA-oriented exports, evidence matrices, reference exports (BibTeX/RIS) and audit/convergence artifacts.
+- Configuration provenance with per-file hashes and `config_digest` records.
+- Zero-key synthetic demonstration data and documented local dashboard/API paths.
+- Scientific governance, copyright/full-text policy, AI/human-oversight policy, data governance and reproducibility documentation.
+- `CITATION.cff`, `.zenodo.json`, `NOTICE.md`, code-availability and Zenodo release documentation.
+- Canonical CI on Python 3.12 and 3.13, plus blocking Ruff F/E9 checks.
+- Security workflows including gitleaks and repository-hygiene checks.
 
 ### Changed
-- Package version now sourced from `src/nutev/__version__.py` instead of the
-  legacy `local_deep_research` package.
-- `[project.dependencies]` reduced to a minimal core; heavy/legacy stacks moved
-  to optional extras (Flask, Elasticsearch, FAISS, Playwright, SQLCipher and the
-  LangChain ecosystem are no longer installed for a basic run).
-- Canonical test location standardized to `nutev_tests/` with test-group markers.
-- Public README reorganized (status banner, does/does-not, zero-key demo,
-  citation, license & provenance).
-- Hardened public workflows: `/nutev-tests` gated on author association;
-  artifact uploads sanitized (no raw captures/PDFs/HTML/webhook payloads).
+
+- Package identity and runtime were decoupled from the inherited Local Deep Research codebase.
+- Inherited `local_deep_research` runtime code and legacy test tree were removed from the current working tree; provenance remains in Git history and attribution is preserved in `LICENSE`/`NOTICE.md`.
+- The runtime compatibility monkey-patch layer was retired and its behavior moved into first-class modules with parity gates.
+- Provider configuration was centralized and reconciled with implemented connectors.
+- Retrieval connectors gained bounded/explicit deeper pagination options while retaining reproducible default behavior.
+- Scientific output failures and coverage loss are surfaced in structured telemetry rather than silently swallowed.
+- Audit CSV location and UI/read contracts were reconciled; derived convergence/gap/readiness matrices are produced on real runs.
+- Python support declaration was tightened to match tested CI versions (`>=3.12,<3.14`).
 
 ### Removed
-- **Inherited `local_deep_research` engine** (`src/local_deep_research/`, 768
-  files) and the **legacy test suite** (`tests/`, 1905 files) removed from the
-  tree (kept in Git history; provenance preserved in `LICENSE`/`NOTICE.md`).
-- Legacy examples, Docker/compose, cookiecutter, unraid templates,
-  `package.json`/`package-lock.json`, `README_old.md`, `bearer.yml`,
-  `.grype.yaml`, the web-frontend workflow, `constraints/`,
-  `community_benchmark_results/`, orphaned `.pre-commit-hooks/`, `changelog.d/`
-  and the stale `pdm.lock`.
-- The `legacy` extra and legacy packaging references (`[tool.setuptools]`
-  package-data, torch pdm source); dependabot npm/docker ecosystems.
-- Legacy `ldr`, `ldr-web`, `ldr-mcp` console scripts from the main install.
-- Superseded `.github/ISSUE_TEMPLATE/*.md` (replaced by issue forms).
 
-### Known issues / pending
-- Two pre-existing scoring-threshold test failures in
-  `nutev_tests/test_global_watch_query_builder.py` (unrelated to packaging).
-- `.gitleaksignore` (57 KB) still needs manual re-triage.
-- `pdm.lock` was removed; regenerate if pinned installs are needed (pip installs
-  unaffected).
-- The wheel does not bundle `config/`; full pipeline runs need the repo checkout
-  (`git clone` + `pip install -e .`). Packaging `config/` is a tracked follow-up.
-- `dependency-review` CI requires the repository's Dependency Graph to be enabled
-  (repo setting); the workflow is non-blocking until then.
+- Inherited `src/local_deep_research/**` runtime tree and legacy `tests/**` tree from the current source tree.
+- Legacy frontend/Docker/cookiecutter and other unused inherited infrastructure.
+- Dead/orphan LLM and compatibility modules that were not part of the canonical NutEV execution path.
+- Dependabot configuration from the current tree after the earlier public-release setup phase.
 
-[Unreleased]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v0.1.0-alpha...HEAD
-[0.1.0-alpha]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/releases/tag/v0.1.0-alpha
+### Scientific safeguards
+
+- `RecommendationCandidate` is never equivalent to a final recommendation.
+- Machine coding and extraction remain assistive and require human review where defined by protocol.
+- Missing full text/OCR limitations are surfaced rather than treated as evidence absence.
+- Protected third-party PDFs/full texts and personal/clinical data are not intended for redistribution in the repository or release artifacts.
+
+### Known limitations / pending before DOI
+
+- A **fresh validation run on the final release-candidate SHA** is still required before publication: full canonical tests, build, `twine check`, zero-key demo, documentation-link check and security scan.
+- ORCID and exact institutional affiliation must be confirmed by a human before DOI minting.
+- The exact upstream derivation point should be confirmed if it is to be stated publicly in release metadata/provenance.
+- Full scientific pipeline reproduction is canonical from a repository checkout while `config/` remains repository-root configuration; do not claim a wheel-only full-pipeline path unless separately verified.
+- Development dependencies are version-ranged; a release-specific dependency snapshot/constraints record should be captured for the archived version.
+- The software remains at **alpha maturity** despite using the semantic software version `0.1.0`.
+
+[Unreleased]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/releases/tag/v0.1.0

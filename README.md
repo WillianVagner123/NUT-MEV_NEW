@@ -8,7 +8,7 @@ NutEV/NutMEV — **não** é o motor de decisão clínica (ver
 [Escopo e o que este software NÃO é](#escopo-e-o-que-este-software-não-é)).
 
 ![status](https://img.shields.io/badge/status-alpha-orange)
-![python](https://img.shields.io/badge/python-3.12%E2%80%933.14-blue)
+![python](https://img.shields.io/badge/python-3.12%E2%80%933.13-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![tests](https://img.shields.io/badge/tests-nutev__tests-informational)
 ![science](https://img.shields.io/badge/output-RecommendationCandidate%20(n%C3%A3o%20final)-red)
@@ -17,11 +17,13 @@ NutEV/NutMEV — **não** é o motor de decisão clínica (ver
 [![DOI](https://img.shields.io/badge/DOI-pendente%20(Zenodo)-lightgrey)](docs/ZENODO_SETUP.md)
 
 > ⚠️ **Status científico:** software de apoio à pesquisa, em estágio **alpha**.
-> Distingue claramente **software**, **pesquisa**, **evidência** e **recomendação
-> clínica**. Uma saída computacional (`RecommendationCandidate`) **não** é
-> recomendação clínica final. Toda candidata exige revisão humana, adjudicação
-> metodológica e vínculo documental verificável. Nenhuma saída automática é
-> apresentada como recomendação final. Ver
+> A primeira release citável está sendo preparada como **versão `0.1.0` / tag
+> `v0.1.0`**. `alpha` descreve a maturidade científica e não uma segunda versão
+> concorrente. Distingue claramente **software**, **pesquisa**, **evidência** e
+> **recomendação clínica**. Uma saída computacional (`RecommendationCandidate`)
+> **não** é recomendação clínica final. Toda candidata exige revisão humana,
+> adjudicação metodológica e vínculo documental verificável. Nenhuma saída
+> automática é apresentada como recomendação final. Ver
 > [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md).
 
 ## O que o sistema faz / não faz
@@ -120,8 +122,8 @@ src/nutev
 O repositório evoluiu a partir de uma base histórica `local-deep-research`
 (Local Deep Research, MIT © LearningCircuit). Esse motor herdado **foi removido**
 da árvore do projeto; sua proveniência e atribuição são preservadas em
-[`NOTICE.md`](NOTICE.md) e no histórico Git. O núcleo `src/nutev` nunca dependeu
-dele.
+[`NOTICE.md`](NOTICE.md) e no histórico Git. O núcleo `src/nutev` não depende do
+runtime herdado removido.
 
 ## Instalação rápida
 
@@ -147,7 +149,7 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dashboard,platform]"
 ```
 
-O projeto requer Python `>=3.12,<3.15`.
+O projeto requer Python `>=3.12,<3.14` (Python 3.12 e 3.13 são as versões declaradas/testadas pela CI canônica).
 
 ## Demonstração sem chave (nem API paga, nem dados reais)
 
@@ -218,16 +220,19 @@ Nunca coloque chaves de API no GitHub, em logs ou em outputs científicos.
 
 Camadas principais em `project_output_*`:
 
-- `06_tables`: matrizes, PRISMA, tabelas e artefatos de auditoria;
+- `02_metadata`: metadados e artefatos canônicos de claims/auditoria usados por dashboard/API/exportadores;
+- `06_tables`: matrizes derivadas, PRISMA, convergência, gaps e outras tabelas analíticas;
 - `07_logs`: eventos, snapshots, resumo da execução e rastreabilidade;
 - `10_curated`: metadados curados, documentos únicos e documentos operacionais priorizados.
 
-Artefatos de auditoria esperados em `06_tables`:
+Artefatos canônicos de auditoria esperados em `02_metadata`:
 
 - `NUTEV_EVIDENCE_CLAIMS.csv`
 - `NUTEV_CLAIM_EVALUATIONS.csv`
 - `NUTEV_CONFLICTS.csv`
 - `NUTEV_RECOMMENDATION_CANDIDATES.csv`
+
+Matrizes derivadas e relatórios analíticos permanecem em `06_tables`.
 
 Resumo final esperado em `07_logs/run_summary.json`:
 
@@ -258,6 +263,8 @@ No Windows PowerShell:
 $env:PYTHONPATH="src"
 python -m pytest -q nutev_tests
 ```
+
+Para uma release citável, não reutilize contagens históricas: execute a suite no SHA candidato final e registre o resultado em [`docs/VALIDATION_REPORT.md`](docs/VALIDATION_REPORT.md).
 
 ## Limitações metodológicas
 
@@ -333,9 +340,9 @@ Não redistribua PDFs protegidos. Não envie dados pessoais ou clínicos.
 
 ## Como citar
 
-Use o arquivo [`CITATION.cff`](CITATION.cff). Campos de autoria/afiliação/ORCID/DOI
-estão marcados como **REVIEW REQUIRED** e devem ser confirmados por um humano antes
-de uma release citável — nada foi inventado.
+Use o arquivo [`CITATION.cff`](CITATION.cff). A versão preparada para a primeira release citável é `0.1.0`. ORCID e afiliação institucional permanecem **HUMAN INPUT REQUIRED** até confirmação humana; o DOI só deve ser inserido depois que o Zenodo arquivar a release exata.
+
+Veja também [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md) e [`docs/CODE_AVAILABILITY.md`](docs/CODE_AVAILABILITY.md).
 
 ## Como contribuir
 
@@ -345,8 +352,8 @@ indicar justificativa metodológica, fonte e impacto esperado.
 
 ## Roadmap
 
-Ver [`docs/ROADMAP.md`](docs/ROADMAP.md). Primeira release pública organizada:
-`v0.1.0-alpha`.
+Ver [`docs/ROADMAP.md`](docs/ROADMAP.md). Primeira release citável planejada:
+**`v0.1.0`**, mantendo **alpha** como status de maturidade científica.
 
 ## Licença e proveniência
 
