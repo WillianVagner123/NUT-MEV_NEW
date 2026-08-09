@@ -13,7 +13,7 @@ abstract: >-
   (RecommendationCandidates) are candidates that require human adjudication and are
   not final clinical recommendations.
 type: software
-version: "0.1.0"
+version: "0.2.0"
 license: MIT
 repository-code: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
 url: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
@@ -31,12 +31,12 @@ authors:
     family-names: "Schneider"
     # affiliation: "HUMAN INPUT REQUIRED — confirmar redação institucional exata"
     # orcid: "HUMAN INPUT REQUIRED — inserir ORCID real"
-# date-released must be added only after the v0.1.0 GitHub release date is known.
-# doi must be added only after Zenodo archives the exact v0.1.0 release.
+# date-released must be added only after the v0.2.0 GitHub release date is known.
+# doi must be added only after Zenodo archives the exact v0.2.0 release.
 preferred-citation:
   type: software
   title: "NutEV Evidence Engine: reproducible evidence engine for lifestyle nutrition research"
-  version: "0.1.0"
+  version: "0.2.0"
   license: MIT
   repository-code: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
   url: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
