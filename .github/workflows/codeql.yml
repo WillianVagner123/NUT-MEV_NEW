@@ -31,10 +31,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          CODEQL_BIN="$(python - <<'PY'
+          import json
+          import os
+          print(json.loads(os.environ["CODEQL_ACTION_CLI_VERSION_INFO"])["cmd"])
+          PY
+          )"
+          test -x "$CODEQL_BIN"
           rm -rf /tmp/nutev-article1-probe /tmp/nutev-article1-codeql-db /tmp/nutev-article1-codeql-logs
           mkdir -p /tmp/nutev-article1-probe /tmp/nutev-article1-codeql-logs
           cp src/nutev/analysis/article1_coding.py /tmp/nutev-article1-probe/article1_coding.py
-          "$CODEQL_DIST/codeql" database create \
+          "$CODEQL_BIN" database create \
             --language=python \
             --source-root=/tmp/nutev-article1-probe \
             --overwrite \
