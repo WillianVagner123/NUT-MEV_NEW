@@ -4,9 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    branches:
-      - "main"
-      - "codeql-full-analysis-base-20260809" # temporary diagnostic base
+    branches: ["main"]
   schedule:
     - cron: "0 6 * * 1"
 
@@ -27,34 +25,6 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: python
-      - name: Standalone Article 1 parser diagnostic
-        shell: bash
-        run: |
-          set -euo pipefail
-          CODEQL_BIN="$(python - <<'PY'
-          import json
-          import os
-          print(json.loads(os.environ["CODEQL_ACTION_CLI_VERSION_INFO"])["cmd"])
-          PY
-          )"
-          test -x "$CODEQL_BIN"
-          rm -rf /tmp/nutev-article1-probe /tmp/nutev-article1-codeql-db /tmp/nutev-article1-codeql-logs
-          mkdir -p /tmp/nutev-article1-probe /tmp/nutev-article1-codeql-logs
-          cp src/nutev/analysis/article1_coding.py /tmp/nutev-article1-probe/article1_coding.py
-          "$CODEQL_BIN" database create \
-            --language=python \
-            --source-root=/tmp/nutev-article1-probe \
-            --overwrite \
-            --verbosity=progress+++ \
-            --logdir=/tmp/nutev-article1-codeql-logs \
-            /tmp/nutev-article1-codeql-db
-          echo "--- standalone extractor diagnostics ---"
-          if grep -RniE "parse error|Could not process|encoding '" /tmp/nutev-article1-codeql-logs; then
-            echo "Fresh standalone CodeQL extraction reported a parser/encoding diagnostic."
-            exit 1
-          fi
-          echo "Fresh standalone CodeQL extraction is clean."
-          echo "--- end standalone extractor diagnostics ---"
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
       - name: Perform CodeQL Analysis
