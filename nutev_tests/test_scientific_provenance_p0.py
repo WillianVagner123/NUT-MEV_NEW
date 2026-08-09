@@ -76,10 +76,15 @@ def test_methods_export_distinguishes_generated_from_executed_queries(tmp_path: 
 
     write_methods_docs(docs, logs)
 
-    assert json.loads((logs / "querypack_generated.json").read_text(encoding="utf-8")) == generated
-    assert json.loads(
-        (logs / "provider_querypack_generated.json").read_text(encoding="utf-8")
-    ) == provider_generated
+    generated_after_first_finalize = (logs / "querypack_generated.json").read_text(
+        encoding="utf-8"
+    )
+    provider_generated_after_first_finalize = (
+        logs / "provider_querypack_generated.json"
+    ).read_text(encoding="utf-8")
+
+    assert json.loads(generated_after_first_finalize) == generated
+    assert json.loads(provider_generated_after_first_finalize) == provider_generated
 
     executed = json.loads(
         (logs / "provider_querypack_executed.json").read_text(encoding="utf-8")
@@ -104,6 +109,16 @@ def test_methods_export_distinguishes_generated_from_executed_queries(tmp_path: 
     assert "generated but budget truncated" not in methods
     assert "query_execution_ledger.csv" in methods
     assert "querypack_generated" in methods
+
+    # Re-running methods generation for the same run must not relabel the already
+    # finalized executed artifacts as the original generated search space.
+    write_methods_docs(docs, logs)
+    assert (logs / "querypack_generated.json").read_text(
+        encoding="utf-8"
+    ) == generated_after_first_finalize
+    assert (logs / "provider_querypack_generated.json").read_text(
+        encoding="utf-8"
+    ) == provider_generated_after_first_finalize
 
 
 def test_scientific_readiness_does_not_infer_manuscript_approval():
