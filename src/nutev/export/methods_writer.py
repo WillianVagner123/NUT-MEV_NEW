@@ -22,15 +22,35 @@ EXECUTION_FIELDS = [
 ]
 
 
-def _archive_generated_querypacks(logs_dir: Path) -> None:
+def _current_run_id(rows: list[dict[str, str]]) -> str:
+    return next(
+        (
+            str(row.get("run_id") or "").strip()
+            for row in reversed(rows)
+            if str(row.get("run_id") or "").strip()
+        ),
+        "",
+    )
+
+
+def _archive_generated_querypacks(logs_dir: Path, current_run_id: str) -> None:
     """Preserve the pre-execution query space under truthful generated names.
 
-    The master pipeline historically wrote generated query packs to files named
-    ``*_executed`` before provider budgets were applied.  At methods-export time
+    The master pipeline historically writes generated query packs to files named
+    ``*_executed`` before provider budgets are applied.  At methods-export time
     all provider calls have already finished, so this function first preserves
     those generated artifacts and the execution finalizer can safely replace the
     legacy ``*_executed`` paths with the queries that were actually attempted.
+
+    A run marker makes the operation idempotent: calling the methods writer twice
+    for the same run must never overwrite ``*_generated`` with already-finalized
+    execution artifacts.
     """
+
+    marker = logs_dir / "query_audit_finalized_run_id.txt"
+    marker_value = current_run_id or "__no_run_id__"
+    if marker.exists() and marker.read_text(encoding="utf-8").strip() == marker_value:
+        return
 
     for old_name, generated_name in (
         ("querypack_executed.json", "querypack_generated.json"),
@@ -61,12 +81,13 @@ def _load_current_execution_rows(logs_dir: Path) -> list[dict[str, str]]:
     if not rows:
         return []
 
-    current_run_id = next(
-        (str(row.get("run_id") or "").strip() for row in reversed(rows) if str(row.get("run_id") or "").strip()),
-        "",
-    )
+    current_run_id = _current_run_id(rows)
     if current_run_id:
-        rows = [row for row in rows if str(row.get("run_id") or "").strip() == current_run_id]
+        rows = [
+            row
+            for row in rows
+            if str(row.get("run_id") or "").strip() == current_run_id
+        ]
     return rows
 
 
@@ -92,8 +113,9 @@ def _finalize_query_audit(
     """
 
     logs_dir.mkdir(parents=True, exist_ok=True)
-    _archive_generated_querypacks(logs_dir)
     execution_rows = _load_current_execution_rows(logs_dir)
+    current_run_id = _current_run_id(execution_rows)
+    _archive_generated_querypacks(logs_dir, current_run_id)
 
     (logs_dir / "query_execution_ledger.json").write_text(
         json.dumps(execution_rows, ensure_ascii=False, indent=2),
@@ -164,6 +186,10 @@ def _finalize_query_audit(
         logs_dir / "querypack_executed.csv",
         flat_csv_rows,
         ["workstream", "query_order", "query_text"],
+    )
+    (logs_dir / "query_audit_finalized_run_id.txt").write_text(
+        current_run_id or "__no_run_id__",
+        encoding="utf-8",
     )
     return provider_pack, execution_rows
 
