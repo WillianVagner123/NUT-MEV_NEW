@@ -1,56 +1,61 @@
 # Roadmap
 
-High-level direction. Dates are indicative; scientific correctness and human
-oversight take precedence over speed.
+High-level direction. Scientific correctness, reproducibility and human oversight take precedence over speed.
 
-## v0.1.0-alpha (first public, organized release)
+## Historical v0.1.x line
 
-- [x] Public release audit (`docs/PUBLIC_RELEASE_AUDIT.md`).
-- [x] Decouple package identity/version from legacy (`nutev` only).
-- [x] Split core vs optional dependencies; zero-key demo.
-- [x] Canonical test location `nutev_tests/` + test-group markers.
-- [x] Open-science governance docs (governance, data, AI oversight, copyright,
-      reproducibility).
-- [x] Provenance: `NOTICE.md`, `CITATION.cff`, `CODE_OF_CONDUCT.md`.
-- [ ] Harden public workflows + artifact sanitization + gitleaks in CI.
-- [ ] Article 1 reproducible pilot (`examples/article1_pilot/`).
-- [ ] Release checklist + install validation on Python 3.12.
+The repository contains historical tags `v0.1.0` through `v0.1.8`. They record earlier development states and are preserved unchanged. Historical package/tag version alignment was not consistently synchronized, so those tags are not reused as the citation-grade release line.
 
-## v0.2.0 — legacy isolation
+## v0.2.0 — citation-grade reconciled Evidence Engine
 
-- Separate legacy tests from canonical CI.
-- Move legacy docs/frontend/Docker to `legacy/` (or a separate repo/branch).
-- Drop `local_deep_research` from the built wheel (see
-  `docs/LEGACY_MIGRATION_PLAN.md`).
+- [x] Public release audit and provenance reconciliation.
+- [x] Canonical package identity/version under `src/nutev/`.
+- [x] Inherited Local Deep Research runtime removed from the current source tree while MIT attribution is preserved.
+- [x] Core vs optional dependency architecture.
+- [x] Canonical test location `nutev_tests/`.
+- [x] CI on Python 3.12 and 3.13.
+- [x] Security scan, gitleaks/repository hygiene, dependency review and CodeQL.
+- [x] Zero-key synthetic demonstration.
+- [x] Search-strategy registry/execution traceability.
+- [x] Auditable normalization/deduplication and document identity/version/family handling.
+- [x] Full-text recoverability and OCR failure visibility.
+- [x] Article 1 A/B/C/D assistive coding with traceable evidence snippets.
+- [x] Two-reviewer screening/adjudication workflow and export gate.
+- [x] PRISMA-oriented exports without automatic declaration of a final included corpus.
+- [x] Config provenance and `config_digest`.
+- [x] Article 1 software traceability matrix.
+- [x] Zenodo/CFF metadata reconciliation.
+- [x] Dedicated release-validation workflow: version/tag collision, tests, build, twine, clean wheel demo, link check and environment snapshot.
+- [x] Gated publisher that can create `v0.2.0` only after successful release validation of the exact `main` SHA.
+- [ ] Verify the actual Zenodo record and insert the real Version DOI after GitHub Release ingestion.
+- [ ] Add ORCID/affiliation only when exact values are confirmed.
 
-## v0.3.0 — scientific depth
+## Next release — scientific usability and corpus execution
 
-- Strengthen traceability/adjudication tooling and reviewer UX.
-- Expand Article 1 corpus coverage (busca1 official guides; busca2a clinical
-  guidelines/consensus/statements).
-- Improve evidence-quality appraisal (`docs/NUTEV_EVIDENCE_QUALITY_APPRAISAL_PLAN.md`).
+- Complete and document the definitive Article 1 search execution used in the manuscript.
+- Freeze protocol/search-strategy versions and record retrieval dates.
+- Complete dual-reviewer screening and adjudication records.
+- Complete human validation of A/B/C/D domain coding.
+- Produce manuscript-facing matrices/tables from the frozen scientific run.
+- Reconcile manuscript method claims with `docs/ARTICLE1_SOFTWARE_TRACEABILITY.md`.
+- Improve reviewer UX without weakening human-decision gates.
 
 ## Later
 
-- busca2b (interventions/efficacy) as a separate corpus.
-- Behavioral framework as a downstream product.
-- Zenodo/OSF archival + DOI; reproducibility packaging.
+- Strengthen evidence-quality appraisal where required by each study design.
+- Expand implementation/adherence corpus work for Article 2.
+- Maintain the behavioral framework as a downstream scientific product rather than silently mixing it into the Article 1 evidence object.
+- Publish subsequent software versions as new immutable tags/Zenodo versions.
 
-### Deferred architectural refactors (parity-gated, phased)
+### Architectural rule
 
-These change scientific outputs if rushed, so each has its own phased,
-parity-gated migration plan rather than a single rewrite:
+Large refactors that can alter scientific outputs must remain parity-gated and methodologically reviewed. Query generation, provider behavior, deduplication, coding rules, screening/export gates and configuration semantics must never change silently.
 
-- **Dissolve the `runtime_compat` shim layer** → `docs/REFACTOR_RUNTIME_COMPAT_MIGRATION.md`
-  (move query terms, audit stage, synthesis defaults into the normal call graph).
-- **Unify Global Watch with the search orchestrator** → `docs/REFACTOR_GLOBAL_WATCH_UNIFICATION.md`
-  (shared dispatch/instrumentation; query-building unification is an explicit,
-  measured decision, not an accidental change).
+## Permanently out of scope for the Evidence Engine
 
-## Out of scope (for now)
+- Git history rewrite merely to make old tags look cleaner.
+- Moving or overwriting an already published tag.
+- Presenting automated output as a final clinical recommendation.
+- Embedding the separate Clinical Decision Engine in this repository without an explicit project-level architecture decision.
 
-- Git history rewrite.
-- Presenting any automated output as a final clinical recommendation.
-
-Track and discuss items via GitHub Issues (templates in `.github/ISSUE_TEMPLATE/`)
-and Discussions.
+Track changes via GitHub Issues/PRs and record scientific-method changes in `docs/CHANGELOG_METODOLOGICO.md`.

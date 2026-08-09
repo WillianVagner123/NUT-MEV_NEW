@@ -17,8 +17,9 @@ NutEV/NutMEV — **não** é o motor de decisão clínica (ver
 [![DOI](https://img.shields.io/badge/DOI-pendente%20(Zenodo)-lightgrey)](docs/ZENODO_SETUP.md)
 
 > ⚠️ **Status científico:** software de apoio à pesquisa, em estágio **alpha**.
-> A primeira release citável está sendo preparada como **versão `0.1.0` / tag
-> `v0.1.0`**. `alpha` descreve a maturidade científica e não uma segunda versão
+> A release citável reconciliada está sendo preparada como **versão `0.2.0` / tag
+> `v0.2.0`**. As tags históricas `v0.1.0`–`v0.1.8` são preservadas e não serão
+> reutilizadas. `alpha` descreve a maturidade científica e não uma segunda versão
 > concorrente. Distingue claramente **software**, **pesquisa**, **evidência** e
 > **recomendação clínica**. Uma saída computacional (`RecommendationCandidate`)
 > **não** é recomendação clínica final. Toda candidata exige revisão humana,
@@ -340,7 +341,7 @@ Não redistribua PDFs protegidos. Não envie dados pessoais ou clínicos.
 
 ## Como citar
 
-Use o arquivo [`CITATION.cff`](CITATION.cff). A versão preparada para a primeira release citável é `0.1.0`. ORCID e afiliação institucional permanecem **HUMAN INPUT REQUIRED** até confirmação humana; o DOI só deve ser inserido depois que o Zenodo arquivar a release exata.
+Use o arquivo [`CITATION.cff`](CITATION.cff). A versão preparada para a release citável reconciliada é `0.2.0`. ORCID e afiliação institucional permanecem **HUMAN INPUT REQUIRED** até confirmação humana; o DOI só deve ser inserido depois que o Zenodo arquivar a release exata.
 
 Veja também [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md) e [`docs/CODE_AVAILABILITY.md`](docs/CODE_AVAILABILITY.md).
 
@@ -352,8 +353,8 @@ indicar justificativa metodológica, fonte e impacto esperado.
 
 ## Roadmap
 
-Ver [`docs/ROADMAP.md`](docs/ROADMAP.md). Primeira release citável planejada:
-**`v0.1.0`**, mantendo **alpha** como status de maturidade científica.
+Ver [`docs/ROADMAP.md`](docs/ROADMAP.md). Release citável reconciliada planejada:
+**`v0.2.0`**, mantendo **alpha** como status de maturidade científica.
 
 ## Licença e proveniência
 

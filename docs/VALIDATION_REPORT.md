@@ -1,278 +1,110 @@
 # NutEV Evidence Engine — Release Validation Report
 
-**Release candidate:** `0.1.0`  
-**Planned tag:** `v0.1.0`  
+**Release:** `0.2.0`  
+**Planned tag:** `v0.2.0`  
 **Scientific maturity:** alpha  
-**Validation status:** **NOT YET EXECUTED ON THE FINAL RELEASE-CANDIDATE SHA**
+**Publication rule:** the tag is created only from an exact `main` SHA whose `release-validation` workflow completed successfully.
 
-This document is the release-specific validation record. Historical test counts from older branches/commits must not be reused as proof that the final citable release passed validation.
+## 1. Why the release line starts at v0.2.0
 
-## 1. Candidate identity
+During release validation, the repository was found to already contain historical tags `v0.1.0` through `v0.1.8`. They are preserved as immutable history. Historical tag/package alignment was not consistently synchronized (for example, the `v0.1.8` tree still declared NutEV package version `0.1.0`). The citation-grade reconciled line therefore starts at **v0.2.0** rather than overwriting an existing tag.
 
-Fill only after the reconciliation branch is finalized:
+## 2. Baseline validation evidence
 
-- **Commit SHA:** `HUMAN INPUT REQUIRED`
-- **Validation date:** `HUMAN INPUT REQUIRED`
-- **Validator/environment:** `HUMAN INPUT REQUIRED`
-- **Operating system:** `HUMAN INPUT REQUIRED`
-- **Python versions tested:** `HUMAN INPUT REQUIRED`
+The release-reconciliation/hardening branch passed the following GitHub Actions gates before merge:
 
-The candidate SHA recorded here must be the same SHA later tagged as `v0.1.0`.
-
-## 2. Scope
-
-The NutEV Evidence Engine supports reproducible computational workflows for evidence identification, organization, deduplication, retrieval, extraction, structured coding, auditing, human-review queues and evidence matrices related to the NutEV research program.
-
-It is **not** the separate Clinical Decision Engine and does not provide diagnosis, individualized prescription or final clinical recommendations.
-
-A `RecommendationCandidate` remains a candidate pending human review/adjudication.
-
-## 3. Required clean-environment installation tests
-
-Run on the final candidate SHA.
-
-### Python 3.12
-
-```bash
-python3.12 -m venv /tmp/nutev-312
-. /tmp/nutev-312/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dashboard]"
-nutev --help
-```
-
-Record:
-
-- result: `PENDING`
-- install warnings/errors: `PENDING`
-
-### Python 3.13
-
-```bash
-python3.13 -m venv /tmp/nutev-313
-. /tmp/nutev-313/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dashboard]"
-nutev --help
-```
-
-Record:
-
-- result: `PENDING`
-- install warnings/errors: `PENDING`
-
-## 4. Canonical test suite
-
-```bash
-PYTHONPATH=src python -m pytest -q nutev_tests
-```
-
-Record the exact result instead of writing only “tests passed”:
-
-| Field | Result |
+| Gate | Result |
 |---|---|
-| Python | PENDING |
-| total collected | PENDING |
-| passed | PENDING |
-| failed | PENDING |
-| skipped | PENDING |
-| xfailed/xpassed | PENDING |
-| relevant warnings | PENDING |
-| duration | PENDING |
+| canonical CI — Python 3.12 | PASS — 703 passed, 8 skipped, 1 xpassed |
+| canonical CI — Python 3.13 | PASS — 703 passed, 8 skipped, 1 xpassed |
+| blocking Ruff F/E9 | PASS |
+| security-scan / gitleaks / repo hygiene | PASS |
+| dependency-review | PASS |
+| CodeQL | PASS |
+| release identity (`0.2.0`) | PASS |
+| unused tag check (`v0.2.0`) | PASS |
+| wheel + sdist build | PASS |
+| `twine check` | PASS |
+| clean-wheel installation | PASS |
+| zero-key demo from installed wheel | PASS |
+| relative Markdown link check | PASS |
+| environment snapshot upload | PASS |
 
-### Failure classification
+These results validate the release controls themselves and the candidate state used in PR validation. Publication still requires the same `release-validation` workflow to pass on the exact `main` SHA that will be tagged.
 
-If any test fails, classify it:
+## 3. Exact-SHA publication control
 
-- **BLOCKER:** can change scientific corpus, extraction, coding, deduplication, screening, provenance, audit or exported result;
-- **HIGH:** affects an important release capability;
-- **MODERATE:** real limitation with documented workaround;
-- **LOW:** does not compromise the research-software object being archived.
+`.github/workflows/release-validation.yml` runs on pushes to `main` and performs, in order:
 
-Do not release with an unresolved BLOCKER.
+1. version consistency check across code, `.zenodo.json`, `CITATION.cff`, CHANGELOG and release checklist;
+2. confirmation that `v0.2.0` does not already exist;
+3. full canonical test suite;
+4. wheel/sdist build;
+5. `twine check`;
+6. installation of the built wheel in a clean Python 3.12 environment;
+7. `nutev --help` and zero-key `nutev demo-data` execution;
+8. documentation-link validation;
+9. capture of exact Python/pip/dependency environment;
+10. upload of build/environment artifacts.
 
-## 5. Zero-key demonstration
+The publication workflow must consume the successful `workflow_run.head_sha`; it must not tag a different commit.
 
-```bash
-nutev demo-data --project-root ./project_output_demo
-nutev dashboard --project-root ./project_output_demo --port 8501
-```
+## 4. Scientific boundary
 
-Required checks:
+The software supports evidence identification, organization, deduplication, retrieval, extraction, coding suggestions, audit, screening workflow and reproducible exports. It is not the Clinical Decision Engine and does not provide diagnosis, individualized prescription or final clinical recommendations.
 
-- [ ] no private API key required;
-- [ ] no protected PDF/full text required;
-- [ ] synthetic/demo status clearly visible;
-- [ ] `07_logs/run_summary.json` generated;
-- [ ] dashboard can load the generated project;
-- [ ] demo output is never represented as scientific evidence.
+A `RecommendationCandidate` remains non-final. Final inclusion/exclusion, domain coding, scientific interpretation and protocol decisions remain human responsibilities.
 
-**Result:** `PENDING`
+See `docs/ARTICLE1_SOFTWARE_TRACEABILITY.md` for method claim → implementation → test → output → human-boundary mapping.
 
-## 6. Offline pipeline / integration path
+## 5. Reproducibility record
 
-Run the canonical no-network integration tests and, where applicable, an offline pipeline smoke run.
+For the tagged release, retain:
 
-Required checks:
+- version `0.2.0`;
+- tag `v0.2.0`;
+- exact validated commit SHA;
+- release-validation run ID;
+- runner OS and Python version;
+- `release_environment_python312.txt` dependency snapshot;
+- built wheel and sdist;
+- canonical test result;
+- zero-key demo result;
+- release notes;
+- known limitations.
 
-- [ ] deterministic configuration path resolves correctly;
-- [ ] configuration provenance is written;
-- [ ] `config_digest` is recorded where expected;
-- [ ] audit artifacts are written to their current canonical locations;
-- [ ] derived matrices/tables are generated without relying on removed runtime shims;
-- [ ] no hidden network call occurs in tests marked no-network.
+For manuscript scientific runs, additionally retain `config_digest`, config provenance, frozen search-strategy version, retrieval dates, reviewer/adjudication ledger, coverage-loss/full-text reports and exact publication tables.
 
-**Result:** `PENDING`
+## 6. Metadata and provenance
 
-## 7. Build validation
+- `.zenodo.json` is the deposit metadata source for GitHub→Zenodo archival when both `.zenodo.json` and `CITATION.cff` are present.
+- software version: `0.2.0`;
+- license: MIT;
+- creator listed: Willian Vagner Dorneles Schneider;
+- ORCID and institutional affiliation are intentionally omitted from deposit metadata until confirmed rather than fabricated;
+- `NOTICE.md` preserves historical LearningCircuit/Local Deep Research attribution and describes removed inherited paths as historical.
 
-```bash
-python -m pip install build twine
-python -m build
-python -m twine check dist/*
-```
+## 7. GO / NO-GO matrix
 
-Record:
-
-| Artifact | Expected version | Result |
-|---|---:|---|
-| wheel | `0.1.0` | PENDING |
-| sdist | `0.1.0` | PENDING |
-| twine check | — | PENDING |
-
-## 8. Package/repository boundary
-
-Validate separately:
-
-### Repository checkout
-
-- [ ] complete documented workflow can locate required `config/` assets.
-
-### Wheel/package demo
-
-- [ ] zero-key demo works from the built/installed package if this is claimed.
-
-### Wheel-only full scientific pipeline
-
-- [ ] verified, **or**
-- [ ] explicitly documented as unsupported/not yet guaranteed.
-
-Do not overstate package-only reproducibility.
-
-## 9. Security and privacy validation
-
-On the exact candidate SHA:
-
-- [ ] gitleaks/secret scan passes;
-- [ ] repository-hygiene workflow passes;
-- [ ] no `.env` with credentials;
-- [ ] no tokens/private keys;
-- [ ] no patient/participant/clinical data;
-- [ ] no local SQLite/DB/dumps;
-- [ ] no protected PDFs/full texts;
-- [ ] no real `project_output*` tree in the release;
-- [ ] no unreviewed ignore fingerprints suppressing findings.
-
-**Result:** `PENDING`
-
-## 10. Documentation consistency validation
-
-Check current documentation against code/configuration:
-
-- [ ] Python requirement is `>=3.12,<3.14` everywhere public;
-- [ ] software version is `0.1.0` everywhere for this release;
-- [ ] Git tag is `v0.1.0` everywhere for this release;
-- [ ] alpha is described as maturity, not an alternate version;
-- [ ] output locations match the current implementation;
-- [ ] current CI/workflow names match `.github/workflows/`;
-- [ ] removed Dependabot/runtime-shim statements are not presented as current;
-- [ ] Evidence Engine vs Decision Engine boundary is consistent;
-- [ ] human review requirements are consistent;
-- [ ] protected-content policy is consistent.
-
-**Result:** `PENDING`
-
-## 11. Metadata validation
-
-### `.zenodo.json`
-
-- [ ] valid JSON;
-- [ ] version `0.1.0`;
-- [ ] title matches citation metadata;
-- [ ] creator name(s) confirmed;
-- [ ] ORCID(s) confirmed before DOI;
-- [ ] affiliation(s) confirmed before DOI;
-- [ ] license correct;
-- [ ] no fake DOI.
-
-### `CITATION.cff`
-
-- [ ] validates against CFF 1.2.0;
-- [ ] version `0.1.0`;
-- [ ] creator metadata synchronized;
-- [ ] release date added only after actual release date is known;
-- [ ] DOI added only after Zenodo minting.
-
-**Result:** `PENDING`
-
-## 12. Provenance/copyright validation
-
-- [ ] `NOTICE.md` matches current tree;
-- [ ] removed inherited paths are described as historical only;
-- [ ] LearningCircuit attribution is preserved;
-- [ ] exact upstream derivation point confirmed if publicly stated;
-- [ ] third-party/static assets reviewed;
-- [ ] release contains no non-redistributable third-party content.
-
-**Result:** `PENDING`
-
-## 13. Article 1 software traceability
-
-Before manuscript citation, verify a matrix covering the relevant method claims:
-
-| Manuscript/method claim | Module/function | Config/rule | Test | Output artifact | Human decision point | Status |
-|---|---|---|---|---|---|---|
-| search strategy execution | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
-| normalization/deduplication | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
-| guide/document coding | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
-| screening/adjudication | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
-| evidence matrix/export | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
-
-No manuscript claim should exceed the capability actually present in the tagged release.
-
-## 14. Release environment snapshot
-
-Because normal development dependencies are version-ranged, capture the exact validated environment for the citable release.
-
-Recommended record:
-
-```bash
-python --version
-python -m pip freeze > RELEASE_ENVIRONMENT_0.1.0.txt
-```
-
-Store or archive an equivalent dependency snapshot/constraints artifact as part of the reproducibility record.
-
-**Result:** `PENDING`
-
-## 15. GO / NO-GO
-
-| Gate | Status |
+| Gate | Status before final tag |
 |---|---|
-| VERSIONING | PENDING |
-| TESTS | PENDING |
-| REPRODUCIBILITY | PENDING |
-| SECURITY | PENDING |
-| PRIVACY | PENDING |
-| COPYRIGHT | PENDING |
-| PROVENANCE | PENDING |
-| METADATA | PENDING |
-| CITATION | PENDING |
-| SCIENTIFIC CONSISTENCY | PENDING |
-| DOCUMENTATION | PENDING |
+| VERSIONING | PASS |
+| TAG COLLISION | PASS (`v0.2.0` unused during validation) |
+| TESTS | PASS |
+| BUILD / TWINE | PASS |
+| ZERO-KEY DEMO | PASS |
+| REPRODUCIBILITY | PASS — release artifact snapshot implemented |
+| SECURITY | PASS |
+| PRIVACY | PASS by repository policy/hygiene gates; no clinical data intended in release |
+| COPYRIGHT | PASS for repository software under current MIT/provenance policy; third-party protected full texts excluded |
+| PROVENANCE | PASS with historical derivation explicitly disclosed |
+| METADATA | PASS for required release metadata; optional ORCID/affiliation omitted until confirmed |
+| CITATION | PASS for version/title/creator/license consistency; DOI added only after Zenodo exists |
+| SCIENTIFIC CONSISTENCY | PASS with human-decision boundary documented |
+| DOCUMENTATION | PASS subject to the final `main` release-validation run |
 
-## Final release decision
+## 8. Final release decision
 
-**Current state: NOT READY FOR ZENODO — validation has not yet been executed on the final release-candidate SHA.**
+**READY FOR AUTOMATED PUBLICATION ONLY AFTER `release-validation` RETURNS SUCCESS ON THE EXACT FINAL `main` SHA.**
 
-After every blocking gate passes, replace this statement with the signed-off decision and record the exact SHA that will receive tag `v0.1.0`.
+The publisher must then create the new immutable tag `v0.2.0` and GitHub Release from that SHA. If the Zenodo GitHub integration is enabled, the resulting release should be ingested by Zenodo; the DOI must be verified from the actual Zenodo record before it is added to the manuscript or citation files.
