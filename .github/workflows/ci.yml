@@ -32,8 +32,39 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements/nutev-ci.txt
           python -m pip install --no-deps -e .
-      - name: Run the full canonical test suite
+      - name: Run canonical suite with coverage baseline
+        if: matrix.python-version == '3.12'
+        run: >-
+          PYTHONPATH=src python -m pytest -q nutev_tests
+          --cov=src/nutev --cov-branch --cov-report=term-missing
+          --cov-report=xml:coverage.xml
+      - name: Run canonical suite
+        if: matrix.python-version != '3.12'
         run: PYTHONPATH=src python -m pytest -q nutev_tests
+
+  windows-smoke:
+    name: windows smoke (python 3.12)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install minimal project
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/nutev-ci.txt
+          python -m pip install --no-deps -e .
+      - name: CLI help
+        run: nutev --help
+      - name: Zero-key demo smoke
+        shell: pwsh
+        run: |
+          nutev demo-data --project-root ./project_output_windows_smoke
+          if (-not (Test-Path "./project_output_windows_smoke/07_logs/run_summary.json")) {
+            throw "run_summary.json was not created by the Windows zero-key demo"
+          }
 
   lint:
     name: lint (ruff)
