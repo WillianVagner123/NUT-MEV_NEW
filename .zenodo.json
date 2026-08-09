@@ -4,7 +4,7 @@
   "upload_type": "software",
   "access_right": "open",
   "license": "MIT",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "keywords": [
     "scoping review",
     "lifestyle medicine",
@@ -29,5 +29,5 @@
       "scheme": "url"
     }
   ],
-  "notes": "Release metadata for software version 0.1.0. Scientific maturity remains alpha. HUMAN INPUT REQUIRED before DOI minting: (1) add the author ORCID; (2) confirm the exact institutional affiliation; (3) add the Article 1 DOI to related_identifiers if/when available. Do not invent missing human metadata."
+  "notes": "Release metadata for software version 0.2.0. Scientific maturity remains alpha. This version intentionally avoids reusing the pre-existing v0.1.0-v0.1.8 tag namespace. HUMAN INPUT REQUIRED before DOI metadata is finalized: add the author ORCID, confirm the exact institutional affiliation, and add the Article 1 DOI to related_identifiers if/when available. Do not invent missing human metadata."
 }
