@@ -37,7 +37,7 @@ def _archive_generated_querypacks(logs_dir: Path, current_run_id: str) -> None:
     """Preserve the pre-execution query space under truthful generated names.
 
     The master pipeline historically writes generated query packs to files named
-    ``*_executed`` before provider budgets are applied.  At methods-export time
+    ``*_executed`` before provider budgets are applied. At methods-export time
     all provider calls have already finished, so this function first preserves
     those generated artifacts and the execution finalizer can safely replace the
     legacy ``*_executed`` paths with the queries that were actually attempted.
@@ -67,8 +67,8 @@ def _load_current_execution_rows(logs_dir: Path) -> list[dict[str, str]]:
     """Load real provider attempts for the current/latest run.
 
     ``provider_performance.csv`` is appended by ``search_provider`` only after a
-    provider call has produced a terminal result.  It is therefore the canonical
-    generic-pipeline evidence that an expression was actually attempted.  When a
+    provider call has produced a terminal result. It is therefore the canonical
+    generic-pipeline evidence that an expression was actually attempted. When a
     logs directory contains multiple runs, only the most recently appended run_id
     is selected so manuscript methods cannot accidentally mix executions.
     """
@@ -252,7 +252,7 @@ Saídas integradas:
 - `NUTEV_PROTOCOL_TRANSLATION_MATRIX.xlsx`
 
 {_provider_section(workstream, provider_querypack)}## auditoria da busca
-A fonte canônica para afirmar que uma expressão foi executada é `07_logs/query_execution_ledger.json`/`.csv`, derivada de `provider_performance.csv`. Cada linha representa uma tentativa real e inclui provider, workstream, hash da query, expressão, status e contagens disponíveis.
+As fontes canônicas para afirmar que uma expressão foi executada são `07_logs/query_execution_ledger.json` e `07_logs/query_execution_ledger.csv`, derivadas de `provider_performance.csv`. Cada linha representa uma tentativa real e inclui provider, workstream, hash da query, expressão, status e contagens disponíveis.
 
 Os artefatos `querypack_generated.*` e `provider_querypack_generated.*` registram o espaço **gerado antes da execução** e não devem ser citados como prova de busca realizada. Para compatibilidade, `querypack_executed.*` e `provider_querypack_executed.*` são finalizados após as chamadas aos providers e contêm somente expressões com tentativa correspondente no ledger.
 
