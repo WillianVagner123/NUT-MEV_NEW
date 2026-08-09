@@ -1,0 +1,130 @@
+name: publish-v0.2.0
+
+on:
+  workflow_run:
+    workflows: ["release-validation"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    name: publish v0.2.0 after validated main
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: "0.2.0"
+      RELEASE_TAG: "v0.2.0"
+      VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
+      VALIDATION_RUN_ID: ${{ github.event.workflow_run.id }}
+    steps:
+      - name: Checkout exact validated SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Verify exact release identity
+        run: |
+          set -euo pipefail
+          ACTUAL=$(python - <<'PY'
+          ns = {}
+          exec(open('src/nutev/__version__.py', encoding='utf-8').read(), ns)
+          print(ns['__version__'])
+          PY
+          )
+          test "$ACTUAL" = "$RELEASE_VERSION"
+          test "$(git rev-parse HEAD)" = "$VALIDATED_SHA"
+          test -f "docs/RELEASE_NOTES_v0.2.0.md"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          z = json.loads(Path('.zenodo.json').read_text(encoding='utf-8'))
+          assert z['version'] == '0.2.0', z['version']
+          print('Zenodo metadata version:', z['version'])
+          PY
+
+      - name: Stop safely if release already exists
+        id: existing
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release $RELEASE_TAG already exists; nothing will be moved or overwritten."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Confirm tag is unused
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "ERROR: $RELEASE_TAG exists without the expected GitHub Release. Refusing to move or overwrite it."
+            exit 1
+          fi
+
+      - name: Download validated build artifacts
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          gh run download "$VALIDATION_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name nutev-v0.2.0-release-validation \
+            --dir release-assets
+          find release-assets -type f -maxdepth 4 -print
+
+      - name: Write immutable validation record
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          cat > release_validation_record_v0.2.0.txt <<EOF
+          NutEV Evidence Engine release validation record
+          version=$RELEASE_VERSION
+          tag=$RELEASE_TAG
+          validated_sha=$VALIDATED_SHA
+          release_validation_run_id=$VALIDATION_RUN_ID
+          repository=$GITHUB_REPOSITORY
+          release_date=2026-08-09
+          scientific_maturity=alpha
+          publication_rule=tag created only after release-validation success on main
+          EOF
+
+      - name: Create immutable tag and GitHub Release
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$VALIDATED_SHA" \
+            --title "NutEV Evidence Engine v0.2.0" \
+            --notes-file docs/RELEASE_NOTES_v0.2.0.md
+
+      - name: Attach validated distributions and environment record
+        if: steps.existing.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          mapfile -d '' FILES < <(find release-assets -type f -print0)
+          FILES+=(release_validation_record_v0.2.0.txt)
+          gh release upload "$RELEASE_TAG" "${FILES[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+      - name: Verify published release points to validated SHA
+        run: |
+          set -euo pipefail
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,targetCommitish,url,name
+          REMOTE_TAG_SHA=$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')
+          if [ -z "$REMOTE_TAG_SHA" ]; then
+            echo "ERROR: published tag cannot be resolved"
+            exit 1
+          fi
+          TAG_COMMIT=$(git rev-list -n 1 "$RELEASE_TAG")
+          test "$TAG_COMMIT" = "$VALIDATED_SHA"
+          echo "Published $RELEASE_TAG at validated SHA $VALIDATED_SHA"
