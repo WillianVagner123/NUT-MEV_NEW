@@ -32,12 +32,16 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements/nutev-ci.txt
           python -m pip install --no-deps -e .
-      - name: Run canonical suite with coverage baseline
+      - name: Run canonical suite with coverage gate
         if: matrix.python-version == '3.12'
+        # Measured baseline on 2026-08-09: 73% total branch-aware coverage
+        # (711 passed, 8 skipped, 1 xpassed). A 70% floor protects against a
+        # material regression while leaving room to raise the threshold as the
+        # currently low-coverage UI/API/optional integrations gain tests.
         run: >-
           PYTHONPATH=src python -m pytest -q nutev_tests
           --cov=src/nutev --cov-branch --cov-report=term-missing
-          --cov-report=xml:coverage.xml
+          --cov-report=xml:coverage.xml --cov-fail-under=70
       - name: Run canonical suite
         if: matrix.python-version != '3.12'
         run: PYTHONPATH=src python -m pytest -q nutev_tests
