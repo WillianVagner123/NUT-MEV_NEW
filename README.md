@@ -12,19 +12,18 @@ NutEV/NutMEV — **não** é o motor de decisão clínica (ver
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![tests](https://img.shields.io/badge/tests-nutev__tests-informational)
 ![science](https://img.shields.io/badge/output-RecommendationCandidate%20(n%C3%A3o%20final)-red)
-<!-- TODO: após o depósito no Zenodo (docs/ZENODO_SETUP.md), troque o badge abaixo
-     pelo badge de DOI real fornecido pelo Zenodo. -->
+<!-- TODO: após verificar o registro real no Zenodo (docs/ZENODO_SETUP.md), troque
+     o badge abaixo pelo DOI real fornecido pelo Zenodo. -->
 [![DOI](https://img.shields.io/badge/DOI-pendente%20(Zenodo)-lightgrey)](docs/ZENODO_SETUP.md)
 
 > ⚠️ **Status científico:** software de apoio à pesquisa, em estágio **alpha**.
-> A release citável reconciliada está sendo preparada como **versão `0.2.0` / tag
-> `v0.2.0`**. As tags históricas `v0.1.0`–`v0.1.8` são preservadas e não serão
-> reutilizadas. `alpha` descreve a maturidade científica e não uma segunda versão
-> concorrente. Distingue claramente **software**, **pesquisa**, **evidência** e
-> **recomendação clínica**. Uma saída computacional (`RecommendationCandidate`)
-> **não** é recomendação clínica final. Toda candidata exige revisão humana,
-> adjudicação metodológica e vínculo documental verificável. Nenhuma saída
-> automática é apresentada como recomendação final. Ver
+> A release citável reconciliada **foi publicada em 9 de agosto de 2026** como
+> **versão `0.2.0` / tag `v0.2.0`**. Essa tag e as tags históricas
+> `v0.1.0`–`v0.1.8` são preservadas e não serão reutilizadas ou movidas. `alpha`
+> descreve a maturidade científica e não uma segunda versão concorrente. Uma
+> saída computacional (`RecommendationCandidate`) **não** é recomendação clínica
+> final. Toda candidata exige revisão humana, adjudicação metodológica e vínculo
+> documental verificável. Ver
 > [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md).
 
 ## O que o sistema faz / não faz
@@ -235,7 +234,18 @@ Artefatos canônicos de auditoria esperados em `02_metadata`:
 
 Matrizes derivadas e relatórios analíticos permanecem em `06_tables`.
 
-Resumo final esperado em `07_logs/run_summary.json`:
+### Proveniência de busca em `07_logs`
+
+- `querypack_generated.json/.csv`: espaço de queries gerado antes dos limites operacionais;
+- `provider_querypack_generated.json/.csv`: renderização gerada por provider;
+- `provider_performance.csv`: registro terminal de cada tentativa real de provider;
+- `query_execution_ledger.json/.csv`: ledger canônico das expressões realmente tentadas na rodada;
+- `querypack_executed.json/.csv`: visão de compatibilidade finalizada somente a partir de tentativas reais;
+- `provider_querypack_executed.json/.csv`: visão executada por provider.
+
+**Query gerada não é prova de query executada.** Para a execução definitiva do Artigo 1, ver [`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md).
+
+Resumo final esperado em `07_logs/run_summary.json` inclui, entre outros:
 
 - `records`
 - `downloads_ok`
@@ -249,6 +259,11 @@ Resumo final esperado em `07_logs/run_summary.json`:
 - `recommendation_candidates_ready_review`
 - `recommendation_candidates_insufficient_evidence`
 - `conflicting_evidence_total`
+- `execution_status`
+- `scientific_readiness`
+- `scientific_readiness_blockers`
+
+`execution_status` descreve a execução computacional. `scientific_readiness` é um gate distinto e não pode inferir aprovação humana apenas porque o pipeline terminou.
 
 ## Testes NutEV
 
@@ -282,6 +297,9 @@ Nenhum desses estados equivale a recomendação final.
 
 ## Documentação
 
+- [`docs/COMPLETE_CODE_SCIENTIFIC_AUDIT_2026-08-09.md`](docs/COMPLETE_CODE_SCIENTIFIC_AUDIT_2026-08-09.md)
+- [`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md)
+- [`docs/ARTICLE1_SOFTWARE_TRACEABILITY.md`](docs/ARTICLE1_SOFTWARE_TRACEABILITY.md)
 - [`docs/AUDITORIA_CRUZADA_DRIVE_GITHUB_ARTIGO1.md`](docs/AUDITORIA_CRUZADA_DRIVE_GITHUB_ARTIGO1.md)
 - [`docs/RUN_LOCAL.md`](docs/RUN_LOCAL.md)
 - [`docs/VALIDATION_REPORT.md`](docs/VALIDATION_REPORT.md)
@@ -316,8 +334,10 @@ O **Artigo 1** é: *“Domínios da Nutrição do Estilo de Vida em guias alimen
 diretrizes clínicas: revisão de escopo e análise documental para subsidiar o
 Protocolo NutEV.”* Seu corpus tem **três trilhas** metodologicamente distintas
 (guias por marco amostral; diretrizes por bases indexadas + sites de sociedades;
-materiais de implementação vinculados) — ver `docs/GREY_LITERATURE_POLICY.md` e
-`docs/ARTICLE1_DOMAIN_CODING.md`.
+materiais de implementação vinculados) — ver
+[`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md),
+[`docs/GREY_LITERATURE_POLICY.md`](docs/GREY_LITERATURE_POLICY.md) e
+[`docs/ARTICLE1_DOMAIN_CODING.md`](docs/ARTICLE1_DOMAIN_CODING.md).
 
 > Nota de renumeração: o workstream histórico `a3` passou a ser **`a4_framework`**
 > (aceito como alias; ambos funcionam). `busca2b` **deixou de ser "fora do
@@ -341,9 +361,9 @@ Não redistribua PDFs protegidos. Não envie dados pessoais ou clínicos.
 
 ## Como citar
 
-Use o arquivo [`CITATION.cff`](CITATION.cff). A versão preparada para a release citável reconciliada é `0.2.0`. ORCID e afiliação institucional permanecem **HUMAN INPUT REQUIRED** até confirmação humana; o DOI só deve ser inserido depois que o Zenodo arquivar a release exata.
+Use o arquivo [`CITATION.cff`](CITATION.cff). A release publicada é `0.2.0` / `v0.2.0` (2026-08-09). ORCID e afiliação institucional devem permanecer ausentes enquanto não forem confirmados; o DOI só deve ser inserido depois que o registro Zenodo real da release exata for verificado.
 
-Veja também [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md) e [`docs/CODE_AVAILABILITY.md`](docs/CODE_AVAILABILITY.md).
+Veja também [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md), [`docs/CODE_AVAILABILITY.md`](docs/CODE_AVAILABILITY.md) e [`docs/RELEASE_RECORD_v0.2.0.md`](docs/RELEASE_RECORD_v0.2.0.md).
 
 ## Como contribuir
 
@@ -353,8 +373,10 @@ indicar justificativa metodológica, fonte e impacto esperado.
 
 ## Roadmap
 
-Ver [`docs/ROADMAP.md`](docs/ROADMAP.md). Release citável reconciliada planejada:
-**`v0.2.0`**, mantendo **alpha** como status de maturidade científica.
+Ver [`docs/ROADMAP.md`](docs/ROADMAP.md). A release citável reconciliada atual é
+**`v0.2.0`**, mantendo **alpha** como status de maturidade científica. Remediações
+pós-release são desenvolvidas em novos commits/releases; a tag publicada não é
+movida.
 
 ## Licença e proveniência
 
@@ -371,6 +393,8 @@ The canonical (and only) runtime is `src/nutev`. The inherited
 `local_deep_research` package has been removed from the tree.
 
 Scientific search does not depend on Google. PubMed, Europe PMC, OpenAlex, Crossref and official sources run through safe provider handling; provider failures are logged and the pipeline exports partial results instead of crashing. PubMed uses NCBI E-utilities with `usehistory=y`, `WebEnv`, `query_key`, paginated batches, retry/backoff and checkpoints under `07_logs/checkpoints/pubmed/`.
+
+Provider capability is distinct from protocol inclusion. For manuscript-grade search provenance, use the exact execution evidence and track definitions documented in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`.
 
 Configure local environment variables from `.env.example`. The most important PubMed settings are `NCBI_EMAIL`, optional `NCBI_API_KEY`, and `NCBI_TOOL=nutev_pipeline`. Google/SerpAPI keys are optional and are used only for gray-literature discovery.
 
