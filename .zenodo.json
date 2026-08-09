@@ -22,12 +22,5 @@
       "name": "Schneider, Willian Vagner Dorneles"
     }
   ],
-  "related_identifiers": [
-    {
-      "identifier": "https://github.com/WillianVagner123/NutEV-Evidence-Engine",
-      "relation": "isSupplementTo",
-      "scheme": "url"
-    }
-  ],
-  "notes": "Release metadata for software version 0.2.0. Scientific maturity remains alpha. This version intentionally avoids reusing the pre-existing v0.1.0-v0.1.8 tag namespace. HUMAN INPUT REQUIRED before DOI metadata is finalized: add the author ORCID, confirm the exact institutional affiliation, and add the Article 1 DOI to related_identifiers if/when available. Do not invent missing human metadata."
+  "notes": "Citation-grade reconciled software release v0.2.0. Scientific maturity remains alpha. Historical v0.1.x tags are preserved and are not reused. Human review remains required for scientific inclusion, coding, interpretation and any recommendation-level decision."
 }
