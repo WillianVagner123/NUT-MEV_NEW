@@ -1,0 +1,130 @@
+name: release-validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  release-validation:
+    name: release validation (python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/nutev-ci.txt
+          python -m pip install --no-deps -e .
+          python -m pip install build twine
+
+      - name: Verify release identity
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          expected = "0.1.0"
+
+          ns = {}
+          exec(Path("src/nutev/__version__.py").read_text(encoding="utf-8"), ns)
+          assert ns["__version__"] == expected, ns["__version__"]
+
+          zenodo = json.loads(Path(".zenodo.json").read_text(encoding="utf-8"))
+          assert zenodo["version"] == expected, zenodo["version"]
+
+          citation = Path("CITATION.cff").read_text(encoding="utf-8")
+          versions = re.findall(r'^\s*version:\s*["\']?([^"\'\n#]+)', citation, flags=re.MULTILINE)
+          assert versions, "No version fields found in CITATION.cff"
+          assert all(v.strip() == expected for v in versions), versions
+
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          assert f"## [{expected}]" in changelog, "CHANGELOG release section missing"
+
+          checklist = Path("docs/RELEASE_CHECKLIST.md").read_text(encoding="utf-8")
+          assert "v0.1.0" in checklist
+          assert "v1.0-artigo1" not in checklist
+
+          print(f"Release identity consistent: {expected} / v{expected}")
+          PY
+
+      - name: Run canonical tests
+        run: PYTHONPATH=src python -m pytest -q nutev_tests
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Validate distribution metadata
+        run: python -m twine check dist/*
+
+      - name: Test installed wheel and zero-key demo
+        run: |
+          python -m venv /tmp/nutev-release-wheel
+          /tmp/nutev-release-wheel/bin/python -m pip install --upgrade pip
+          /tmp/nutev-release-wheel/bin/python -m pip install dist/nutev_nutmev-0.1.0-py3-none-any.whl
+          /tmp/nutev-release-wheel/bin/nutev --help >/dev/null
+          /tmp/nutev-release-wheel/bin/nutev demo-data --project-root /tmp/nutev-release-demo
+          test -f /tmp/nutev-release-demo/07_logs/run_summary.json
+
+      - name: Verify relative documentation links
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          root = pathlib.Path('.')
+          bad = []
+          for md in root.rglob('*.md'):
+              if any(p in md.parts for p in ('.git', 'node_modules', '.venv')):
+                  continue
+              text = md.read_text(encoding='utf-8', errors='ignore')
+              for match in re.finditer(r'\]\(([^)]+)\)', text):
+                  link = match.group(1).split('#')[0].strip()
+                  if not link or link.startswith(('http://', 'https://', 'mailto:')):
+                      continue
+                  if not (md.parent / link).exists():
+                      bad.append(f"{md}: {link}")
+          if bad:
+              print('\n'.join(bad))
+              sys.exit(1)
+          print('OK: no broken relative Markdown links')
+          PY
+
+      - name: Capture release environment snapshot
+        run: |
+          {
+            echo "NutEV Evidence Engine release validation"
+            echo "version=0.1.0"
+            echo "commit=${GITHUB_SHA}"
+            echo "runner_os=${RUNNER_OS}"
+            python --version
+            python -m pip --version
+            echo
+            echo "--- pip freeze ---"
+            python -m pip freeze | sort
+          } > release_environment_python312.txt
+
+      - name: Upload release validation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nutev-v0.1.0-release-validation
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            release_environment_python312.txt
+          if-no-files-found: error
+          retention-days: 30
