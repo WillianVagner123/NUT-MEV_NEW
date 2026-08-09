@@ -1,8 +1,44 @@
 # Changelog
 
-All notable changes to this project are documented here. The format is based on Keep a Changelog and the project uses Semantic Versioning for software releases. Methodological changes are additionally tracked in `docs/CHANGELOG_METODOLOGICO.md`.
+All notable changes to this project are documented here. The format is based on Keep a Changelog and the project uses Semantic Versioning for public software releases. Methodological changes are additionally tracked in `docs/CHANGELOG_METODOLOGICO.md`.
 
 ## [Unreleased]
+
+Current source-tree package identity: **`0.3.0.dev0`**. This development identity distinguishes post-release `main` from the immutable public `v0.2.0` object. `CITATION.cff` and `.zenodo.json` continue to describe the latest published release (`0.2.0`) until a new release candidate is deliberately frozen and synchronized.
+
+### Scientific provenance and readiness
+
+- Separated generated query space from expressions actually attempted.
+- Added canonical `query_execution_ledger.json/.csv` derived from real provider-attempt records.
+- Finalized compatibility `*_executed` artifacts only from actual attempts and preserved pre-execution space as `*_generated`.
+- Made query-audit finalization idempotent per run.
+- Made manuscript methods consume actual execution evidence rather than generated querypacks.
+- Separated computational `execution_status` from `scientific_readiness`.
+- Reserved `manuscript_ready` for explicit human-review and manuscript-gate completion rather than provider/pipeline success alone.
+- Added `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` with distinct indexed-database, official/institutional and supplementary discovery tracks.
+- Clarified that the current SciELO connector is Crossref retrieval scoped to DOI prefix `10.1590`, not a comprehensive native SciELO platform free-text search.
+
+### Validation and hardening
+
+- Added focused regression tests for scientific query provenance/readiness invariants.
+- Reconciled `config/source_registry.json` as the canonical search/evidence-source registry and added a crosswalk contract test against `provider_registry.json`.
+- Added branch-aware coverage measurement; measured baseline on 2026-08-09 was 73%, with a conservative blocking floor of 70%.
+- Added Windows Python 3.12 installation/CLI/zero-key-demo smoke validation.
+- Added incremental mypy checking for critical provenance modules.
+- Added an explicit `compileall` syntax gate for `src/nutev`.
+- Upgraded the CodeQL workflow from Action v3 to v4 and investigated an inherited/overlay Python extraction diagnostic affecting `article1_coding.py`.
+- Removed `continue-on-error` from dependency review so an unsupported/failed dependency analysis can no longer appear as a valid security PASS.
+
+### Governance and documentation
+
+- Reconciled README, provider, reproducibility, Code Availability, validation, Zenodo, release and GitHub-settings documentation with the already-published `v0.2.0` state.
+- Corrected the historical `v0.2.0` release record: dependency review is **NOT VALIDATED**, because the action could not execute while GitHub Dependency Graph was disabled.
+- Added `docs/P0_REMEDIATION_RECORD_2026-08-09.md`.
+- Added `docs/OPEN_PR_TRIAGE_2026-08-09.md`, grouping stale July PRs into scientific review families instead of treating them as merge-ready patches.
+
+### Current external gate
+
+- GitHub Dependency Graph must be enabled and the blocking dependency-review action must actually execute successfully before the P0 remediation PR is merged.
 
 ## [0.2.0] — first citable reconciled NutEV Evidence Engine release (alpha maturity)
 
@@ -59,15 +95,16 @@ This release consolidates the NutEV Evidence Engine as a reproducible, auditable
 
 ### Validation evidence
 
-The release-reconciliation PR passed the repository CI on both Python 3.12 and 3.13 with **703 passed, 8 skipped and 1 xpassed** on each interpreter, together with successful security-scan, dependency-review and CodeQL runs. The final `v0.2.0` candidate must additionally pass the dedicated release-validation workflow on its exact SHA.
+The release-reconciliation flow passed canonical CI on Python 3.12 and 3.13 with **703 passed, 8 skipped and 1 xpassed** on each interpreter, together with successful blocking lint, security-scan/gitleaks, CodeQL, build/distribution and zero-key release validation. A post-release audit established that the dependency-review action had **not actually executed** because GitHub Dependency Graph was disabled and the workflow allowed the error to continue. Dependency review for `v0.2.0` is therefore **NOT VALIDATED**, not PASS; see `docs/RELEASE_RECORD_v0.2.0.md`.
 
-### Known limitations / pending before DOI
+### Known limitations / pending after publication
 
 - ORCID and exact institutional affiliation remain human-confirmed metadata and must not be invented.
 - The exact upstream derivation point should be confirmed if it is to be stated publicly in release metadata/provenance.
 - Full scientific pipeline reproduction is canonical from a repository checkout while `config/` remains repository-root configuration; do not claim a wheel-only full-pipeline path unless separately verified.
 - Development dependencies are version-ranged; the release workflow captures a release-specific environment snapshot.
 - The software remains at **alpha maturity** despite the semantic software version `0.2.0`.
+- Zenodo DOI metadata remains pending until a real public archive record is verified.
 
 [Unreleased]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/releases/tag/v0.2.0

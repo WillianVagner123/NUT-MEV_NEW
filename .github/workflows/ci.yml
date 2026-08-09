@@ -23,8 +23,8 @@ jobs:
       matrix:
         python-version: ["3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install project and test deps
@@ -32,17 +32,80 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements/nutev-ci.txt
           python -m pip install --no-deps -e .
-      - name: Run the full canonical test suite
+      - name: Run canonical suite with coverage gate
+        if: matrix.python-version == '3.12'
+        # Measured baseline on 2026-08-09: 73% total branch-aware coverage
+        # (711 passed, 8 skipped, 1 xpassed). A 70% floor protects against a
+        # material regression while leaving room to raise the threshold as the
+        # currently low-coverage UI/API/optional integrations gain tests.
+        run: >-
+          PYTHONPATH=src python -m pytest -q nutev_tests
+          --cov=src/nutev --cov-branch --cov-report=term-missing
+          --cov-report=xml:coverage.xml --cov-fail-under=70
+      - name: Run canonical suite
+        if: matrix.python-version != '3.12'
         run: PYTHONPATH=src python -m pytest -q nutev_tests
+
+  windows-smoke:
+    name: windows smoke (python 3.12)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
+        with:
+          python-version: "3.12"
+      - name: Install minimal project
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/nutev-ci.txt
+          python -m pip install --no-deps -e .
+      - name: CLI help
+        run: nutev --help
+      - name: Zero-key demo smoke
+        shell: pwsh
+        run: |
+          nutev demo-data --project-root ./project_output_windows_smoke
+          if (-not (Test-Path "./project_output_windows_smoke/07_logs/run_summary.json")) {
+            throw "run_summary.json was not created by the Windows zero-key demo"
+          }
+
+  typecheck-provenance:
+    name: typecheck provenance core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
+        with:
+          python-version: "3.12"
+      - name: Install project and type-check deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/nutev-ci.txt
+          python -m pip install --no-deps -e .
+      - name: Mypy critical provenance modules
+        # Incremental gate: start with the modules that determine search
+        # execution evidence/readiness instead of pretending the entire
+        # historical codebase is already strictly typed.
+        run: >-
+          mypy --ignore-missing-imports --check-untyped-defs
+          src/nutev/export/logs.py
+          src/nutev/export/methods_writer.py
+          src/nutev/search/strategy_executor.py
+          src/nutev/search/strategy_execution_ledger.py
 
   lint:
     name: lint (ruff)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
         with:
           python-version: "3.12"
+      - name: Compile canonical Python source
+        # Independent syntax gate. This makes a Python parser failure explicit
+        # even if a static-analysis tool cannot process a particular file.
+        run: python -m compileall -q src/nutev
       - name: Install ruff
         run: python -m pip install ruff
       - name: Ruff check (objective errors — BLOCKING)

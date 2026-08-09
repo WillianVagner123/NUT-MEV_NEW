@@ -14,11 +14,13 @@ jobs:
     name: gitleaks secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
         with:
           fetch-depth: 0
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        # v3 migrates the action runtime from Node 20 to Node 24 without changing
+        # declared inputs/outputs/behavior. Pin the signed v3.0.0 release commit.
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Note: .gitleaksignore entries are NOT assumed safe — they must be
@@ -28,7 +30,7 @@ jobs:
     name: forbidden files & large files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
       - name: Check for forbidden committed files
         run: |
           set -euo pipefail
