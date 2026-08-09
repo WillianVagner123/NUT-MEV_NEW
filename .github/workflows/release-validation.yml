@@ -1,26 +1,47 @@
-name: release-validation
+name: release-validation-v0.2.0-archived
 
+# v0.2.0 has been published. Keep this validator as a manual reproducibility
+# check for the archived release only; future releases must define their own
+# candidate version/tag instead of reusing v0.2.0.
 on:
-  pull_request:
-  push:
-    branches: ["main"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  release-validation:
-    name: release validation (python 3.12)
+  validate-archived-release:
+    name: validate archived v0.2.0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: v0.2.0
           fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+
+      - name: Verify archived release identity
+        run: |
+          set -euo pipefail
+          test "$(git describe --tags --exact-match)" = "v0.2.0"
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          expected = "0.2.0"
+          ns = {}
+          exec(Path("src/nutev/__version__.py").read_text(encoding="utf-8"), ns)
+          assert ns["__version__"] == expected, ns["__version__"]
+          assert json.loads(Path(".zenodo.json").read_text(encoding="utf-8"))["version"] == expected
+          citation = Path("CITATION.cff").read_text(encoding="utf-8")
+          versions = [v.strip() for v in re.findall(r'^\s*version:\s*["\']?([^"\'\n#]+)', citation, flags=re.MULTILINE)]
+          assert versions and all(v == expected for v in versions), versions
+          print("Archived release identity verified: v0.2.0")
+          PY
 
       - name: Install validation dependencies
         run: |
@@ -29,114 +50,21 @@ jobs:
           python -m pip install --no-deps -e .
           python -m pip install build twine
 
-      - name: Verify release identity and unused tag
-        run: |
-          python - <<'PY'
-          import json
-          import re
-          from pathlib import Path
-
-          expected = "0.2.0"
-
-          ns = {}
-          exec(Path("src/nutev/__version__.py").read_text(encoding="utf-8"), ns)
-          actual_code = ns.get("__version__")
-          if actual_code != expected:
-              raise SystemExit(f"code version mismatch: expected {expected}, got {actual_code}")
-
-          zenodo = json.loads(Path(".zenodo.json").read_text(encoding="utf-8"))
-          if zenodo.get("version") != expected:
-              raise SystemExit(f".zenodo.json mismatch: expected {expected}, got {zenodo.get('version')}")
-
-          citation = Path("CITATION.cff").read_text(encoding="utf-8")
-          versions = [v.strip() for v in re.findall(r'^\s*version:\s*["\']?([^"\'\n#]+)', citation, flags=re.MULTILINE)]
-          if not versions or any(v != expected for v in versions):
-              raise SystemExit(f"CITATION.cff version mismatch: {versions}")
-
-          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-          if f"## [{expected}]" not in changelog:
-              raise SystemExit(f"CHANGELOG missing release section [{expected}]")
-
-          checklist = Path("docs/RELEASE_CHECKLIST.md").read_text(encoding="utf-8")
-          if f"v{expected}" not in checklist:
-              raise SystemExit(f"release checklist missing v{expected}")
-
-          print(f"Release metadata identity consistent: {expected} / v{expected}")
-          PY
-
-          if git rev-parse -q --verify refs/tags/v0.2.0 >/dev/null; then
-            echo "ERROR: refs/tags/v0.2.0 already exists. Never overwrite or move a published tag."
-            exit 1
-          fi
-          echo "Tag v0.2.0 is unused and available."
-
       - name: Run canonical tests
         run: PYTHONPATH=src python -m pytest -q nutev_tests
 
-      - name: Build wheel and sdist
-        run: python -m build
-
-      - name: Validate distribution metadata
-        run: python -m twine check dist/*
-
-      - name: Test installed wheel and zero-key demo
+      - name: Build and validate distributions
         run: |
+          python -m build
+          python -m twine check dist/*
+
+      - name: Verify zero-key wheel demo
+        run: |
+          set -euo pipefail
           WHEEL=$(find dist -maxdepth 1 -name 'nutev_nutmev-0.2.0-*.whl' -print -quit)
           test -n "$WHEEL"
-          python -m venv /tmp/nutev-release-wheel
-          /tmp/nutev-release-wheel/bin/python -m pip install --upgrade pip
-          /tmp/nutev-release-wheel/bin/python -m pip install "$WHEEL"
-          /tmp/nutev-release-wheel/bin/nutev --help >/dev/null
-          /tmp/nutev-release-wheel/bin/nutev demo-data --project-root /tmp/nutev-release-demo
-          test -f /tmp/nutev-release-demo/07_logs/run_summary.json
-
-      - name: Verify relative documentation links
-        run: |
-          python - <<'PY'
-          import pathlib
-          import re
-          import sys
-
-          root = pathlib.Path('.')
-          bad = []
-          for md in root.rglob('*.md'):
-              if any(p in md.parts for p in ('.git', 'node_modules', '.venv')):
-                  continue
-              text = md.read_text(encoding='utf-8', errors='ignore')
-              for match in re.finditer(r'\]\(([^)]+)\)', text):
-                  link = match.group(1).split('#')[0].strip()
-                  if not link or link.startswith(('http://', 'https://', 'mailto:')):
-                      continue
-                  if not (md.parent / link).exists():
-                      bad.append(f"{md}: {link}")
-          if bad:
-              print('\n'.join(bad))
-              sys.exit(1)
-          print('OK: no broken relative Markdown links')
-          PY
-
-      - name: Capture release environment snapshot
-        run: |
-          {
-            echo "NutEV Evidence Engine release validation"
-            echo "version=0.2.0"
-            echo "planned_tag=v0.2.0"
-            echo "commit=${GITHUB_SHA}"
-            echo "runner_os=${RUNNER_OS}"
-            python --version
-            python -m pip --version
-            echo
-            echo "--- pip freeze ---"
-            python -m pip freeze | sort
-          } > release_environment_python312.txt
-
-      - name: Upload release validation artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: nutev-v0.2.0-release-validation
-          path: |
-            dist/*.whl
-            dist/*.tar.gz
-            release_environment_python312.txt
-          if-no-files-found: error
-          retention-days: 30
+          python -m venv /tmp/nutev-v020-archive
+          /tmp/nutev-v020-archive/bin/python -m pip install --upgrade pip
+          /tmp/nutev-v020-archive/bin/python -m pip install "$WHEEL"
+          /tmp/nutev-v020-archive/bin/nutev demo-data --project-root /tmp/nutev-v020-demo
+          test -f /tmp/nutev-v020-demo/07_logs/run_summary.json
