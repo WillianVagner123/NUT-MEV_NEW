@@ -1,4 +1,4 @@
-"""Article 1 analytical coding: tracks, A/B/C/D domains, AACODS and archiving.
+"""Article 1 analytical coding for tracks, A/B/C/D domains, AACODS and archiving.
 
 This module implements the *documented, reproducible* coding scheme that produces
 the central result of Article 1 (the scoping review). It is deliberately
