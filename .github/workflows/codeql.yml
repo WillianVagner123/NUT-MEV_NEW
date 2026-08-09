@@ -6,7 +6,7 @@ on:
   pull_request:
     branches:
       - "main"
-      - "codeql-full-analysis-base-20260809" # temporary uncached-base diagnostic
+      - "codeql-full-analysis-base-20260809" # temporary diagnostic base
   schedule:
     - cron: "0 6 * * 1"
 
@@ -27,6 +27,23 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: python
+      - name: Standalone Article 1 parser diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/nutev-article1-probe /tmp/nutev-article1-codeql-db /tmp/nutev-article1-codeql-logs
+          mkdir -p /tmp/nutev-article1-probe /tmp/nutev-article1-codeql-logs
+          cp src/nutev/analysis/article1_coding.py /tmp/nutev-article1-probe/article1_coding.py
+          "$CODEQL_DIST/codeql" database create \
+            --language=python \
+            --source-root=/tmp/nutev-article1-probe \
+            --overwrite \
+            --verbosity=progress+++ \
+            --logdir=/tmp/nutev-article1-codeql-logs \
+            /tmp/nutev-article1-codeql-db
+          echo "--- standalone extractor diagnostics ---"
+          grep -RniE "parse error|Could not process|encoding '" /tmp/nutev-article1-codeql-logs || true
+          echo "--- end standalone extractor diagnostics ---"
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
       - name: Perform CodeQL Analysis
