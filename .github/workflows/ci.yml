@@ -70,6 +70,30 @@ jobs:
             throw "run_summary.json was not created by the Windows zero-key demo"
           }
 
+  typecheck-provenance:
+    name: typecheck provenance core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install project and type-check deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/nutev-ci.txt
+          python -m pip install --no-deps -e .
+      - name: Mypy critical provenance modules
+        # Incremental gate: start with the modules that determine search
+        # execution evidence/readiness instead of pretending the entire
+        # historical codebase is already strictly typed.
+        run: >-
+          mypy --ignore-missing-imports --check-untyped-defs
+          src/nutev/export/logs.py
+          src/nutev/export/methods_writer.py
+          src/nutev/search/strategy_executor.py
+          src/nutev/search/strategy_execution_ledger.py
+
   lint:
     name: lint (ruff)
     runs-on: ubuntu-latest
