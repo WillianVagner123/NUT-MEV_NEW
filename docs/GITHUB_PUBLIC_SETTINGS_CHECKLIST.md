@@ -56,23 +56,22 @@ The current development tree includes `.github/dependabot.yml` for the `github-a
 
 ## Actions / supply-chain hardening
 
-Critical **official GitHub/Actions** references used by the validated CI/security path have been pinned to full immutable commit SHAs in the development branch, including:
+Critical Action references in the active development security/CI paths are pinned to full immutable commit SHAs, including:
 
 - `actions/checkout`;
 - `actions/setup-python`;
 - `github/codeql-action`;
-- `actions/dependency-review-action`.
+- `actions/dependency-review-action`;
+- `gitleaks/gitleaks-action`.
 
-The exact pinned commits were selected from Action revisions already exercised by the remediation PR validation path. Dependabot is used to propose later updates rather than relying on mutable major-version references.
-
-The third-party `gitleaks/gitleaks-action` remains on its reviewed release line pending a separate upstream/runtime review; it must not be described as SHA-pinned yet.
+The official GitHub/Actions pins use revisions already exercised by the remediation validation path. The gitleaks scan was separately reviewed and migrated from v2 to the signed **v3.0.0** release commit because v3 moves the runtime from Node 20 to Node 24 without changing the declared inputs/outputs/behavior. Dependabot is configured to propose later GitHub Actions updates for review rather than relying on mutable major-version references.
 
 - [ ] Restrict Actions to trusted/approved actions according to repository policy.
 - [ ] Keep default `GITHUB_TOKEN` permissions read-only where possible; workflows should request only the scopes they require.
 - [ ] Require approval for workflows from first-time/outside contributors when appropriate.
 - [ ] Review workflow permissions before every citable release.
-- [x] Pin critical official GitHub/Actions references in the active development branch to immutable commit SHAs.
-- [ ] Review and, when justified, SHA-pin third-party Actions separately.
+- [x] Pin critical Action references in the active development branch to immutable commit SHAs.
+- [x] Migrate gitleaks to the Node-24 v3 release line and pin its signed release commit.
 - [ ] Confirm no retired one-shot release workflow is still treated as the canonical publication path.
 
 ## Current release state
