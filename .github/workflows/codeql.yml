@@ -2,11 +2,11 @@ name: codeql
 
 on:
   push:
+    branches: ["main"]
+  pull_request:
     branches:
       - "main"
-      - "agent/p0-scientific-provenance-remediation" # temporary full-analysis diagnostic
-  pull_request:
-    branches: ["main"]
+      - "codeql-full-analysis-base-20260809" # temporary uncached-base diagnostic
   schedule:
     - cron: "0 6 * * 1"
 
