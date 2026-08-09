@@ -49,7 +49,11 @@ jobs:
             --logdir=/tmp/nutev-article1-codeql-logs \
             /tmp/nutev-article1-codeql-db
           echo "--- standalone extractor diagnostics ---"
-          grep -RniE "parse error|Could not process|encoding '" /tmp/nutev-article1-codeql-logs || true
+          if grep -RniE "parse error|Could not process|encoding '" /tmp/nutev-article1-codeql-logs; then
+            echo "Fresh standalone CodeQL extraction reported a parser/encoding diagnostic."
+            exit 1
+          fi
+          echo "Fresh standalone CodeQL extraction is clean."
           echo "--- end standalone extractor diagnostics ---"
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
