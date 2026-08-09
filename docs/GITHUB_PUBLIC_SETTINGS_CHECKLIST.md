@@ -34,28 +34,45 @@ Use the **current workflow names**, not removed historical workflows.
 - [ ] Enable **Push protection** if available.
 - [ ] **Enable Dependency Graph.** This is currently required before dependency-review can be treated as a real security gate.
 - [ ] After enabling Dependency Graph, confirm the `dependency-review` action actually executes successfully on a PR.
-- [ ] Only then remove/avoid any non-blocking error bypass around dependency review and require it for release/security-sensitive changes.
+- [ ] Require dependency review for release/security-sensitive changes only after a true execution has been demonstrated.
 - [ ] Keep CodeQL enabled either through GitHub default setup or the repository workflow, avoiding duplicate/conflicting setups.
 - [ ] Enable **Private vulnerability reporting** when appropriate.
 - [ ] Review dependency/security alerts manually.
 
 ### Why Dependency Graph is explicitly required
 
-The complete 2026-08-09 audit found that the dependency-review workflow could appear green even though GitHub reported dependency review as unsupported while Dependency Graph was disabled. Therefore a green workflow conclusion alone is not evidence that dependency analysis occurred.
+The complete 2026-08-09 audit found that the dependency-review workflow could appear green even though GitHub reported dependency review as unsupported while Dependency Graph was disabled. The workflow has since been changed to make this condition blocking. Therefore a future green dependency-review must represent a real successful action execution.
 
-The historical `v0.2.0` release record has been corrected to classify dependency review as **NOT VALIDATED** rather than PASS.
+The historical `v0.2.0` release record is correctly classified as **dependency review NOT VALIDATED**, not PASS.
 
-### Dependabot note
+### Dependabot / dependency-update policy
 
-The current tree does **not** rely on a `.github/dependabot.yml` configuration. Do not claim automated dependency updates are active unless they are intentionally re-enabled and verified.
+The current development tree includes `.github/dependabot.yml` for the `github-actions` package ecosystem on a weekly Monday schedule. Its purpose is to open reviewable PRs for Action updates instead of leaving SHA-pinned workflows permanently frozen.
 
-## Actions
+- [x] automated GitHub Actions update policy added to the development branch;
+- [ ] verify the first Dependabot GitHub-Actions PR after this configuration reaches `main`;
+- [ ] review every Action update through the same CI/security gates before merge;
+- [ ] decide separately whether Python dependency version updates should also be automated.
+
+## Actions / supply-chain hardening
+
+Critical **official GitHub/Actions** references used by the validated CI/security path have been pinned to full immutable commit SHAs in the development branch, including:
+
+- `actions/checkout`;
+- `actions/setup-python`;
+- `github/codeql-action`;
+- `actions/dependency-review-action`.
+
+The exact pinned commits were selected from Action revisions already exercised by the remediation PR validation path. Dependabot is used to propose later updates rather than relying on mutable major-version references.
+
+The third-party `gitleaks/gitleaks-action` remains on its reviewed release line pending a separate upstream/runtime review; it must not be described as SHA-pinned yet.
 
 - [ ] Restrict Actions to trusted/approved actions according to repository policy.
 - [ ] Keep default `GITHUB_TOKEN` permissions read-only where possible; workflows should request only the scopes they require.
 - [ ] Require approval for workflows from first-time/outside contributors when appropriate.
 - [ ] Review workflow permissions before every citable release.
-- [ ] Pin release/security-critical actions to immutable commit SHAs when the repository policy is ready for that hardening step.
+- [x] Pin critical official GitHub/Actions references in the active development branch to immutable commit SHAs.
+- [ ] Review and, when justified, SHA-pin third-party Actions separately.
 - [ ] Confirm no retired one-shot release workflow is still treated as the canonical publication path.
 
 ## Current release state
@@ -66,6 +83,8 @@ The citation-grade reconciled release currently recorded is:
 - **Git tag:** `v0.2.0`
 - **Release date:** `2026-08-09`
 - **Maturity:** alpha
+
+The post-release source tree is on the development package line `0.3.0.dev0`; this does not replace or move the published `v0.2.0` object.
 
 Historical tags `v0.1.0` through `v0.1.8` and the published `v0.2.0` tag must remain immutable.
 
