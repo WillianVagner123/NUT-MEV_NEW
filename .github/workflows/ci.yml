@@ -24,7 +24,7 @@ jobs:
         python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # validated v6 line
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install project and test deps
@@ -51,7 +51,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # validated v6 line
         with:
           python-version: "3.12"
       - name: Install minimal project
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # validated v6 line
         with:
           python-version: "3.12"
       - name: Install project and type-check deps
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # validated v6 line
         with:
           python-version: "3.12"
       - name: Compile canonical Python source
