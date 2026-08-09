@@ -2,7 +2,9 @@ name: codeql
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - "main"
+      - "agent/p0-scientific-provenance-remediation" # temporary full-analysis diagnostic
   pull_request:
     branches: ["main"]
   schedule:
