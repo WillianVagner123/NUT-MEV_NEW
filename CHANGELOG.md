@@ -4,16 +4,16 @@ All notable changes to this project are documented here. The format is based on 
 
 ## [Unreleased]
 
-### Release reconciliation
+## [0.2.0] — first citable reconciled NutEV Evidence Engine release (alpha maturity)
 
-- Standardized the first citable software release identity as **`0.1.0` / `v0.1.0`**.
-- Kept **alpha** as the scientific/software maturity designation rather than as a competing version identifier.
-- Reconciled Zenodo/CFF metadata, provenance documentation and release instructions.
-- Final DOI, release date, ORCID and exact institutional affiliation remain human-confirmed post-validation fields.
+This release consolidates the NutEV Evidence Engine as a reproducible, auditable research-software object supporting the evidence layer of the NutEV project. It is **not** the separate clinical Decision Engine and does not produce final clinical recommendations.
 
-## [0.1.0] — first citable release candidate (alpha maturity)
+### Release identity and history
 
-This release candidate consolidates the NutEV Evidence Engine as a reproducible, auditable research-software object supporting the evidence layer of the NutEV project. It is **not** the separate clinical Decision Engine and does not produce final clinical recommendations.
+- The citable release identity is **`0.2.0` / `v0.2.0`**.
+- Scientific/software maturity remains **alpha**; alpha is a maturity label, not a competing version suffix.
+- The repository already contains historical tags `v0.1.0` through `v0.1.8`. Those tags are preserved as immutable history and are **not** reused or moved.
+- Historical tag/version alignment was not reliable: for example, the `v0.1.8` tree still declared the NutEV package version as `0.1.0`. `v0.2.0` starts the reconciled citation-grade release line without rewriting that history.
 
 ### Added
 
@@ -28,6 +28,8 @@ This release candidate consolidates the NutEV Evidence Engine as a reproducible,
 - `CITATION.cff`, `.zenodo.json`, `NOTICE.md`, code-availability and Zenodo release documentation.
 - Canonical CI on Python 3.12 and 3.13, plus blocking Ruff F/E9 checks.
 - Security workflows including gitleaks and repository-hygiene checks.
+- Dedicated release-validation workflow covering identity, tag collision, tests, build, `twine check`, clean-wheel demo, documentation links and environment snapshot.
+- Article 1 software traceability matrix linking method claims to implementation, tests, outputs and human-decision boundaries.
 
 ### Changed
 
@@ -39,6 +41,7 @@ This release candidate consolidates the NutEV Evidence Engine as a reproducible,
 - Scientific output failures and coverage loss are surfaced in structured telemetry rather than silently swallowed.
 - Audit CSV location and UI/read contracts were reconciled; derived convergence/gap/readiness matrices are produced on real runs.
 - Python support declaration was tightened to match tested CI versions (`>=3.12,<3.14`).
+- Release metadata, citation metadata, README, validation and Zenodo instructions were reconciled around one citation-grade release identity.
 
 ### Removed
 
@@ -54,14 +57,17 @@ This release candidate consolidates the NutEV Evidence Engine as a reproducible,
 - Missing full text/OCR limitations are surfaced rather than treated as evidence absence.
 - Protected third-party PDFs/full texts and personal/clinical data are not intended for redistribution in the repository or release artifacts.
 
+### Validation evidence
+
+The release-reconciliation PR passed the repository CI on both Python 3.12 and 3.13 with **703 passed, 8 skipped and 1 xpassed** on each interpreter, together with successful security-scan, dependency-review and CodeQL runs. The final `v0.2.0` candidate must additionally pass the dedicated release-validation workflow on its exact SHA.
+
 ### Known limitations / pending before DOI
 
-- A **fresh validation run on the final release-candidate SHA** is still required before publication: full canonical tests, build, `twine check`, zero-key demo, documentation-link check and security scan.
-- ORCID and exact institutional affiliation must be confirmed by a human before DOI minting.
+- ORCID and exact institutional affiliation remain human-confirmed metadata and must not be invented.
 - The exact upstream derivation point should be confirmed if it is to be stated publicly in release metadata/provenance.
 - Full scientific pipeline reproduction is canonical from a repository checkout while `config/` remains repository-root configuration; do not claim a wheel-only full-pipeline path unless separately verified.
-- Development dependencies are version-ranged; a release-specific dependency snapshot/constraints record should be captured for the archived version.
-- The software remains at **alpha maturity** despite using the semantic software version `0.1.0`.
+- Development dependencies are version-ranged; the release workflow captures a release-specific environment snapshot.
+- The software remains at **alpha maturity** despite the semantic software version `0.2.0`.
 
-[Unreleased]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/releases/tag/v0.1.0
+[Unreleased]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/releases/tag/v0.2.0
