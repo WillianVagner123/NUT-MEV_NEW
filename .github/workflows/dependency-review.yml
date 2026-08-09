@@ -11,9 +11,9 @@ jobs:
   dependency-review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
       - name: Dependency Review
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
         # This is intentionally blocking. A green workflow must mean that the
         # dependency-review action actually executed successfully. Repository
         # Settings > Code security & analysis > Dependency graph must therefore
