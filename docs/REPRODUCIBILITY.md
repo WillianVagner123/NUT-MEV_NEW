@@ -19,7 +19,7 @@ This runs without OpenAI, Google, SerpAPI, Brave, real data or protected PDFs. I
 - **Versioned software:** every citable run must identify the software version, Git tag and exact commit SHA.
 - **Declared Python support:** the current package declares Python `>=3.12,<3.14`, matching the canonical CI matrix (3.12 and 3.13).
 - **Version-ranged development dependencies:** `pyproject.toml` and `requirements/nutev-*.txt` describe supported dependency ranges/minima; they are not, by themselves, an immutable environment lock.
-- **Release-specific dependency snapshot:** a citable release should record the exact resolved environment used for validation (for example via a constraints/lock or `pip freeze` artifact) so the archived version can be reconstructed more precisely.
+- **Release-specific dependency snapshot:** the release-validation workflow records the exact resolved validation environment via `pip freeze` together with built distributions.
 - **Deterministic config provenance:** rules/ontology/scoring/taxonomy under `config/` are versioned and methodology changes are recorded in `docs/CHANGELOG_METODOLOGICO.md`.
 - **Config digest:** every scientific run should record the effective configuration inputs and `config_digest`.
 - **Traceability:** claims and coding outputs should retain source/document identifiers and verifiable locators when the method requires them.
@@ -58,15 +58,17 @@ For a manuscript-quality run, additionally record:
 
 ## Release versioning
 
-The first citable software release is being reconciled as:
+The citation-grade reconciled release is:
 
-- **software version:** `0.1.0`;
-- **planned Git tag:** `v0.1.0`;
+- **software version:** `0.2.0`;
+- **planned Git tag:** `v0.2.0`;
 - **scientific maturity:** alpha.
+
+Historical tags `v0.1.0` through `v0.1.8` remain immutable. They are not reused, moved or silently repointed. `v0.2.0` begins the reconciled citation-grade release line after historical tag/package version drift was identified.
 
 `alpha` describes maturity; it is not a second competing version identifier for the same release.
 
-Before DOI minting, the final candidate SHA must pass `docs/RELEASE_CHECKLIST.md`.
+Before DOI minting, the final candidate SHA must pass `docs/RELEASE_CHECKLIST.md` and `.github/workflows/release-validation.yml`.
 
 ## Repository checkout vs wheel-only reproduction
 
@@ -74,7 +76,7 @@ The repository checkout is currently the canonical route for complete scientific
 
 Differentiate explicitly:
 
-- **zero-key demonstration from an installed package**;
+- **zero-key demonstration from an installed package** — validated by the release workflow;
 - **full scientific pipeline from a repository checkout**;
 - **wheel-only full-pipeline execution**, which must not be claimed unless separately validated with all required configuration assets available.
 
@@ -94,7 +96,7 @@ For every citable release, record:
 - security/gitleaks result;
 - known limitations.
 
-Do not reuse an old validation count as evidence for a newer candidate SHA.
+The release workflow uploads the built wheel, sdist and `release_environment_python312.txt`. Do not reuse an old validation count as evidence for a newer candidate SHA.
 
 ## Known environment caveats
 
