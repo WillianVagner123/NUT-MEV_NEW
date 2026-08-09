@@ -14,10 +14,13 @@ jobs:
     name: gitleaks secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
         with:
           fetch-depth: 0
       - name: Run gitleaks
+        # Keep the third-party gitleaks action on its reviewed release line for
+        # now; its runtime-version warning is tracked separately from the
+        # official GitHub/Actions SHA-pinning policy.
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -28,7 +31,7 @@ jobs:
     name: forbidden files & large files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
       - name: Check for forbidden committed files
         run: |
           set -euo pipefail
