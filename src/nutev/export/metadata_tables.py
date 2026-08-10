@@ -66,6 +66,40 @@ ARTICLE_DATA_COLUMNS = [
     "key_phrases_text",
 ]
 
+# Known operational artifacts are valid even when a run produces zero rows.
+# These schemas mirror the dictionaries emitted by the current downloader and
+# extractor; they are intentionally filename-scoped so an empty artifact remains
+# distinguishable from a failed/truncated write without inventing unavailable data.
+_SIMPLE_CSV_DEFAULT_COLUMNS = {
+    "download_manifest.csv": [
+        "document_id",
+        "url",
+        "resolved_url",
+        "path",
+        "ext",
+        "source",
+        "status",
+    ],
+    "failed_downloads.csv": [
+        "document_id",
+        "url",
+        "resolved_url",
+        "status",
+        "reason",
+        "head_status",
+    ],
+    "extraction_manifest.csv": [
+        "file",
+        "ext",
+        "used_ocr",
+        "ocr_failed_pages",
+        "text_path",
+        "chars",
+        "extraction_status",
+        "reason",
+    ],
+}
+
 
 def _normalize_metadata_row(row: dict) -> dict:
     out = {k: row.get(k, "") for k in REQUIRED_METADATA_COLUMNS}
@@ -122,12 +156,15 @@ def write_simple_csv(
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     keys = fieldnames or sorted({k for r in rows for k in r.keys()})
+    if not keys:
+        keys = _SIMPLE_CSV_DEFAULT_COLUMNS.get(path.name, [])
     with path.open("w", newline="", encoding="utf-8") as f:
         if not keys:
             return
-        # When callers provide an explicit schema, provider-specific metadata may
-        # legitimately contain extra keys. The schema is authoritative for this
-        # export, so ignore those extras instead of failing the entire run.
+        # When callers provide an explicit or known operational schema,
+        # provider-specific metadata may legitimately contain extra keys. The
+        # schema is authoritative for this export, so ignore those extras instead
+        # of failing the entire run.
         w = csv.DictWriter(f, fieldnames=keys, extrasaction="ignore")
         w.writeheader()
         w.writerows(rows)
