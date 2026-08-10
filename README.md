@@ -1,133 +1,89 @@
-# NutEV **Evidence** Engine — Lifestyle Nutrition
+# NutEV Evidence Engine — Lifestyle Nutrition
 
-Infraestrutura computacional reprodutível que **identifica, organiza, deduplica,
-classifica e audita** documentos científicos e oficiais de Nutrição do Estilo de
-Vida, produzindo matrizes de extração e filas de revisão humana para apoiar uma
-**revisão de escopo** (Artigo 1). É a camada de **evidência** do projeto
-NutEV/NutMEV — **não** é o motor de decisão clínica (ver
-[Escopo e o que este software NÃO é](#escopo-e-o-que-este-software-não-é)).
+Infraestrutura computacional reprodutível para **identificação, proveniência, normalização, deduplicação, classificação, curadoria assistida e revisão humana** de evidências em Nutrição do Estilo de Vida.
+
+O repositório apoia a camada de evidências do projeto NutEV/NutMEV e a execução metodológica do Artigo 1. Ele **não é um motor de decisão clínica**, não prescreve e não transforma `RecommendationCandidate` em recomendação clínica final.
 
 ![status](https://img.shields.io/badge/status-alpha-orange)
 ![python](https://img.shields.io/badge/python-3.12%E2%80%933.13-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![tests](https://img.shields.io/badge/tests-nutev__tests-informational)
-![science](https://img.shields.io/badge/output-RecommendationCandidate%20(n%C3%A3o%20final)-red)
-<!-- TODO: após verificar o registro real no Zenodo (docs/ZENODO_SETUP.md), troque
-     o badge abaixo pelo DOI real fornecido pelo Zenodo. -->
-[![DOI](https://img.shields.io/badge/DOI-pendente%20(Zenodo)-lightgrey)](docs/ZENODO_SETUP.md)
+[![DOI](https://img.shields.io/badge/DOI-pendente%20de%20verifica%C3%A7%C3%A3o%20Zenodo-lightgrey)](docs/ZENODO_SETUP.md)
 
-> ⚠️ **Status científico:** software de apoio à pesquisa, em estágio **alpha**.
-> A release citável reconciliada **foi publicada em 9 de agosto de 2026** como
-> **versão `0.2.0` / tag `v0.2.0`**. Essa tag e as tags históricas
-> `v0.1.0`–`v0.1.8` são preservadas e não serão reutilizadas ou movidas. `alpha`
-> descreve a maturidade científica e não uma segunda versão concorrente. Uma
-> saída computacional (`RecommendationCandidate`) **não** é recomendação clínica
-> final. Toda candidata exige revisão humana, adjudicação metodológica e vínculo
-> documental verificável. Ver
-> [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md).
+## Identidade da versão
 
-## O que o sistema faz / não faz
+| Estado | Identidade |
+|---|---|
+| Última release pública/citável | `0.2.0` / tag `v0.2.0` |
+| Árvore de desenvolvimento atual | `0.3.0.dev0` |
+| Maturidade científica | `alpha` |
+| DOI Zenodo | somente após verificação de um registro real |
 
-**Faz:** documenta estratégias de busca; localiza metadados e documentos oficiais
-públicos; organiza, deduplica e classifica registros; extrai claims com localizador
-verificável; produz matrizes de evidência e filas de revisão humana; gera
-recomendações **candidatas** rastreáveis.
+A release `v0.2.0` e as tags históricas são objetos imutáveis. O avanço da `main` para uma versão de desenvolvimento **não altera retrospectivamente** a release publicada.
 
-**Não faz:** diagnóstico, prescrição individual, decisão clínica automática ou
-recomendação final; não redistribui PDFs/textos protegidos; não usa LLM para
-aprovar recomendações; não armazena dados pessoais/clínicos.
+Antes de uma futura release estável, versão do pacote, tag, GitHub Release, `CITATION.cff`, `.zenodo.json`, CHANGELOG e release notes devem ser reconciliados no mesmo SHA candidato. Ver [`AGENTS.md`](AGENTS.md) e [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
-## Escopo e o que este software NÃO é
+## Princípios científicos obrigatórios
 
-O projeto NutEV/NutMEV tem **dois softwares distintos**, com nomes parecidos. É
-importante não confundi-los:
+- query gerada **não é** query executada;
+- `execution_status` **não é** `scientific_readiness`;
+- `manuscript_ready` requer gates humanos explícitos;
+- capacidade técnica de provider não implica inclusão no protocolo;
+- erros, timeout, rate limit ou credencial ausente permanecem visíveis;
+- `RecommendationCandidate` não é recomendação final;
+- Evidence Engine não é Clinical Decision Engine;
+- decisões de inclusão, exclusão, codificação e interpretação científica permanecem humanas.
 
-| | **NutEV Evidence Engine** (ESTE repositório) | **Decision Engine** (NÃO está aqui) |
-|---|---|---|
-| Apoia | a **revisão de escopo** (Artigo 1) | o **instrumento clínico** |
-| Faz | busca, deduplicação, classificação de documentos, matrizes de extração | z-score intraindividual, AR(1), regra de acionamento |
-| Usuário | o **pesquisador** | o **nutricionista** |
-| Saída | documentos organizados e `RecommendationCandidate` (candidatas) | apoio à decisão clínica |
+A política normativa está em [`AGENTS.md`](AGENTS.md), [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md) e [`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md).
 
-**Este repositório NÃO contém, NÃO executa e NÃO distribui o motor de decisão
-clínica (*Decision Engine*).** Ele não produz recomendação clínica: as saídas do
-tipo `RecommendationCandidate` são **candidatas** sujeitas a adjudicação humana e
-**não** constituem recomendação final. Todas as decisões de inclusão, exclusão,
-codificação e interpretação são **humanas**. Ver
-[`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md) e
-[`docs/CODE_AVAILABILITY.md`](docs/CODE_AVAILABILITY.md).
+# Arquitetura canônica da pesquisa
 
-## Uso público para pesquisa
+## Uma busca global, não uma busca por artigo
 
-Este repositório é público e pode ser utilizado por estudantes, pesquisadores, nutricionistas e equipes acadêmicas para apoiar pesquisas relacionadas à Nutrição do Estilo de Vida, qualidade da dieta, guias alimentares, diretrizes clínicas, padrões alimentares, competências alimentares, adesão e implementação.
-
-Usos previstos:
-
-- construir e documentar estratégias de busca;
-- localizar metadados e documentos oficiais de acesso público;
-- organizar resultados de diferentes fontes;
-- deduplicar e classificar registros;
-- extrair trechos e claims para conferência humana;
-- produzir matrizes de evidências e filas de revisão;
-- apoiar revisões de escopo, análises documentais e projetos metodológicos.
-
-O sistema não fornece diagnóstico, prescrição individual, decisão clínica automática ou recomendação final. Resultados devem ser conferidos nas fontes originais e avaliados por revisores humanos.
-
-### Uso responsável
-
-- respeite licenças, direitos autorais e termos de uso das fontes;
-- não publique PDFs protegidos ou textos integrais sem autorização;
-- prefira compartilhar metadados, URLs oficiais, DOI e trechos estritamente necessários à auditoria;
-- não envie dados pessoais, prontuários ou informações identificáveis;
-- nunca inclua chaves de API, tokens ou credenciais em commits;
-- informe a versão do código, a data da execução, as fontes consultadas e os critérios de seleção;
-- descreva qualquer uso de modelos de linguagem e mantenha revisão humana documentada.
-
-### Como contribuir
-
-Contribuições podem ser propostas por issue ou pull request. São especialmente úteis:
-
-- correções de termos e traduções da taxonomia;
-- inclusão de fontes oficiais verificáveis;
-- testes reprodutíveis;
-- melhorias de documentação;
-- correções de bugs;
-- novos exportadores que preservem rastreabilidade;
-- exemplos públicos sem material protegido e sem dados pessoais.
-
-Toda contribuição científica deve indicar a justificativa metodológica, a fonte e o impacto esperado. Alterações não devem transformar recomendações candidatas em recomendações finais automáticas.
-
-## Visão geral
-
-O projeto organiza uma arquitetura científica local para apoiar a qualificação de doutorado e o desenvolvimento do Protocolo Dietético NutEV/NutMEV. Ele inclui:
-
-- CLI principal `nutev`;
-- dashboard local;
-- API local;
-- demo data;
-- pipeline de busca, classificação, download e extração;
-- Global Watch;
-- Audit Engine;
-- Scientific Rigor Layer;
-- Human Review and Adjudication.
-
-## Runtime canônico
-
-Toda a arquitetura do NutEV/NutMEV está em:
+O fluxo científico canônico é:
 
 ```text
-src/nutev
+UMA estratégia global de pesquisa
+            ↓
+versão FORMAL e imutável da estratégia
+            ↓
+renderização específica por base/provider
+            ↓
+execução real + attempt-level ledger
+            ↓
+UM run científico
+            ↓
+UM corpus mestre
+            ↓
+normalização + deduplicação uma vez
+            ↓
+classificação / triagem por artigo
+            ↓
+full text / extração / qualidade / síntese
+            ↓
+revisão humana
 ```
 
-O repositório evoluiu a partir de uma base histórica `local-deep-research`
-(Local Deep Research, MIT © LearningCircuit). Esse motor herdado **foi removido**
-da árvore do projeto; sua proveniência e atribuição são preservadas em
-[`NOTICE.md`](NOTICE.md) e no histórico Git. O núcleo `src/nutev` não depende do
-runtime herdado removido.
+Os identificadores históricos como `busca1`, `busca2a`, `busca2b`, `a3` ou `a4_framework` ainda podem existir em módulos de compatibilidade, scoring ou análises downstream. **Eles não significam que a pesquisa científica principal deva ser executada como várias buscas temáticas independentes.**
 
-## Instalação rápida
+A mesma estratégia global pode ser traduzida para sintaxes diferentes em PubMed, Europe PMC, Crossref e OpenAlex. Isso continua sendo **uma estratégia científica**, executada em múltiplas fontes e registrada sob uma identidade de execução.
 
-### Windows PowerShell
+## Tracks metodológicos
+
+O Artigo 1 mantém métodos de identificação diferentes quando a natureza da fonte exige:
+
+- **Track A — bases indexadas/congeladas:** expressão exata por base, timestamps, paginação/limites, contagens, snapshots/hashes e ledger de tentativas;
+- **Track B — fontes oficiais/institucionais/guidelines:** manifesto de organizações/fontes, regras de navegação, URLs finais, captura/download legalmente permitido, hashes e revisão humana;
+- **Track C — descoberta suplementar:** somente quando explicitamente prevista pelo protocolo.
+
+Esses tracks podem convergir para o corpus documental governado, mas não devem ser descritos como se tivessem o mesmo método amostral.
+
+O conector chamado SciELO no runtime atual usa recuperação via Crossref escopada pelo prefixo DOI `10.1590`; não deve ser descrito como busca nativa e completa no SciELO.
+
+# Instalação
+
+O pacote requer Python **`>=3.12,<3.14`**. As versões canônicas de CI são Python 3.12 e 3.13.
+
+## Windows PowerShell
 
 ```powershell
 git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
@@ -135,10 +91,17 @@ cd NutEV-Evidence-Engine
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -e ".[dashboard,platform]"
+python -m pip install -e ".[dashboard,platform,documents]"
 ```
 
-### macOS/Linux
+Também existe o instalador assistido:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\setup_windows.ps1
+```
+
+## macOS/Linux
 
 ```bash
 git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
@@ -146,256 +109,220 @@ cd NutEV-Evidence-Engine
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[dashboard,platform]"
+python -m pip install -e ".[dashboard,platform,documents]"
 ```
 
-O projeto requer Python `>=3.12,<3.14` (Python 3.12 e 3.13 são as versões declaradas/testadas pela CI canônica).
+# Demo sem chave
 
-## Demonstração sem chave (nem API paga, nem dados reais)
-
-O primeiro exemplo funciona **sem** OpenAI, Google, SerpAPI, Brave, dados reais ou
-PDFs protegidos:
-
-```bash
-python -m venv .venv
-python -m pip install -e ".[dashboard]"
-nutev demo-data --project-root ./project_output_demo
-nutev dashboard --project-root ./project_output_demo
-```
-
-Os dados gerados são **sintéticos** (demonstração, **não** evidência). Detalhes em
-[`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md).
-
-Para ler **PDFs escaneados** (imagem, sem camada de texto) basta o extra
-`documents` (que já inclui o **PyMuPDF**, via pip, sem instalar nada no sistema)
-e o programa `tesseract`. O `poppler` é opcional. Sem OCR configurado o NutEV
-não trava: avisa o que instalar e marca esses documentos como
-`pdf_needs_ocr_setup` no `run_summary.json`. Passo a passo (inclusive Windows)
-em [`docs/OCR_SETUP.md`](docs/OCR_SETUP.md).
-
-## Demo
+A demonstração usa dados sintéticos e **não é evidência científica**:
 
 ```bash
 nutev demo-data --project-root ./project_output_demo
 nutev dashboard --project-root ./project_output_demo --port 8501
 ```
 
-Depois acesse:
+Abra:
 
 ```text
 http://127.0.0.1:8501
 ```
 
-API local:
+API local opcional:
 
 ```bash
 nutev serve --project-root ./project_output_demo --host 127.0.0.1 --port 8000
 ```
 
-URLs:
+O workflow `release-artifact-validation` também constrói wheel/sdist, executa `twine check`, instala o wheel em ambiente virtual limpo, executa `pip check`, verifica a CLI e roda a demo zero-key a partir do artefato instalado.
 
-- `http://127.0.0.1:8000`
-- `http://127.0.0.1:8000/docs`
+# Como rodar a pesquisa canônica
 
-## Primeiro piloto real
-
-```bash
-nutev --project-root ./project_output_pilot --workstreams busca1 busca2a busca2b a3 --web-enabled
-nutev pilot-report --project-root ./project_output_pilot
-nutev dashboard --project-root ./project_output_pilot --port 8501
-```
-
-Variáveis úteis para integrações bibliográficas:
+## 1. Abra um projeto exclusivo
 
 ```bash
-export NCBI_EMAIL="seu-email@exemplo.com"
-export NCBI_API_KEY="sua-chave-ncbi"
-export CROSSREF_MAILTO="seu-email@exemplo.com"
-export OPENALEX_MAILTO="seu-email@exemplo.com"
+nutev dashboard --project-root ./project_output_scientific --port 8501
 ```
 
-Nunca coloque chaves de API no GitHub, em logs ou em outputs científicos.
+## 2. Abra **Search Strategy**
 
-## Outputs esperados
+Use o **campo global único de pesquisa**. A pergunta/estratégia deve representar o protocolo científico global, não um artigo isolado.
 
-Camadas principais em `project_output_*`:
+O construtor permite revisar a renderização por provider e amplitude. Uma expressão mostrada na interface é apenas **gerada** até existir uma tentativa real registrada.
 
-- `02_metadata`: metadados e artefatos canônicos de claims/auditoria usados por dashboard/API/exportadores;
-- `06_tables`: matrizes derivadas, PRISMA, convergência, gaps e outras tabelas analíticas;
-- `07_logs`: eventos, snapshots, resumo da execução e rastreabilidade;
-- `10_curated`: metadados curados, documentos únicos e documentos operacionais priorizados.
+## 3. Salve uma versão FORMAL
 
-Artefatos canônicos de auditoria esperados em `02_metadata`:
+Antes da execução científica:
 
-- `NUTEV_EVIDENCE_CLAIMS.csv`
-- `NUTEV_CLAIM_EVALUATIONS.csv`
-- `NUTEV_CONFLICTS.csv`
-- `NUTEV_RECOMMENDATION_CANDIDATES.csv`
+- revise a estratégia;
+- salve a versão no registro;
+- marque o tipo como `FORMAL` quando metodologicamente aprovado;
+- preserve versão, timestamp e identidade do responsável conforme o protocolo;
+- não edite retrospectivamente a versão congelada.
 
-Matrizes derivadas e relatórios analíticos permanecem em `06_tables`.
+## 4. Execute a versão registrada
 
-### Proveniência de busca em `07_logs`
+Na área de execução, selecione a **versão congelada**. O executor deve usar a versão registrada, não o texto eventualmente deixado no formulário da interface.
 
-- `querypack_generated.json/.csv`: espaço de queries gerado antes dos limites operacionais;
-- `provider_querypack_generated.json/.csv`: renderização gerada por provider;
-- `provider_performance.csv`: registro terminal de cada tentativa real de provider;
-- `query_execution_ledger.json/.csv`: ledger canônico das expressões realmente tentadas na rodada;
-- `querypack_executed.json/.csv`: visão de compatibilidade finalizada somente a partir de tentativas reais;
-- `provider_querypack_executed.json/.csv`: visão executada por provider.
+A execução deve registrar, no mínimo:
 
-**Query gerada não é prova de query executada.** Para a execução definitiva do Artigo 1, ver [`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md).
+- `run_id`;
+- provider;
+- expressão submetida;
+- tentativa/status;
+- timestamp;
+- contagem;
+- limite/paginação/truncamento;
+- erro real, quando houver;
+- snapshot/hash conforme o contrato.
 
-Resumo final esperado em `07_logs/run_summary.json` inclui, entre outros:
+## 5. Construa o corpus mestre
 
-- `records`
-- `downloads_ok`
-- `downloads_failed`
-- `ocr_docs`
-- `curated_unique_documents`
-- `evidence_claims_total`
-- `evidence_claims_supported`
-- `evidence_claims_needs_review`
-- `recommendation_candidates_total`
-- `recommendation_candidates_ready_review`
-- `recommendation_candidates_insufficient_evidence`
-- `conflicting_evidence_total`
-- `execution_status`
-- `scientific_readiness`
-- `scientific_readiness_blockers`
+Após a execução:
 
-`execution_status` descreve a execução computacional. `scientific_readiness` é um gate distinto e não pode inferir aprovação humana apenas porque o pipeline terminou.
+```text
+snapshots dos providers
+        ↓
+normalização
+        ↓
+deduplicação
+        ↓
+corpus mestre
+```
 
-## Testes NutEV
+Possíveis duplicatas não resolvidas de forma determinística devem permanecer visíveis para revisão humana.
 
-Caminho padronizado:
+## 6. Classifique por artigo depois da recuperação
+
+A classificação/triagem por artigo acontece **sobre o corpus mestre**. Um mesmo documento pode ser relevante para mais de um artigo sem ser pesquisado ou armazenado novamente.
+
+## 7. Continue para full text, extração e qualidade
+
+Quando aplicável e legalmente permitido:
+
+- recuperação/captura;
+- full-text assessment;
+- extração;
+- OCR quando necessário e disponível;
+- evidence matrix;
+- quality assessment;
+- filas de revisão humana.
+
+Metadata-only não deve ser promovido silenciosamente a full text.
+
+## Construtor CLI de estratégia
+
+É possível gerar/auditar expressões a partir de um spec:
+
+```bash
+nutev strategy --spec examples/picos.json --out project_output_scientific/07_logs/search_strategy.json
+```
+
+Esse comando **gera** estratégia. Ele não é prova de que a expressão foi executada.
+
+# Pipeline legado / compatibilidade
+
+O comando genérico abaixo continua existindo para compatibilidade, testes e pilotos especializados:
+
+```bash
+nutev --project-root ./project_output_legacy --workstreams busca1 busca2a busca2b a3 --web-enabled
+```
+
+**Não use esse comando como representação da execução científica canônica de “uma busca global” do Artigo 1.** Para execução formal, use a estratégia global versionada + executor registrado + corpus mestre descritos acima e no contrato do Artigo 1.
+
+# Guias e fontes oficiais
+
+Documentos oficiais possuem trilha de aquisição própria. Para o pipeline de guias, quando metodologicamente apropriado:
+
+```bash
+nutev guides --project-root ./project_output_scientific --workers 4 --rate 1.0
+```
+
+Descoberta ao vivo não substitui um marco amostral/manifesto congelado. Para execução definitiva, preserve manifesto/configuração, data, tentativa, URL e hash dos artefatos quando aplicável.
+
+# Proveniência de busca
+
+Artefatos canônicos em `07_logs` incluem equivalentes atuais de:
+
+- `querypack_generated.json/.csv` — espaço gerado;
+- `provider_querypack_generated.json/.csv` — renderização gerada;
+- `provider_performance.csv` — tentativas terminais;
+- `query_execution_ledger.json/.csv` — evidência canônica do que foi tentado;
+- `querypack_executed.json/.csv` — compatibilidade construída a partir de tentativas reais;
+- `provider_querypack_executed.json/.csv` — visão executada por provider;
+- `run_summary.json` — resumo computacional e readiness separado.
+
+**Nunca use um querypack gerado para afirmar que uma busca foi executada.**
+
+# Outputs
+
+Camadas principais:
+
+- `02_metadata` — metadados e artefatos canônicos de claims/auditoria;
+- `06_tables` — matrizes e relatórios analíticos derivados;
+- `07_logs` — ledgers, eventos, snapshots, resumos e proveniência;
+- `10_curated` — outputs curados e priorização operacional.
+
+Artefatos de claims/auditoria canônicos ficam em `02_metadata`, incluindo:
+
+- `NUTEV_EVIDENCE_CLAIMS.csv`;
+- `NUTEV_CLAIM_EVALUATIONS.csv`;
+- `NUTEV_CONFLICTS.csv`;
+- `NUTEV_RECOMMENDATION_CANDIDATES.csv`.
+
+`is_prioritized`, relevance score e `RecommendationCandidate` são estados computacionais/operacionais e não decisões científicas finais.
+
+# Testes e gates
+
+Suite canônica:
 
 ```bash
 PYTHONPATH=src python -m pytest -q nutev_tests
 ```
 
-No Windows PowerShell:
+Os gates de PR/release incluem, conforme os workflows atuais:
 
-```powershell
-$env:PYTHONPATH="src"
-python -m pytest -q nutev_tests
-```
+- Python 3.12 e 3.13;
+- cobertura com threshold bloqueante;
+- Windows smoke/zero-key;
+- `compileall`;
+- Ruff bloqueante;
+- mypy do núcleo crítico de proveniência;
+- CodeQL;
+- security scan / Gitleaks / hygiene;
+- dependency review realmente executado;
+- build wheel/sdist + `twine check` + clean install + zero-key do wheel.
 
-Para uma release citável, não reutilize contagens históricas: execute a suite no SHA candidato final e registre o resultado em [`docs/VALIDATION_REPORT.md`](docs/VALIDATION_REPORT.md).
+Um workflow verde só é evidência de PASS para o SHA/ref que realmente executou aquele check.
 
-## Limitações metodológicas
+# Segurança, copyright e revisão humana
 
-O sistema apoia identificação, classificação, auditoria e tradução preliminar de evidências. Ele **não substitui** revisão sistemática humana, avaliação de risco de viés, dupla checagem, adjudicação de conflitos, interpretação clínica ou decisão final do protocolo.
+- não comite secrets, tokens, `.env`, private keys ou URLs autenticadas;
+- não armazene dados clínicos/pessoais identificáveis;
+- não redistribua PDFs/textos protegidos sem direito explícito;
+- prefira DOI, metadados, URLs oficiais e trechos mínimos permitidos;
+- falha de OCR/captura deve permanecer registrada, não virar documento vazio;
+- IA/LLM auxilia, mas não substitui inclusão/exclusão/coding/adjudicação humana.
 
-Recomendações candidatas podem receber estados como:
+Ver [`docs/COPYRIGHT_AND_FULL_TEXT_POLICY.md`](docs/COPYRIGHT_AND_FULL_TEXT_POLICY.md), [`docs/DATA_GOVERNANCE.md`](docs/DATA_GOVERNANCE.md) e [`docs/AI_USE_AND_HUMAN_OVERSIGHT.md`](docs/AI_USE_AND_HUMAN_OVERSIGHT.md).
 
-- `ready_for_human_review`
-- `conflicting_evidence`
-- `draft_needs_evidence`
-- `insufficient_evidence`
+# Documentação principal
 
-Nenhum desses estados equivale a recomendação final.
-
-## Documentação
-
-- [`docs/COMPLETE_CODE_SCIENTIFIC_AUDIT_2026-08-09.md`](docs/COMPLETE_CODE_SCIENTIFIC_AUDIT_2026-08-09.md)
+- [`AGENTS.md`](AGENTS.md)
+- [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md)
 - [`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md)
-- [`docs/ARTICLE1_SOFTWARE_TRACEABILITY.md`](docs/ARTICLE1_SOFTWARE_TRACEABILITY.md)
-- [`docs/AUDITORIA_CRUZADA_DRIVE_GITHUB_ARTIGO1.md`](docs/AUDITORIA_CRUZADA_DRIVE_GITHUB_ARTIGO1.md)
 - [`docs/RUN_LOCAL.md`](docs/RUN_LOCAL.md)
-- [`docs/VALIDATION_REPORT.md`](docs/VALIDATION_REPORT.md)
-- [`docs/NUTEV_AUDIT_ENGINE.md`](docs/NUTEV_AUDIT_ENGINE.md)
-- [`docs/NUTEV_CONTROL_CENTER.md`](docs/NUTEV_CONTROL_CENTER.md)
-- [`docs/NUTEV_EVIDENCE_TO_PROTOCOL_FLOW.md`](docs/NUTEV_EVIDENCE_TO_PROTOCOL_FLOW.md)
-- [`docs/NUTEV_PLATFORM_API.md`](docs/NUTEV_PLATFORM_API.md)
-- [`docs/NUTEV_PROVIDER_SETTINGS.md`](docs/NUTEV_PROVIDER_SETTINGS.md)
-- [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md)
-- [`docs/LEGACY_CLEANUP_AUDIT.md`](docs/LEGACY_CLEANUP_AUDIT.md)
-- [`docs/LEGACY_DEPENDENCY_MAP.md`](docs/LEGACY_DEPENDENCY_MAP.md)
+- [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md)
+- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md)
+- [`docs/SEARCH_PROVIDERS.md`](docs/SEARCH_PROVIDERS.md)
+- [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md)
+- [`NOTICE.md`](NOTICE.md)
 
-## Revisão humana
+# Citação
 
-As decisões humanas são persistidas em `project_output/07_logs/human_review_decisions.csv` quando o fluxo de revisão está habilitado. Nenhuma recomendação deve ser considerada final sem revisão humana explícita, lastro documental e adjudicação metodológica.
+Use [`CITATION.cff`](CITATION.cff) para a última release publicada. Enquanto a árvore de desenvolvimento estiver em `0.3.0.dev0`, os metadados de citação/Zenodo podem continuar descrevendo a última release imutável `0.2.0`.
 
-## Estrutura dos artigos (numeração canônica) e mapa dos workstreams
+ORCID, afiliação e DOI devem ser incluídos somente após confirmação/verificação real.
 
-A arquitetura da tese/pós-doutorado tem **cinco artigos**. Este repositório
-(**Evidence Engine**) apoia os corpora documentais de **A1 e A2**; A3–A5 usam
-outros métodos/projetos.
+# Licença e proveniência
 
-| | Artigo | Workstream no engine |
-|---|---|---|
-| **A1** | Revisão de escopo (guias + diretrizes) | `busca1` + `busca2a` |
-| **A2** | Revisão integrativa (implementação/adesão) | `busca2b` |
-| **A3** | Protocolo NutEV + pirâmide (Delphi) | — (fora do engine) |
-| **A4** | Framework comportamental | `a4_framework` (alias do antigo `a3`) |
-| **A5** | Instrumento CFD-8 + **Decision Engine** | — (outro projeto, não está aqui) |
-
-O **Artigo 1** é: *“Domínios da Nutrição do Estilo de Vida em guias alimentares e
-diretrizes clínicas: revisão de escopo e análise documental para subsidiar o
-Protocolo NutEV.”* Seu corpus tem **três trilhas** metodologicamente distintas
-(guias por marco amostral; diretrizes por bases indexadas + sites de sociedades;
-materiais de implementação vinculados) — ver
-[`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md),
-[`docs/GREY_LITERATURE_POLICY.md`](docs/GREY_LITERATURE_POLICY.md) e
-[`docs/ARTICLE1_DOMAIN_CODING.md`](docs/ARTICLE1_DOMAIN_CODING.md).
-
-> Nota de renumeração: o workstream histórico `a3` passou a ser **`a4_framework`**
-> (aceito como alias; ambos funcionam). `busca2b` **deixou de ser "fora do
-> corpus"** e agora é o corpus do **Artigo 2**.
-
-Exemplo reproduzível (sem PDFs de terceiros):
-[`examples/article1_pilot/`](examples/article1_pilot/).
-
-## Ciência aberta, governança e copyright
-
-- [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md) — política científica.
-- [`docs/AI_USE_AND_HUMAN_OVERSIGHT.md`](docs/AI_USE_AND_HUMAN_OVERSIGHT.md) — uso de IA e supervisão humana.
-- [`docs/DATA_GOVERNANCE.md`](docs/DATA_GOVERNANCE.md) — governança de dados.
-- [`docs/COPYRIGHT_AND_FULL_TEXT_POLICY.md`](docs/COPYRIGHT_AND_FULL_TEXT_POLICY.md) — copyright e texto integral.
-- [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) — reprodutibilidade.
-- [`docs/DEPENDENCY_ARCHITECTURE.md`](docs/DEPENDENCY_ARCHITECTURE.md) — arquitetura de dependências.
-- [`docs/PUBLIC_RELEASE_AUDIT.md`](docs/PUBLIC_RELEASE_AUDIT.md) · [`docs/LEGACY_MIGRATION_PLAN.md`](docs/LEGACY_MIGRATION_PLAN.md)
-
-Prefira compartilhar DOI, URL oficial, metadados e trechos mínimos permitidos.
-Não redistribua PDFs protegidos. Não envie dados pessoais ou clínicos.
-
-## Como citar
-
-Use o arquivo [`CITATION.cff`](CITATION.cff). A release publicada é `0.2.0` / `v0.2.0` (2026-08-09). ORCID e afiliação institucional devem permanecer ausentes enquanto não forem confirmados; o DOI só deve ser inserido depois que o registro Zenodo real da release exata for verificado.
-
-Veja também [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md), [`docs/CODE_AVAILABILITY.md`](docs/CODE_AVAILABILITY.md) e [`docs/RELEASE_RECORD_v0.2.0.md`](docs/RELEASE_RECORD_v0.2.0.md).
-
-## Como contribuir
-
-Veja [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
-e os templates em `.github/ISSUE_TEMPLATE/`. Toda contribuição científica deve
-indicar justificativa metodológica, fonte e impacto esperado.
-
-## Roadmap
-
-Ver [`docs/ROADMAP.md`](docs/ROADMAP.md). A release citável reconciliada atual é
-**`v0.2.0`**, mantendo **alpha** como status de maturidade científica. Remediações
-pós-release são desenvolvidas em novos commits/releases; a tag publicada não é
-movida.
-
-## Licença e proveniência
-
-- Licença: **MIT** (ver [`LICENSE`](LICENSE)).
-- O motor herdado `local_deep_research` foi **removido** da árvore, mas seu
-  copyright original **© 2025 LearningCircuit** permanece atribuído em
-  [`LICENSE`](LICENSE) — essa atribuição é preservada.
-- Proveniência e fronteira entre código herdado e código NutEV:
-  [`NOTICE.md`](NOTICE.md).
-
-## NutEV/NutMEV robust search runtime
-
-The canonical (and only) runtime is `src/nutev`. The inherited
-`local_deep_research` package has been removed from the tree.
-
-Scientific search does not depend on Google. PubMed, Europe PMC, OpenAlex, Crossref and official sources run through safe provider handling; provider failures are logged and the pipeline exports partial results instead of crashing. PubMed uses NCBI E-utilities with `usehistory=y`, `WebEnv`, `query_key`, paginated batches, retry/backoff and checkpoints under `07_logs/checkpoints/pubmed/`.
-
-Provider capability is distinct from protocol inclusion. For manuscript-grade search provenance, use the exact execution evidence and track definitions documented in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`.
-
-Configure local environment variables from `.env.example`. The most important PubMed settings are `NCBI_EMAIL`, optional `NCBI_API_KEY`, and `NCBI_TOOL=nutev_pipeline`. Google/SerpAPI keys are optional and are used only for gray-literature discovery.
-
-More details: `docs/SEARCH_PROVIDERS.md` and `docs/PUBMED_TROUBLESHOOTING.md`.
+Licença: MIT. O projeto evoluiu a partir de uma base histórica Local Deep Research / LearningCircuit; o runtime herdado foi removido, mas a atribuição e proveniência permanecem documentadas em [`NOTICE.md`](NOTICE.md) e no histórico Git.

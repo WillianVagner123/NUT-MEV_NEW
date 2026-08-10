@@ -1,20 +1,20 @@
-# Rodar o NutEV/NutMEV no PC
+# Rodar o NutEV Evidence Engine no PC
 
-Este guia descreve o caminho recomendado para instalar, testar e abrir o sistema localmente.
+Este guia separa claramente três usos diferentes:
+
+1. **demo sintética** — para testar instalação/interface sem chave e sem evidência real;
+2. **piloto/compatibilidade** — pipeline genérico antigo, útil para testes especializados;
+3. **execução científica canônica** — uma estratégia global versionada, executada em múltiplas fontes, formando um corpus mestre antes da triagem por artigo.
 
 ## 1. Pré-requisitos
 
-Instale no computador:
+- Git;
+- Python **3.12 ou 3.13**;
+- navegador atualizado.
 
-- Git
-- Python 3.12 ou 3.13
-- Navegador atualizado
+O pacote exige Python `>=3.12,<3.14`.
 
-O projeto exige Python `>=3.12,<3.15`.
-
-## 2. Caminho recomendado: instalação automática
-
-### Windows PowerShell
+## 2. Windows — instalação assistida
 
 ```powershell
 git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
@@ -23,119 +23,54 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\scripts\setup_windows.ps1
 ```
 
-Depois abra o dashboard:
+Dashboard:
 
 ```powershell
 .\scripts\run_dashboard_windows.ps1
 ```
 
-Acesse:
-
-```text
-http://127.0.0.1:8501
-```
-
-Para abrir a API local em outro terminal:
+API local em outro terminal:
 
 ```powershell
 .\scripts\run_api_windows.ps1
 ```
 
-Acesse:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
 ## 3. Instalação manual
 
-### Baixar o repositório
-
-```bash
-git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
-cd NutEV-Evidence-Engine
-```
-
-### Criar ambiente virtual
-
-#### Windows PowerShell
+### Windows PowerShell
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
+python -m pip install -e ".[dashboard,platform,documents]"
 ```
 
-Se o PowerShell bloquear a ativação:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\.venv\Scripts\Activate.ps1
-```
-
-#### macOS/Linux
+### macOS/Linux
 
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
+python -m pip install -e ".[dashboard,platform,documents]"
 ```
 
-### Instalar o sistema
-
-```bash
-python -m pip install -e ".[dashboard,platform]"
-```
-
-Esse comando instala:
-
-- `nutev`, a CLI principal;
-- dashboard local;
-- API local da plataforma.
-
-## 4. Demo local
+## 4. Demo sintética sem chave
 
 ```bash
 nutev demo-data --project-root ./project_output_demo
 nutev dashboard --project-root ./project_output_demo --port 8501
 ```
 
-Depois acesse:
+Abra `http://127.0.0.1:8501`.
 
-```text
-http://127.0.0.1:8501
-```
-
-API local:
+API opcional:
 
 ```bash
 nutev serve --project-root ./project_output_demo --host 127.0.0.1 --port 8000
 ```
 
-URLs úteis:
-
-```text
-http://127.0.0.1:8000
-http://127.0.0.1:8000/docs
-```
-
-### Construtor de estratégia de busca (PICOS → expressão por base)
-
-Ferramenta transparente e question-first (C4): a partir de uma pergunta
-estruturada em PICOS/PECO, gera a expressão exata enviada a cada base
-(PubMed, Europe PMC, Crossref, OpenAlex) em três níveis de amplitude
-(`broad`/`balanced`/`specific`). É **aditiva** — não substitui os querypacks
-do pipeline; serve para autorar e auditar a estratégia.
-
-Na linha de comando (a partir de um arquivo JSON com o PICOS):
-
-```bash
-nutev strategy --spec examples/picos.json --out project_output_demo/07_logs/search_strategy.json
-```
-
-No dashboard, abra a página **Search Strategy**: preencha os blocos PICOS
-(um sinônimo por linha), opcionalmente ano/idiomas/tipos de publicação, e veja
-a grade provider × amplitude com download em JSON.
+A demo é sintética e **não é evidência científica**.
 
 ## 5. Verificar instalação
 
@@ -143,38 +78,125 @@ a grade provider × amplitude com download em JSON.
 python scripts/check_local.py
 ```
 
-No Windows, se estiver usando o ambiente virtual sem ativá-lo:
+No Windows, sem ativar o ambiente:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\check_local.py
 ```
 
-## 6. Rodar o primeiro piloto
+## 6. Execução científica canônica — uma busca global
 
-Use esta opção quando quiser gerar saída real para trabalho científico:
+A pesquisa formal **não deve ser representada como quatro buscas independentes por `workstream`**.
+
+Fluxo canônico:
+
+```text
+UMA estratégia global
+        ↓
+versão FORMAL congelada
+        ↓
+renderização por base/provider
+        ↓
+execução real + ledger
+        ↓
+UM run / corpus mestre
+        ↓
+deduplicação
+        ↓
+triagem/classificação por artigo
+        ↓
+full text / extração / qualidade / revisão humana
+```
+
+### 6.1 Abra um projeto científico exclusivo
 
 ```bash
-nutev --project-root ./project_output_pilot --workstreams busca1 busca2a busca2b a3 --web-enabled
-nutev pilot-report --project-root ./project_output_pilot
-nutev dashboard --project-root ./project_output_pilot --port 8501
+nutev dashboard --project-root ./project_output_scientific --port 8501
 ```
 
-Para ambiente instável de rede, rode primeiro em modo controlado:
+### 6.2 Abra **Search Strategy**
 
-```powershell
-$env:PYTHONPATH="src"
-$env:NUTEV_DOWNLOAD_LIMIT="40"
-nutev --project-root ./project_output_pilot --workstreams busca1 --web-enabled
+Preencha o **campo global único** com a estratégia científica aprovada. O sistema pode renderizar sintaxes diferentes para PubMed, Europe PMC, Crossref e OpenAlex, mas isso continua sendo uma única estratégia científica.
+
+### 6.3 Salve uma versão no registro
+
+Antes da execução formal:
+
+- revise a estratégia;
+- salve a versão imutável;
+- use `FORMAL` somente após aprovação metodológica;
+- preserve responsável, versão e timestamp;
+- não trate a versão mostrada na tela como executada até existir tentativa real.
+
+### 6.4 Execute a versão registrada
+
+Use a área **Executar uma versão registrada**. O executor deve ler a versão congelada e registrar `run_id`, provider, expressão submetida, tentativa, timestamp, status, contagem, limites/paginação/truncamento e snapshots/hashes conforme o contrato.
+
+### 6.5 Corpus mestre e deduplicação
+
+Após a recuperação, normalize e deduplique o `run_id` executado. A deduplicação ocorre uma vez no corpus mestre. Depois disso, cada documento pode receber decisões diferentes por artigo sem ser pesquisado/armazenado novamente.
+
+### 6.6 Continuação downstream
+
+Depois do corpus mestre:
+
+- screening por artigo;
+- full-text assessment;
+- extração;
+- OCR quando necessário/disponível;
+- evidence matrix;
+- quality assessment;
+- revisão/adjudicação humana.
+
+Metadata-only não deve ser promovido silenciosamente a full text.
+
+## 7. Construtor CLI de estratégia
+
+Para gerar/auditar uma estratégia a partir de um spec:
+
+```bash
+nutev strategy --spec examples/picos.json --out project_output_scientific/07_logs/search_strategy.json
 ```
 
-## 7. Chaves e variáveis locais
+Esse comando **gera** expressões. Ele não comprova execução.
 
-Nunca coloque chave de API no GitHub.
+## 8. Tracks do Artigo 1
+
+- **Track A:** bases indexadas/congeladas — expressões exatas, tentativas, contagens, paginação, snapshots e hashes;
+- **Track B:** fontes oficiais/institucionais/guidelines — manifesto, regra de navegação, URLs finais, status de captura e hashes quando aplicável;
+- **Track C:** descoberta suplementar somente se o protocolo a declarar.
+
+O conector SciELO atual usa Crossref com prefixo DOI `10.1590`; não é uma busca nativa/completa do SciELO.
+
+Contrato normativo: [`ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](ARTICLE1_SEARCH_EXECUTION_CONTRACT.md).
+
+## 9. Guias/fontes oficiais
+
+Quando o protocolo exigir o pipeline de guias:
+
+```bash
+nutev guides --project-root ./project_output_scientific --workers 4 --rate 1.0
+```
+
+Para execução definitiva, prefira um marco amostral/manifesto congelado. Descoberta ao vivo deve ser preservada como snapshot e explicitamente descrita no método quando utilizada.
+
+## 10. Pipeline legado / compatibilidade
+
+O comando abaixo continua disponível para testes, compatibilidade e pilotos especializados:
+
+```bash
+nutev --project-root ./project_output_legacy --workstreams busca1 busca2a busca2b a3 --web-enabled
+```
+
+Ele **não é o caminho recomendado para representar a execução científica canônica de uma busca global**.
+
+## 11. Variáveis locais
+
+Nunca coloque chaves no GitHub ou em outputs científicos.
 
 ### Windows PowerShell
 
 ```powershell
-$env:OPENAI_API_KEY="sua-chave-aqui"
 $env:NCBI_EMAIL="seu-email@exemplo.com"
 $env:NCBI_API_KEY="sua-chave-ncbi"
 $env:CROSSREF_MAILTO="seu-email@exemplo.com"
@@ -184,91 +206,64 @@ $env:OPENALEX_MAILTO="seu-email@exemplo.com"
 ### macOS/Linux
 
 ```bash
-export OPENAI_API_KEY="sua-chave-aqui"
 export NCBI_EMAIL="seu-email@exemplo.com"
 export NCBI_API_KEY="sua-chave-ncbi"
 export CROSSREF_MAILTO="seu-email@exemplo.com"
 export OPENALEX_MAILTO="seu-email@exemplo.com"
 ```
 
-## 8. Testes essenciais
+Credenciais opcionais não devem transformar falha de provider em “zero resultados”.
 
-Caminho padronizado:
+## 12. Artefatos esperados
+
+### `02_metadata`
+
+Artefatos canônicos de claims/auditoria, incluindo:
+
+- `NUTEV_EVIDENCE_CLAIMS.csv`;
+- `NUTEV_CLAIM_EVALUATIONS.csv`;
+- `NUTEV_CONFLICTS.csv`;
+- `NUTEV_RECOMMENDATION_CANDIDATES.csv`.
+
+### `06_tables`
+
+Matrizes e relatórios analíticos derivados.
+
+### `07_logs`
+
+Entre outros:
+
+- `run_events.jsonl`;
+- `run_summary.json`;
+- `search_job_snapshot.json`;
+- `querypack_generated.json/.csv`;
+- `provider_querypack_generated.json/.csv`;
+- `query_execution_ledger.json/.csv`;
+- `provider_performance.csv`;
+- checkpoints.
+
+### `10_curated`
+
+Outputs curados e priorização operacional. `is_prioritized` não equivale a inclusão científica.
+
+## 13. Testes
 
 ```bash
 PYTHONPATH=src python -m pytest -q nutev_tests
 ```
 
-No Windows PowerShell:
+A CI canônica também valida Python 3.12/3.13, cobertura, Windows smoke, mypy crítico, compileall, Ruff, CodeQL, security scan, dependency review e build/clean-install do wheel.
 
-```powershell
-$env:PYTHONPATH="src"
-python -m pytest -q nutev_tests
-```
+## 14. Estados de execução
 
-## 9. Artefatos esperados
+`execution_status` descreve a execução computacional.
 
-Em `06_tables`:
+`scientific_readiness` é um gate separado. Um pipeline concluído pode estar apenas `computationally_ready_for_human_review`.
 
-- `NUTEV_EVIDENCE_CLAIMS.csv`
-- `NUTEV_CLAIM_EVALUATIONS.csv`
-- `NUTEV_CONFLICTS.csv`
-- `NUTEV_RECOMMENDATION_CANDIDATES.csv`
+`manuscript_ready` não deve ser inferido sem os gates humanos/manuscrito explícitos.
 
-Em `07_logs`:
+## 15. Regra metodológica final
 
-- `run_events.jsonl`
-- `run_summary.json`
-- `run_summary_pretty.txt`
-- `search_job_snapshot.json`
+O sistema apoia busca, classificação, proveniência, curadoria e revisão. Ele não substitui revisão humana, avaliação metodológica ou decisão final do protocolo.
 
-Em `10_curated`:
-
-- `curated_metadata.csv`
-- `unique_documents.csv`
-- `top_operational_documents.xlsx`
-
-## 10. Solução rápida de problemas
-
-### O comando `nutev` não existe
-
-Ative o ambiente virtual e reinstale:
-
-```bash
-python -m pip install -e ".[dashboard,platform]"
-```
-
-### Erro de versão do Python
-
-Confirme:
-
-```bash
-python --version
-```
-
-Use Python 3.12 ou 3.13.
-
-### Dashboard não abre
-
-Confirme se a porta está correta:
-
-```bash
-nutev dashboard --project-root ./project_output_demo --port 8501
-```
-
-Depois acesse `http://127.0.0.1:8501`.
-
-## 11. Observação metodológica
-
-O sistema apoia busca, classificação, auditoria e tradução preliminar de evidências. Ele não substitui revisão humana, avaliação de risco de viés, adjudicação metodológica ou decisão final do protocolo.
-
-`RecommendationCandidate` é recomendação candidata, não recomendação final.
-## Robust provider execution
-
-Use `.env.example` as the canonical environment template. `NCBI_EMAIL` is recommended for PubMed, while `NCBI_API_KEY` is optional. If PubMed, Google, SerpAPI, Europe PMC, OpenAlex or Crossref fail, NutEV records the provider event in `07_logs/run_events.jsonl`, `provider_failures.csv` and `provider_performance.csv`, then continues with the remaining providers and official sources.
-
-Resume interrupted searches by re-running the same command; provider checkpoints are stored in `07_logs/checkpoints/` and PubMed continues from the saved `retstart_done` without duplicating collected rows.
-
-### Status partial, metadata-only e dependências opcionais
-
-`run_summary.json` usa `run_status=partial` quando algum provider falha ou retorna parcial, mas os metadados e tabelas possíveis ainda são exportados. Falhas de download viram registros `metadata_only` e não interrompem a revisão. Se `openpyxl` estiver ausente, os exportadores gravam CSV de fallback e criam um marcador `.xlsx` para compatibilidade com artefatos esperados.
+`RecommendationCandidate` é candidata computacional; não é recomendação clínica final.
