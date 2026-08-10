@@ -100,6 +100,44 @@ _SIMPLE_CSV_DEFAULT_COLUMNS = {
     ],
 }
 
+_FULL_TEXT_DOWNLOAD_STATUSES = {"pdf", "html", "html_snapshot", "success", "downloaded"}
+_FULL_TEXT_CAPTURE_STATUSES = {"pdf", "html", "html_snapshot", "success", "ok", "captured"}
+_FULL_TEXT_EXTRACTION_STATUSES = {"ok", "success", "extracted"}
+
+
+def _derived_download_status(row: dict) -> str:
+    """Return a conservative download status without treating arbitrary files as full text."""
+    explicit = str(row.get("download_status", "") or "").strip()
+    if explicit:
+        return explicit
+
+    artifact = str(row.get("file_path") or row.get("artifact_paths") or "").strip().lower()
+    if artifact.endswith(".pdf"):
+        return "pdf"
+    if artifact.endswith((".html", ".htm")):
+        return "html_snapshot"
+    return "metadata_only"
+
+
+def _default_metadata_status(row: dict, download_status: str) -> str:
+    explicit = str(row.get("metadata_status", "") or "").strip()
+    if explicit:
+        return explicit
+
+    download = download_status.strip().lower()
+    capture = str(row.get("capture_status", "") or "").strip().lower()
+    extraction = str(row.get("extraction_status", "") or "").strip().lower()
+
+    if (
+        download in _FULL_TEXT_DOWNLOAD_STATUSES
+        or capture in _FULL_TEXT_CAPTURE_STATUSES
+        or extraction in _FULL_TEXT_EXTRACTION_STATUSES
+    ):
+        return "full_text_available"
+    if download == "metadata_only" or capture == "metadata_only":
+        return "metadata_only"
+    return ""
+
 
 def _normalize_metadata_row(row: dict) -> dict:
     out = {k: row.get(k, "") for k in REQUIRED_METADATA_COLUMNS}
@@ -113,14 +151,14 @@ def _normalize_metadata_row(row: dict) -> dict:
     out["source_provider"] = row.get("source_provider", row.get("source", ""))
     out["artifact_paths"] = row.get("artifact_paths", row.get("file_path", ""))
     out["capture_status"] = row.get("capture_status", "missing")
-    out["download_status"] = row.get("download_status", "metadata_only" if not row.get("file_path") else "pdf")
+    out["download_status"] = _derived_download_status(row)
     out["extraction_status"] = row.get("extraction_status", "missing")
     out["journal"] = row.get("journal", "")
     out["publication_date"] = row.get("publication_date", "")
     out["article_type"] = row.get("article_type", row.get("evidence_type", ""))
     out["authors"] = row.get("authors", "")
     out["abstract"] = row.get("abstract", "")
-    out["metadata_status"] = row.get("metadata_status", "")
+    out["metadata_status"] = _default_metadata_status(row, out["download_status"])
     out["editorial_priority_score"] = row.get("editorial_priority_score", "")
     out["editorial_priority_tier"] = row.get("editorial_priority_tier", "")
     return out
