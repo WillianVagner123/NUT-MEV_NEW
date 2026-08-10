@@ -24,7 +24,7 @@ basic search and tabular I/O.
 |---|---|
 | `pandas` | Tabular pipelines, exports, demo data — used across analysis, export, audit, protocol, review, pipelines. |
 | `pydantic` | Typed engine/audit/api models. |
-| `requests` | HTTP client for bibliographic search and public downloads. |
+| `requests` | HTTP client for bibliographic search and public downloads. The current arXiv provider also uses this directly against the public Atom API. |
 | `beautifulsoup4` | HTML parsing in search/global_watch/download. |
 | `python-dateutil` | Robust parsing of publication dates. |
 | `openpyxl` | `.xlsx` export tables (export/extract). |
@@ -36,8 +36,8 @@ Mirror file: `requirements/nutev-core.txt`.
 
 | Extra | Install | Purpose | Notable deps |
 |---|---|---|---|
-| `search` | `.[search]` | Extra search providers | `arxiv`, `wikipedia`, `google-search-results` (SerpAPI, optional), `lxml`, `xmltodict` |
-| `documents` | `.[documents]` | PDF/DOCX/OCR extraction (scanned-PDF OCR needs system `tesseract`; `poppler` optional — `pymupdf` renders via pip) | `pypdf`, `pdfplumber`, `pymupdf`, `pdf2image`, `pytesseract`, `python-docx`, `Pillow` |
+| `search` | `.[search]` | Optional search helpers/providers beyond the core HTTP connectors | `wikipedia`, `google-search-results` (SerpAPI, optional), `lxml`, `xmltodict` |
+| `documents` | `.[documents]` | PDF/DOCX/OCR extraction (scanned-PDF OCR needs system `tesseract`; `poppler` optional — `pymupdf` renders via pip) | `pypdf>=6.14.2,<6.15`, `pdfplumber`, `pymupdf`, `pdf2image`, `pytesseract`, `python-docx`, `Pillow` |
 | `dashboard` | `.[dashboard]` | Streamlit review dashboard | `streamlit`, `plotly` |
 | `api` | `.[api]` | FastAPI REST platform | `fastapi`, `uvicorn`, `jinja2` |
 | `platform` | `.[platform]` | Alias of `api` (kept for the CLI hint) | → `api` |
@@ -48,6 +48,15 @@ Mirror file: `requirements/nutev-core.txt`.
 
 > The inherited `local_deep_research` engine and its `legacy` extra were
 > **removed** from the tree (see `NOTICE.md`). Only optional NutEV extras remain.
+
+### arXiv dependency boundary
+
+`src/nutev/search/arxiv.py` does **not** import the third-party `arxiv` Python
+package. It submits requests directly to `https://export.arxiv.org/api/query`
+using the core `requests` dependency and parses the Atom XML with the standard
+library. Keeping a separate `arxiv` client in the `search` extra therefore added
+a second, unused implementation path and unnecessary exposure to upstream major
+API changes. The third-party client is intentionally not a package dependency.
 
 ### Execution guarantees
 
@@ -65,15 +74,21 @@ Mirror file: `requirements/nutev-core.txt`.
 default PR CI installs it (never the full/legacy stack) so PRs do not pull
 Flask/FAISS/Elasticsearch/Playwright/SQLCipher.
 
+The CI PDF parser floor matches the current `documents` security line so the
+canonical suite does not validate an older parser than the optional production
+extra declares.
+
+## Lock / resolved dependency snapshots
+
+There is currently **no committed `pdm.lock` in the canonical tree**. Do not
+claim a repository lockfile is authoritative. Release reproducibility instead
+requires the exact candidate SHA plus the resolved installed dependency snapshot
+captured by the release-validation workflow/check record. If a lockfile is
+introduced later, it must be generated from the current split dependency model
+and validated in CI before it is treated as normative.
+
 ## Legacy coupling
 
 - The inherited `local_deep_research` engine has been **removed** from the tree;
   the NutEV core never imported it (verified). Provenance is preserved in
   `NOTICE.md` and Git history.
-
-## Known follow-ups (pending)
-
-- `pdm.lock` still reflects the pre-split flat dependency list and should be
-  regenerated (`pdm lock`) in a dedicated PR. `pip install -e .` does **not**
-  use the lock, so the acceptance path is unaffected.
-- Consider pinning a resolved constraints file for reproducible CORE installs.
