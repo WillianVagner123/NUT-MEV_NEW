@@ -14,13 +14,15 @@ O repositório apoia a camada de evidências do projeto NutEV/NutMEV e a execuç
 | Estado | Identidade |
 |---|---|
 | Última release pública/citável | `0.2.0` / tag `v0.2.0` |
-| Árvore de desenvolvimento atual | `0.3.0.dev0` |
+| Release candidate atual | `0.3.0` — **ainda não publicada** |
 | Maturidade científica | `alpha` |
 | DOI Zenodo | somente após verificação de um registro real |
 
-A release `v0.2.0` e as tags históricas são objetos imutáveis. O avanço da `main` para uma versão de desenvolvimento **não altera retrospectivamente** a release publicada.
+A release `v0.2.0` e as tags históricas são objetos imutáveis. A preparação de `0.3.0` em uma branch de release candidate **não altera retrospectivamente** a release publicada e não autoriza tag, GitHub Release ou DOI antes dos gates finais.
 
-Antes de uma futura release estável, versão do pacote, tag, GitHub Release, `CITATION.cff`, `.zenodo.json`, CHANGELOG e release notes devem ser reconciliados no mesmo SHA candidato. Ver [`AGENTS.md`](AGENTS.md) e [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
+O candidato `0.3.0` congela a arquitetura de **uma busca global**, proveniência `generated`/`executed`, corpus mestre, curadoria/revisão humana e validação reprodutível do artefato de software. Isso não implica que triagem humana, manuscrito ou recomendações clínicas estejam concluídos.
+
+Antes da publicação, versão do pacote, tag proposta, `CITATION.cff`, `.zenodo.json`, CHANGELOG, README e release notes devem estar reconciliados no mesmo SHA candidato e todos os gates devem executar nesse SHA. Ver [`AGENTS.md`](AGENTS.md) e [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
 ## Princípios científicos obrigatórios
 
@@ -319,9 +321,9 @@ Ver [`docs/COPYRIGHT_AND_FULL_TEXT_POLICY.md`](docs/COPYRIGHT_AND_FULL_TEXT_POLI
 
 # Citação
 
-Use [`CITATION.cff`](CITATION.cff) para a última release publicada. Enquanto a árvore de desenvolvimento estiver em `0.3.0.dev0`, os metadados de citação/Zenodo podem continuar descrevendo a última release imutável `0.2.0`.
+Enquanto `0.3.0` estiver apenas como release candidate, **a última release publicada/citável continua sendo `v0.2.0`**. O `CITATION.cff` e `.zenodo.json` da branch candidata descrevem `0.3.0` somente para validar o objeto que será publicado se todos os gates e a integração Zenodo forem confirmados.
 
-ORCID, afiliação e DOI devem ser incluídos somente após confirmação/verificação real.
+ORCID, afiliação, data de release e DOI devem ser incluídos somente após confirmação/verificação real.
 
 # Licença e proveniência
 

@@ -12,8 +12,7 @@ abstract: >-
   (RecommendationCandidates) are candidates that require human adjudication and are
   not final clinical recommendations.
 type: software
-version: "0.2.0"
-date-released: "2026-08-09"
+version: "0.3.0"
 license: MIT
 repository-code: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
 url: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
@@ -30,11 +29,11 @@ authors:
   - given-names: "Willian Vagner Dorneles"
     family-names: "Schneider"
     # Optional metadata: add affiliation and ORCID only after confirming exact values.
-# doi must be added only after Zenodo archives the exact v0.2.0 release.
+# date-released and doi are added only after the actual v0.3.0 publication/archive exists.
 preferred-citation:
   type: software
   title: "NutEV Evidence Engine: reproducible evidence engine for lifestyle nutrition research"
-  version: "0.2.0"
+  version: "0.3.0"
   license: MIT
   repository-code: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
   url: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
