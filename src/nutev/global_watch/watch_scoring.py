@@ -63,7 +63,7 @@ def score_watch_item(item: dict) -> float:
     `watch_scoring.NUTMEV_SCOPE_TERMS` at import time. Keep those public extension
     hooks authoritative while delegating the stable scoring algorithm to `_impl`.
     """
-    _impl.BONUS_TERMS = BONUS_TERMS
+    _impl.BONUS_TERMS = globals()["BONUS_TERMS"]
     _impl.NUTMEV_SCOPE_TERMS = NUTMEV_SCOPE_TERMS
     return _impl.score_watch_item(item)
 
