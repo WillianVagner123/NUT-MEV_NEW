@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+import re
 from urllib.parse import urlparse
 
 SOURCE_BONUS = {
@@ -1276,8 +1278,32 @@ HIGH_VALUE_DOWNLOAD_TOKENS = [
 ]
 
 
+_TERM_SEPARATOR_RE = re.compile(r"[-\s]+")
+
+
+@lru_cache(maxsize=8192)
+def _term_pattern(term: str) -> re.Pattern[str]:
+    parts = [part for part in _TERM_SEPARATOR_RE.split(term.strip()) if part]
+    if not parts:
+        return re.compile(r"(?!)")
+    body = r"[-\s]+".join(re.escape(part) for part in parts)
+    return re.compile(rf"(?<!\w){body}(?!\w)", flags=re.IGNORECASE)
+
+
+def _term_present(text: str, term: object) -> bool:
+    value = str(term or "").strip()
+    if not value:
+        return False
+    return bool(_term_pattern(value).search(text))
+
+
 def _contains_any(text: str, tokens: list[str]) -> bool:
+    """Literal substring matcher for technical URL/download hints only."""
     return any(token in text for token in tokens)
+
+
+def _contains_any_term(text: str, tokens: list[str]) -> bool:
+    return any(_term_present(text, token) for token in tokens)
 
 
 def _download_signal_score(text: str, url: str) -> int:
@@ -1294,7 +1320,7 @@ def _download_signal_score(text: str, url: str) -> int:
 def _workstream_signal_hits(text: str, workstream: str) -> dict[str, int]:
     hits = {}
     for group_name, tokens in WORKSTREAM_SIGNAL_GROUPS.get(workstream, {}).items():
-        hits[group_name] = sum(1 for token in tokens if token in text)
+        hits[group_name] = sum(1 for token in tokens if _term_present(text, token))
     return hits
 
 
@@ -1318,7 +1344,7 @@ def _out_of_scope_profile(text: str) -> tuple[list[str], int]:
     penalty = 0
     for domain, config in OUT_OF_SCOPE_DOMAINS.items():
         tokens = config["tokens"]
-        if _contains_any(text, tokens):
+        if _contains_any_term(text, tokens):
             flags.append(domain)
             penalty += config["penalty"]
     return flags, penalty
@@ -1326,7 +1352,7 @@ def _out_of_scope_profile(text: str) -> tuple[list[str], int]:
 
 def _out_of_scope_rescue_bonus(text: str, workstream: str) -> int:
     rescue = 0
-    if _contains_any(text, OOS_RESCUE_TOKENS):
+    if _contains_any_term(text, OOS_RESCUE_TOKENS):
         rescue += 3
     if sum(1 for count in _workstream_signal_hits(text, workstream).values() if count) >= 3:
         rescue += 4
@@ -1351,7 +1377,7 @@ def _extract_domain(url: str) -> str:
 def _match_weighted_points(text: str, points_map: dict[str, int]) -> int:
     score = 0
     for token, points in points_map.items():
-        if token and token.lower() in text:
+        if _term_present(text, token):
             score += points
     return score
 
@@ -1415,7 +1441,7 @@ def score_record(record: dict, scoring_rules: dict, workstream: str) -> dict:
     score = 0
 
     for kw, points in scoring_rules.get("keyword_points", {}).items():
-        if kw.lower() in text:
+        if _term_present(text, kw):
             score += points
 
     score += scoring_rules.get("source_points", {}).get(record.get("source"), 0)
@@ -1423,11 +1449,11 @@ def score_record(record: dict, scoring_rules: dict, workstream: str) -> dict:
     score += SOURCE_BONUS.get(record.get("source", ""), 0)
 
     for kw, pts in POSITIVE_TITLE_RULES.items():
-        if kw in text:
+        if _term_present(text, kw):
             score += pts
 
     for kw, pts in NEGATIVE_TITLE_RULES.items():
-        if kw in text:
+        if _term_present(text, kw):
             score += pts
 
     score += _workstream_bonus_score(text, scoring_rules, workstream)
@@ -1464,6 +1490,6 @@ def keep_candidate_for_download(record: dict, workstream: str) -> bool:
     score = float(record.get("relevance_score") or 0)
     if score < 7:
         return False
-    if any(t in text for t in ("editorial", "commentary", "letter", "case report")):
+    if _contains_any_term(text, ["editorial", "commentary", "letter", "case report"]):
         return False
     return True
