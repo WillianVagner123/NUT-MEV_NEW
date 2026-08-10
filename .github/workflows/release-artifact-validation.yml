@@ -1,0 +1,52 @@
+name: release-artifact-validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-clean-install:
+    name: build, twine check, clean wheel install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # validated v5 line
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # validated v6 line
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel and sdist
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build twine
+          python -m build
+          python -m twine check dist/*
+          test -n "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)"
+
+      - name: Install wheel in a clean virtual environment
+        run: |
+          python -m venv .release-venv
+          .release-venv/bin/python -m pip install --upgrade pip
+          WHEEL="$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+          .release-venv/bin/python -m pip install "$WHEEL"
+          .release-venv/bin/python -m pip check
+          .release-venv/bin/python -c "from importlib.metadata import version; print(version('nutev-nutmev'))"
+          .release-venv/bin/nutev --help
+
+      - name: Zero-key demo from installed wheel
+        run: |
+          .release-venv/bin/nutev demo-data --project-root ./project_output_release_validation
+          test -f ./project_output_release_validation/07_logs/run_summary.json
+          .release-venv/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('project_output_release_validation/07_logs/run_summary.json')
+          payload = json.loads(path.read_text(encoding='utf-8'))
+          if not isinstance(payload, dict) or not payload:
+              raise SystemExit('zero-key run_summary.json is missing or empty')
+          print('zero-key run summary validated:', path)
+          PY
