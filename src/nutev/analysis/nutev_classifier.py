@@ -1,16 +1,40 @@
 from __future__ import annotations
 
+from functools import lru_cache
+import re
 from typing import Any
 
 
+_TEXT_FIELDS = (
+    "title",
+    "abstract",
+    "summary",
+    "snippet",
+    "extracted_text",
+    "journal",
+    "source_institution",
+    "evidence_type",
+)
+
+
 def _text_blob(record: dict[str, Any]) -> str:
-    return " ".join(
-        str(record.get(k, "") or "") for k in ("title", "abstract", "extracted_text")
-    ).lower()
+    return " ".join(str(record.get(k, "") or "") for k in _TEXT_FIELDS).lower()
+
+
+@lru_cache(maxsize=4096)
+def _term_pattern(term: str) -> re.Pattern[str]:
+    return re.compile(rf"(?<!\w){re.escape(term)}(?!\w)", flags=re.IGNORECASE)
+
+
+def _term_present(blob: str, term: object) -> bool:
+    value = str(term or "").strip()
+    if not value:
+        return False
+    return bool(_term_pattern(value).search(blob))
 
 
 def _match_terms(blob: str, terms: list[str]) -> int:
-    return sum(1 for term in terms if term.lower() in blob)
+    return sum(1 for term in terms if _term_present(blob, term))
 
 
 # Signals that a record is centrally about diet / nutrition / eating (Article 1
@@ -37,7 +61,13 @@ def _scope_signals(blob: str, matched_domains: list[str], record: dict) -> tuple
         or bool(record.get("diet_patterns") or record.get("diet_pattern"))
         or _match_terms(blob, _DIETARY_CENTRALITY_TERMS) >= 2
     )
-    flags = sorted({label for label, terms in _OFF_SCOPE_TERMS.items() if any(t in blob for t in terms)})
+    flags = sorted(
+        {
+            label
+            for label, terms in _OFF_SCOPE_TERMS.items()
+            if any(_term_present(blob, term) for term in terms)
+        }
+    )
     if central:
         status = "in_scope"
     elif flags:
