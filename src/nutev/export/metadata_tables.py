@@ -125,6 +125,9 @@ def write_simple_csv(
     with path.open("w", newline="", encoding="utf-8") as f:
         if not keys:
             return
-        w = csv.DictWriter(f, fieldnames=keys)
+        # When callers provide an explicit schema, provider-specific metadata may
+        # legitimately contain extra keys. The schema is authoritative for this
+        # export, so ignore those extras instead of failing the entire run.
+        w = csv.DictWriter(f, fieldnames=keys, extrasaction="ignore")
         w.writeheader()
         w.writerows(rows)
