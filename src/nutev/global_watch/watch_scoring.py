@@ -56,6 +56,17 @@ def _has_nutmev_scope_signal(text: str) -> bool:
     return any(_watch_term_present(text, term) for term in NUTMEV_SCOPE_TERMS)
 
 
+def score_watch_item(item: dict) -> float:
+    """Score with current facade extensions synchronized into the preserved core.
+
+    `watch_extensions.py` extends `watch_scoring.BONUS_TERMS` and
+    `watch_scoring.NUTMEV_SCOPE_TERMS` at import time. Keep those public extension
+    hooks authoritative while delegating the stable scoring algorithm to `_impl`.
+    """
+    _impl.BONUS_TERMS = BONUS_TERMS
+    _impl.NUTMEV_SCOPE_TERMS = NUTMEV_SCOPE_TERMS
+    return _impl.score_watch_item(item)
+
+
 _impl._apply_terms = _apply_terms
 _impl._has_nutmev_scope_signal = _has_nutmev_scope_signal
-score_watch_item = _impl.score_watch_item
