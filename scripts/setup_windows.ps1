@@ -36,7 +36,7 @@ function Test-PythonExecutable {
         return $false
     }
 
-    & $PythonExe -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 12) and sys.version_info < (3, 15) else 1)" | Out-Null
+    & $PythonExe -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 12) and sys.version_info < (3, 14) else 1)" | Out-Null
     return ($LASTEXITCODE -eq 0)
 }
 
