@@ -1,10 +1,10 @@
 {
   "title": "NutEV Evidence Engine: reproducible evidence engine for lifestyle nutrition research",
-  "description": "Computational infrastructure that supports a scoping review (Article 1 of a PhD thesis in Human Nutrition) by identifying, organizing, deduplicating, classifying and auditing scientific and official documents on lifestyle nutrition, and by producing verifiable extraction matrices and human-review queues. Version 0.3.0 freezes the unified global-search, provenance, master-corpus and human-review architecture validated for reproducible research-software use. It supports the Evidence layer of the NutEV/NutMEV project; it does NOT contain or run the separate clinical Decision Engine, and its outputs (RecommendationCandidates) are candidates that require human adjudication and are not final clinical recommendations. The project evolved from an open-source base (Local Deep Research, MIT, LearningCircuit); the inherited engine was removed from the current source tree and its attribution is preserved in NOTICE.md and the Git history.",
+  "description": "Computational infrastructure that supports a scoping review (Article 1 of a PhD thesis in Human Nutrition) by identifying, organizing, deduplicating, classifying and auditing scientific and official documents on lifestyle nutrition, and by producing verifiable extraction matrices and human-review queues. It supports the Evidence layer of the NutEV/NutMEV project; it does NOT contain or run the separate clinical Decision Engine, and its outputs (RecommendationCandidates) are candidates that require human adjudication and are not final clinical recommendations. The project evolved from an open-source base (Local Deep Research, MIT, LearningCircuit); the inherited engine was removed from the current source tree and its attribution is preserved in NOTICE.md and the Git history.",
   "upload_type": "software",
   "access_right": "open",
   "license": "MIT",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "keywords": [
     "scoping review",
     "lifestyle medicine",
@@ -22,5 +22,5 @@
       "name": "Schneider, Willian Vagner Dorneles"
     }
   ],
-  "notes": "Release candidate metadata for NutEV Evidence Engine v0.3.0. Scientific maturity remains alpha. The release freezes the unified global-search/provenance architecture and validated research-software execution path; it does not imply completion of human screening, manuscript readiness, or final clinical recommendations. ORCID, affiliation and DOI are intentionally omitted unless independently confirmed."
+  "notes": "Citation-grade reconciled software release v0.2.0. Scientific maturity remains alpha. Historical v0.1.x tags are preserved and are not reused. Human review remains required for scientific inclusion, coding, interpretation and any recommendation-level decision."
 }
