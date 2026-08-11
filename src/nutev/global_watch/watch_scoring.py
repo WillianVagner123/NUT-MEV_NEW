@@ -26,6 +26,70 @@ _CKM_SCOPE_TERMS = (
 _impl.NUTMEV_SCOPE_TERMS = tuple(dict.fromkeys((*_impl.NUTMEV_SCOPE_TERMS, *_CKM_SCOPE_TERMS)))
 NUTMEV_SCOPE_TERMS = _impl.NUTMEV_SCOPE_TERMS
 
+# Implementation-science language is methodologically useful but is not, by
+# itself, evidence that a record belongs to NutEV. Keep these records visible and
+# apply only a soft operational penalty when no substantive nutrition/NutEV anchor
+# is present. This changes prioritization, never raw retrieval or inclusion.
+_GENERIC_IMPLEMENTATION_TERMS = (
+    "implementation science",
+    "implementation research",
+    "implementation framework",
+    "implementation strategy",
+    "implementation outcomes",
+    "implementation trial",
+    "effectiveness-implementation",
+    "effectiveness implementation",
+    "hybrid effectiveness-implementation",
+    "hybrid effectiveness implementation",
+    "quality improvement",
+    "service delivery",
+    "care delivery",
+    "dissemination",
+    "scale-up",
+    "scale up",
+    "adoption",
+    "reach",
+    "maintenance",
+)
+
+_SUBSTANTIVE_NUTEV_ANCHOR_TERMS = (
+    "nutrition",
+    "diet",
+    "dietary",
+    "food",
+    "meal",
+    "culinary",
+    "lifestyle medicine",
+    "lifestyle nutrition",
+    "lifestyle intervention",
+    "medical nutrition therapy",
+    "obesity",
+    "adiposity",
+    "weight management",
+    "cardiometabolic",
+    "cardiovascular-kidney-metabolic",
+    "cardio-kidney-metabolic",
+    "metabolic syndrome",
+    "diabetes",
+    "hypertension",
+    "blood pressure",
+    "dyslipidemia",
+    "dyslipidaemia",
+    "masld",
+    "nafld",
+    "mash",
+    "nash",
+    "fatty liver",
+    "steatotic liver disease",
+    "produce prescription",
+    "medically tailored",
+    "food literacy",
+    "nutrition literacy",
+    "culinary medicine",
+)
+
+_GENERIC_IMPLEMENTATION_PENALTY = -30.0
+
 _TERM_SEPARATOR_RE = re.compile(r"[-\s]+")
 
 
@@ -56,16 +120,34 @@ def _has_nutmev_scope_signal(text: str) -> bool:
     return any(_watch_term_present(text, term) for term in NUTMEV_SCOPE_TERMS)
 
 
+def _is_generic_implementation_noise(text: str) -> bool:
+    has_generic_signal = any(
+        _watch_term_present(text, term) for term in _GENERIC_IMPLEMENTATION_TERMS
+    )
+    if not has_generic_signal:
+        return False
+    return not any(
+        _watch_term_present(text, term) for term in _SUBSTANTIVE_NUTEV_ANCHOR_TERMS
+    )
+
+
 def score_watch_item(item: dict) -> float:
     """Score with current facade extensions synchronized into the preserved core.
 
     `watch_extensions.py` extends `watch_scoring.BONUS_TERMS` and
     `watch_scoring.NUTMEV_SCOPE_TERMS` at import time. Keep those public extension
     hooks authoritative while delegating the stable scoring algorithm to `_impl`.
+
+    Generic implementation-science language without a substantive NutEV anchor is
+    down-ranked operationally but remains in the raw evidence stream for review.
     """
     _impl.BONUS_TERMS = globals()["BONUS_TERMS"]
     _impl.NUTMEV_SCOPE_TERMS = NUTMEV_SCOPE_TERMS
-    return _impl.score_watch_item(item)
+    score = _impl.score_watch_item(item)
+    text = _build_scoring_text(item)
+    if _is_generic_implementation_noise(text):
+        score += _GENERIC_IMPLEMENTATION_PENALTY
+    return round(score, 3)
 
 
 _impl._apply_terms = _apply_terms
