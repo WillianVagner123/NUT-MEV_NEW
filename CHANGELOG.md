@@ -2,9 +2,9 @@
 
 All notable changes to this project are documented here. The format is based on Keep a Changelog and the project uses Semantic Versioning for public software releases. Methodological changes are additionally tracked in `docs/CHANGELOG_METODOLOGICO.md`.
 
-## [0.3.0] — release candidate: unified global-search and provenance architecture
+## [Unreleased]
 
-This candidate freezes the current NutEV Evidence Engine research-software architecture for reproducible evidence identification, provenance, corpus construction and human-review workflows. It remains **alpha scientific maturity** and does not imply completed human screening, manuscript readiness or final clinical recommendations.
+Current source-tree package identity: **`0.3.0.dev1`**. A `0.3.0` release candidate was validated on 2026-08-10, but no `v0.3.0` tag or GitHub Release was published. Publication is deliberately deferred while development, backlog cleanup and scientific workflow validation continue. The latest public/citable release therefore remains **`v0.2.0`**.
 
 ### Scientific architecture and provenance
 
@@ -32,7 +32,7 @@ This candidate freezes the current NutEV Evidence Engine research-software archi
 
 ### Validation, build and supply chain
 
-- Added branch-aware coverage measurement with a blocking floor of 70%; the release-candidate predecessor measured 73.19% on Python 3.12.
+- Added branch-aware coverage measurement with a blocking floor of 70%; the validated 0.3.0 candidate measured 73.19% on Python 3.12.
 - Added Windows Python 3.12 installation/CLI/zero-key-demo smoke validation.
 - Added incremental mypy checking for critical provenance modules.
 - Added an explicit `compileall` syntax gate for `src/nutev` and blocking Ruff objective-error checks.
@@ -46,16 +46,17 @@ This candidate freezes the current NutEV Evidence Engine research-software archi
 - Added durable root `AGENTS.md` scientific-agent governance and current scientific governance documentation.
 - Closed the P0 infrastructure audit after generated/executed provenance, readiness semantics and dependency-review gates were fixed.
 - Made README and local-run documentation canonical for the one-global-search workflow; legacy `--workstreams` execution is explicitly non-canonical for definitive scientific review.
-- Reconciled provider, reproducibility, code-availability, validation, Zenodo and release documentation with the immutable `v0.2.0` history and current development state.
+- Reconciled provider, reproducibility, code-availability, validation and release documentation with the immutable `v0.2.0` history and current development state.
 - Historical thematic PRs are being archived as superseded against canonical scientific backlog tickets rather than merged into the old workstream architecture.
 
-### Release boundary
+### Development boundary
 
 - `RecommendationCandidate` remains a candidate requiring human adjudication, not a clinical recommendation.
 - NutEV Evidence Engine remains separate from any clinical Decision Engine.
 - Definitive Article 1 scientific executions remain governed by `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` and may be only `computationally_ready_for_human_review` until human/manuscript gates are explicitly completed.
-- ORCID, affiliation and Zenodo DOI are intentionally omitted unless independently confirmed.
+- ORCID, affiliation and DOI remain omitted unless independently confirmed.
 - Published historical tags/releases, especially `v0.2.0`, remain immutable.
+- The previously validated `0.3.0` release candidate is historical validation evidence only; it is not a published release and does not freeze current development.
 
 ## [0.2.0] — first citable reconciled NutEV Evidence Engine release (alpha maturity)
 
@@ -123,5 +124,5 @@ The release-reconciliation flow passed canonical CI on Python 3.12 and 3.13 with
 - The software remains at **alpha maturity** despite the semantic software version `0.2.0`.
 - Zenodo DOI metadata remains pending until a real public archive record is verified.
 
-[0.3.0]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/releases/tag/v0.2.0

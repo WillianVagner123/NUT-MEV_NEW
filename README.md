@@ -14,15 +14,15 @@ O repositório apoia a camada de evidências do projeto NutEV/NutMEV e a execuç
 | Estado | Identidade |
 |---|---|
 | Última release pública/citável | `0.2.0` / tag `v0.2.0` |
-| Release candidate atual | `0.3.0` — **ainda não publicada** |
+| Árvore de desenvolvimento atual | `0.3.0.dev1` |
 | Maturidade científica | `alpha` |
-| DOI Zenodo | somente após verificação de um registro real |
+| DOI Zenodo | não configurado/verificado para nova release |
 
-A release `v0.2.0` e as tags históricas são objetos imutáveis. A preparação de `0.3.0` em uma branch de release candidate **não altera retrospectivamente** a release publicada e não autoriza tag, GitHub Release ou DOI antes dos gates finais.
+A release `v0.2.0` e as tags históricas são objetos imutáveis. A árvore `main` permanece em desenvolvimento e **não existe uma `v0.3.0` publicada**.
 
-O candidato `0.3.0` congela a arquitetura de **uma busca global**, proveniência `generated`/`executed`, corpus mestre, curadoria/revisão humana e validação reprodutível do artefato de software. Isso não implica que triagem humana, manuscrito ou recomendações clínicas estejam concluídos.
+A arquitetura atualmente validada inclui **uma busca global**, proveniência `generated`/`executed`, corpus mestre, curadoria/revisão humana e validação reprodutível do artefato de software. Isso não implica que triagem humana, manuscrito ou recomendações clínicas estejam concluídos.
 
-Antes da publicação, versão do pacote, tag proposta, `CITATION.cff`, `.zenodo.json`, CHANGELOG, README e release notes devem estar reconciliados no mesmo SHA candidato e todos os gates devem executar nesse SHA. Ver [`AGENTS.md`](AGENTS.md) e [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
+Quando houver decisão futura de publicar uma nova release, versão do pacote, tag proposta, `CITATION.cff`, `.zenodo.json`, CHANGELOG, README e release notes deverão ser reconciliados novamente no mesmo SHA candidato e todos os gates deverão executar nesse SHA. Ver [`AGENTS.md`](AGENTS.md) e [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
 ## Princípios científicos obrigatórios
 
@@ -321,7 +321,7 @@ Ver [`docs/COPYRIGHT_AND_FULL_TEXT_POLICY.md`](docs/COPYRIGHT_AND_FULL_TEXT_POLI
 
 # Citação
 
-Enquanto `0.3.0` estiver apenas como release candidate, **a última release publicada/citável continua sendo `v0.2.0`**. O `CITATION.cff` e `.zenodo.json` da branch candidata descrevem `0.3.0` somente para validar o objeto que será publicado se todos os gates e a integração Zenodo forem confirmados.
+A última release publicada/citável continua sendo **`v0.2.0`**. `CITATION.cff` e `.zenodo.json` descrevem essa release pública enquanto a `main` permanece em desenvolvimento (`0.3.0.dev1`).
 
 ORCID, afiliação, data de release e DOI devem ser incluídos somente após confirmação/verificação real.
 
