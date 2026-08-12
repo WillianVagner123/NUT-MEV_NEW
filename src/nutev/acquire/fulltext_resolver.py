@@ -123,7 +123,10 @@ def resolve_fulltext(
     pmcid = _norm_pmcid(_clean(record.get("pmcid")))
     provider_oa_url = _explicit_provider_oa_url(record)
 
-    cache_key = doi or pmid or pmcid or provider_oa_url
+    # Cache according to the same precedence used for resolution. In particular,
+    # a provider-declared OA URL must not be shadowed by a previous paywall result
+    # cached only by DOI for a different manifestation/provider record.
+    cache_key = pmcid or provider_oa_url or doi or pmid
     if cache is not None and cache_key and cache_key in cache:
         return dict(cache[cache_key])
 
