@@ -42,7 +42,7 @@ def test_pubmed_uses_field_tags_and_mesh_and_phrase_quotes():
 def test_pubmed_specific_adds_date_language_and_pubtype_filters():
     q = build_query(_spec(), "pubmed", "specific")
     assert '("2015"[dp] : "2025"[dp])' in q
-    assert "english[lang]" in q and "portuguese[lang]" in q
+    assert "english[la]" in q and "portuguese[la]" in q
     assert "Guideline[pt]" in q
 
 
@@ -67,7 +67,7 @@ def test_crossref_and_openalex_are_query_plus_filter():
     assert "from-pub-date:2015-01-01" in cr and "until-pub-date:2025-12-31" in cr
     oa = build_query(_spec(), "openalex", "specific")
     assert "from_publication_date:2015-01-01" in oa
-    assert "language:eng|por" in oa
+    assert "language:en|pt" in oa
 
 
 def test_build_all_covers_every_provider_and_breadth():
@@ -131,7 +131,7 @@ def test_picos_from_text_splits_synonyms_and_feeds_build_all():
     assert spec_dict["year_from"] == 2015 and spec_dict["year_to"] == 2025
     grid = build_all(parse_picos(spec_dict))
     assert '"dietary adherence"[tiab]' in grid["pubmed"]["balanced"]
-    assert "english[lang]" in grid["pubmed"]["specific"]
+    assert "english[la]" in grid["pubmed"]["specific"]
 
 
 def test_picos_from_text_omits_empty_blocks_and_zero_years():
