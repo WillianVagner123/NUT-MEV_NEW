@@ -112,8 +112,8 @@ dev = [
     "types-requests~=2.32",
 ]
 # Everything (all NutEV optional groups). The inherited local_deep_research
-# engine and its `legacy` extra were removed from the tree; see NOTICE.md and
-# docs/LEGACY_MIGRATION_PLAN.md.
+# engine and its `legacy` extra were removed from the active tree; provenance is
+# preserved in LICENSE, NOTICE.md, Git history and docs/PROVENANCE_AND_LICENSE.md.
 all = [
     "nutev-nutmev[search,documents,dashboard,api,watch,mcp,report]",
 ]
@@ -126,7 +126,7 @@ all = [
 [project.scripts]
 # Canonical NutEV/NutMEV entrypoint — the only console script. The inherited
 # local_deep_research engine (and its ldr/ldr-web/ldr-mcp scripts) was removed
-# from the tree; see NOTICE.md and docs/LEGACY_MIGRATION_PLAN.md.
+# from the active tree; see NOTICE.md and docs/PROVENANCE_AND_LICENSE.md.
 nutev = "nutev.cli:main"
 
 # Build backend is pdm.backend (see [build-system]); the setuptools section is a
@@ -147,8 +147,8 @@ lxml = ">=6.0"
 # `pip install -e ".[dev]"` works for external contributors without pdm.
 
 [tool.pytest.ini_options]
-# Canonical test location is nutev_tests/ (the legacy tests/ tree is not part
-# of the canonical suite — see docs/LEGACY_MIGRATION_PLAN.md).
+# Canonical test location is nutev_tests/. Historical inherited tests and
+# legacy-only workstream/querypack tests are not part of the current suite.
 testpaths = ["nutev_tests"]
 markers = [
     # Canonical NutEV test groups.
