@@ -1,12 +1,12 @@
 # Current code hygiene inventory
 
-Status: **active cleanup record for the pre-release development tree**.
+Status: **canonical runtime cleanup in progress for the pre-release development tree**.
 
-The goal is to keep the canonical NutEV runtime and documentation small, current and auditable without deleting live behavior or required provenance.
+The goal is to keep the NutEV runtime and documentation small, current and auditable without deleting live scientific behavior or required provenance.
 
 ## Removed from the active tree
 
-Historical Local Deep Research application/runtime surfaces are no longer present in the current working tree:
+Historical Local Deep Research application/runtime surfaces are no longer present in the working tree:
 
 - `src/local_deep_research/**`;
 - inherited legacy `tests/**`;
@@ -14,11 +14,29 @@ Historical Local Deep Research application/runtime surfaces are no longer presen
 - old frontend/Docker/cookiecutter tooling;
 - historical runtime compatibility shims.
 
-Git history remains intact.
+The former NutEV parallel workstream/querypack runtime has also been retired in the current cleanup branch:
+
+- `src/nutev/pipelines/master_pipeline.py`;
+- `src/nutev/querypacks/**`;
+- `src/nutev/analysis/domains_busca1.py`;
+- `src/nutev/analysis/domains_busca2a.py`;
+- `src/nutev/analysis/domains_busca2b.py`;
+- `src/nutev/analysis/prisma.py` (old generic/workstream PRISMA helper);
+- `src/nutev/analysis/synthesis.py` (old workstream synthesis/export layer);
+- `src/nutev/export/methods_writer.py` (old workstream methods/querypack writer);
+- `src/nutev/export/qualification_writer.py` (old workstream qualification writer);
+- `config/domain_rules_busca1.json`;
+- `config/domain_rules_busca2a.json`;
+- `config/domain_rules_busca2b.json`;
+- the default CLI `--workstreams` mode;
+- parity/tests that existed only to preserve that retired runtime;
+- the obsolete `examples/article1_pilot/**` workstream-era demonstration.
+
+Where a mixed test also covered still-supported behavior, that coverage was moved to canonical modules instead of restoring the old runtime. The canonical replacement is the registered global-search path plus `nutev play`. Git history remains intact.
 
 ## Obsolete documentation removed
 
-The following point-in-time plans/audits were removed from the active tree after being superseded by current canonical governance, PLAY, release and hygiene documents:
+Point-in-time audit/migration/refactor material that no longer described the canonical architecture was removed from the active tree, including:
 
 - `docs/AUDIT_COMPLETE_PIPELINE_2026.md`;
 - `docs/LEGACY_CLEANUP_AUDIT.md`;
@@ -31,22 +49,16 @@ The following point-in-time plans/audits were removed from the active tree after
 - `docs/REFACTOR_GLOBAL_WATCH_UNIFICATION.md`;
 - `docs/REFACTOR_RUNTIME_COMPAT_MIGRATION.md`;
 - `docs/RELEASE_CANDIDATE_v0.3.0.md`;
-- `docs/PROMPT_OTIMIZACAO.md`.
+- `docs/PROMPT_OTIMIZACAO.md`;
+- `docs/NUTEV_PILOT_REAL_PROTOCOL.md`;
+- `docs/AUDITORIA_PEGAR_TUDO.md`;
+- `docs/PUBLIC_RELEASE_AUDIT.md`;
+- `docs/AUDITORIA_CRUZADA_DRIVE_GITHUB_ARTIGO1.md`;
+- `docs/NUTEV_REAL_RUN_READINESS_AND_LIMITATIONS.md`.
 
-Their historical contents remain available through Git history. Current release planning belongs in `docs/RELEASE_PLAN_v0.3.0.md`; current PLAY behavior belongs in `docs/PLAY.md`; current scientific execution rules belong in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` and `docs/SCIENTIFIC_GOVERNANCE.md`.
+Historical contents remain available through Git history. Current PLAY/full-text behavior is documented in `docs/PLAY.md`; current release planning is in `docs/RELEASE_PLAN_v0.3.0.md`; current scientific rules are in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`, `docs/SCIENTIFIC_GOVERNANCE.md` and `docs/REPRODUCIBILITY.md`.
 
-## Compatibility runtime still awaiting coordinated retirement
-
-The following surfaces are historical/non-canonical for Article 1, but still have runtime or test references and therefore are not safe blind-deletion targets:
-
-- `src/nutev/pipelines/master_pipeline.py`;
-- historical workstream vocabulary such as `busca1`, `busca2a`, `busca2b`, `a3`;
-- querypack/domain modules consumed by the compatibility pipeline;
-- related compatibility/offline tests and configuration.
-
-Their controlled retirement is tracked in #1015. The removal must migrate or deliberately retire the remaining behavior, update CLI/docs/tests, and pass the canonical gates. The end state is one canonical PLAY/global-search runtime rather than two competing scientific execution paths.
-
-## Canonical replacement direction
+## Canonical runtime
 
 ```text
 registered/versioned global strategy
@@ -64,9 +76,24 @@ extraction/codebook/quality/synthesis
 
 `nutev play` is the one-command computational orchestrator for this path.
 
+Independent current capabilities such as Global Watch, official-guide acquisition, dashboard/API, scoring/classification and export modules remain only when they still have supported downstream use; they are not a second canonical Article 1 search pipeline.
+
+## What is not cleanup trash
+
+Do not delete merely because a file is old or inherited:
+
+- `LICENSE` / required MIT notices;
+- `NOTICE.md` and provenance records;
+- immutable release records for `v0.2.0`;
+- scientific governance/contract documents;
+- current taxonomy/scoring/codebook material still used downstream;
+- tests for supported current behavior.
+
+The inherited-code/license boundary is tracked separately in #1014.
+
 ## Deletion acceptance rule
 
-A source/config file is safe to delete when all are true:
+A source/config/test file is safe to delete when all are true:
 
 - no supported runtime imports it, or the importing legacy behavior is intentionally retired in the same change;
 - canonical tests are migrated or removed together with the retired behavior;
@@ -75,10 +102,10 @@ A source/config file is safe to delete when all are true:
 - required attribution/provenance is preserved;
 - Python 3.12/3.13, Windows smoke, blocking lint/compile, build and release-artifact checks remain green.
 
-## License/provenance boundary
+## Current validation gate
 
-`LICENSE`, `NOTICE.md`, Git history and the provenance records are **not cleanup trash**. The inherited-code/license boundary is tracked separately in #1014 and must be resolved before the next Zenodo archive without erasing required upstream attribution or misattributing current NutEV code.
+The workstream/querypack retirement is tracked by #1015 and PR #1019. It must remain unmerged if CI reveals a supported dependency on the deleted surface. Any such dependency must be migrated to the canonical path or explicitly retained before merge.
 
 ## Release boundary
 
-Deleting files from the current tree does not shrink Git history. Do not rewrite history merely to make the repository look smaller before Zenodo. A citable release should instead archive a clean reviewed snapshot that excludes obsolete active-tree material, protected full texts, credentials and generated/local outputs.
+Deleting files from the current tree does not rewrite or shrink Git history. Do not rewrite history merely to make the repository look smaller before Zenodo. A citable release should archive a clean reviewed snapshot that excludes obsolete active-tree material, protected full texts, credentials and generated/local outputs.

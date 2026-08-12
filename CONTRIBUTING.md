@@ -2,63 +2,65 @@
 
 Thank you for your interest in contributing to **NutEV/NutMEV — Evidence Engine for Lifestyle Nutrition**.
 
-NutEV/NutMEV is a scientific and methodological platform for identifying, classifying, auditing, and translating evidence into **candidate recommendations** for the NutEV dietary protocol. The canonical runtime for the doctorate project is `src/nutev/`.
+NutEV/NutMEV is a scientific and methodological platform for identifying, normalizing, auditing, retrieving and reviewing evidence for the NutEV research program. The canonical runtime is `src/nutev/`.
 
-This repository evolved from a historical Local Deep Research base. Some legacy files and compatibility entry points may still exist, but new research, qualification, and protocol-development work should target the NutEV/NutMEV architecture.
+The repository evolved from a historical Local Deep Research base. That inherited runtime is no longer part of the active source tree; required provenance is preserved in `LICENSE`, `NOTICE.md`, Git history and `docs/PROVENANCE_AND_LICENSE.md`.
 
 ## Project principles
 
-1. **Scientific traceability first.** Evidence must be traceable from document to claim to recommendation candidate.
-2. **No unsupported recommendations.** A `RecommendationCandidate` is not a final recommendation.
-3. **Human review is required.** Final protocol inclusion requires explicit human validation.
-4. **LLM is assistive only.** LLM output cannot approve protocol items, replace reviewers, or create support without documentary evidence.
-5. **Small PRs are safer.** One intent per PR: UI, audit, rigor, docs, or pipeline.
+1. **Scientific traceability first.** Every scientific claim about execution must be backed by recorded execution evidence.
+2. **Generated is not executed.** Rendered queries are not execution evidence until a real attempt exists.
+3. **Human review is required.** PRESS, FREEZE, screening/adjudication and final scientific decisions remain explicit human states where required.
+4. **LLM is assistive only.** LLM output cannot approve protocol items or fabricate documentary support.
+5. **One canonical search runtime.** Do not reintroduce independent `busca1/busca2a/busca2b/a3` search pipelines; use the registered global-search/PLAY architecture.
+6. **Small PRs are safer.** Keep one intent per PR when practical.
 
-## Canonical NutEV workflow
-
-The expected evidence-to-protocol chain is:
+## Canonical Article 1 workflow
 
 ```text
-Document -> EvidenceRecord -> EvidenceClaim -> ClaimEvaluation -> RecommendationCandidate -> HumanReview -> ProtocolReadiness
+registered global strategy
+        ↓
+provider rendering + execution ledger
+        ↓
+master corpus + deduplication
+        ↓
+full text / OCR
+        ↓
+human screening / eligibility
+        ↓
+extraction / codebook / quality / synthesis
 ```
 
-New code should preserve this chain and should not bypass audit or human review safeguards.
+`nutev play` is the one-command computational orchestrator for the currently authorized PILOT path.
 
 ## Before you start
 
-- Open or reference an issue for larger changes.
-- Keep PRs small and atomic.
-- Prefer additive changes over broad rewrites.
-- Avoid mixing UI, scientific methods, search strategy, and pipeline changes in the same PR.
-- Do not commit generated real outputs, secrets, or large files.
+- Open/reference an issue for larger changes.
+- Do not create a second search/corpus pipeline when an existing canonical layer can be extended.
+- Preserve immutable scientific versions and execution provenance.
+- Do not commit generated real outputs, secrets, local databases or protected full texts.
+- Update tests and documentation when behavior changes.
 
 ## Development setup
 
-Install the project locally:
-
 ```bash
-python -m pip install -e ".[dashboard,platform]"
+python -m pip install -e ".[dashboard,platform,documents]"
 ```
 
-Generate demo outputs:
+Demo:
 
 ```bash
 nutev demo-data --project-root ./project_output_demo
-```
-
-Run the local platform API:
-
-```bash
-nutev serve --project-root ./project_output_demo --host 127.0.0.1 --port 8000
-```
-
-Run the Control Center:
-
-```bash
 nutev dashboard --project-root ./project_output_demo --port 8501
 ```
 
-Run NutEV tests:
+PILOT PLAY on a project with a registered strategy:
+
+```bash
+nutev play --project-root ./project_output_scientific --metadata-only
+```
+
+Tests:
 
 ```bash
 PYTHONPATH=src python -m pytest -q nutev_tests
@@ -66,88 +68,72 @@ PYTHONPATH=src python -m pytest -q nutev_tests
 
 ## Pull request expectations
 
-A good PR should include:
+A good PR includes:
 
-- a clear title;
-- a short explanation of why the change is needed;
-- files changed only for one concern;
-- tests or a clear note if tests were not run;
-- documentation updates when user-facing behavior changes.
+- clear title and rationale;
+- one coherent concern;
+- tests or a documented reason they were not run;
+- documentation updates for user/scientific behavior;
+- explicit notes about scientific/provenance impact.
 
-Recommended PR scopes:
+Recommended scopes include `fix(cli)`, `feat(search)`, `feat(play)`, `feat(audit)`, `feat(ui)`, `docs`, `test`, `refactor` and `chore`.
 
-- `fix(cli): ...`
-- `feat(audit): ...`
-- `feat(rigor): ...`
-- `feat(ui): ...`
-- `docs(nutev): ...`
-- `test(nutev): ...`
-
-## Safety rules for contributions
+## Safety rules
 
 Do not commit:
 
-- API keys, tokens, credentials, or `.env` files;
-- real patient or participant data;
-- unreviewed generated outputs from real searches;
-- large binary files;
-- private PDFs or copyrighted full-text files without permission.
-
-Generated folders such as `project_output/` and `project_output_demo/` should remain local unless intentionally added as small, clearly marked demo fixtures.
+- API keys, tokens, credentials or `.env` files;
+- personal/patient/participant data;
+- protected PDFs/full texts without redistribution rights;
+- local research outputs/databases intended to stay private;
+- fabricated execution evidence or generated queries labeled as executed.
 
 ## Scientific rules
 
-When contributing to evidence, audit, or protocol modules:
+When contributing to scientific/search/review modules:
 
-- keep exact quotes when available;
-- preserve `document_id`, `claim_id`, and `recommendation_id` links;
-- mark computational inference as requiring human review;
-- do not convert gaps into final recommendations;
-- do not hide conflicting evidence;
-- do not let LLM output set `approved`, `approved_for_protocol`, or `locked_for_protocol`.
+- preserve strategy/run/provider identities;
+- keep failure/truncation states visible;
+- do not silently map technical failure to zero evidence;
+- do not let machine output create `INCLUDE`, `EXCLUDE`, PRESS approval, FREEZE authorization or final clinical recommendations;
+- preserve source/document/claim links where those layers are used;
+- keep conflicts and uncertainty visible.
 
 ## Repository structure
 
-Canonical NutEV areas:
+See [`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md). Main active areas include:
 
 ```text
-src/nutev/audit/
-src/nutev/analysis/
-src/nutev/api/
-src/nutev/demo/
-src/nutev/export/
-src/nutev/global_watch/
+src/nutev/search/
 src/nutev/pipelines/
-src/nutev/protocol/
+src/nutev/acquire/
+src/nutev/download/
+src/nutev/extract/
 src/nutev/review/
+src/nutev/analysis/
+src/nutev/export/
 src/nutev/ui/
+src/nutev/global_watch/
 config/
 docs/
 nutev_tests/
 ```
 
-The inherited `src/local_deep_research/` engine has been removed (see `NOTICE.md`
-and `docs/LEGACY_MIGRATION_PLAN.md`). All work targets `src/nutev/`.
-
 ## Documentation
 
-Useful project documents:
+Start with:
 
 - `README.md`
+- `AGENTS.md`
 - `SECURITY.md`
+- `docs/PLAY.md`
 - `docs/REPOSITORY_STRUCTURE.md`
-- `docs/VALIDATION_REPORT.md`
-- `docs/NUTEV_AUDIT_ENGINE.md`
-- `docs/NUTEV_CONTROL_CENTER.md`
-- `docs/NUTEV_PLATFORM_API.md`
-- `docs/NUTEV_PREMIUM_UI_GUIDE.md`
-- `docs/NUTEV_EVIDENCE_TO_PROTOCOL_FLOW.md`
+- `docs/SCIENTIFIC_GOVERNANCE.md`
+- `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`
+- `docs/REPRODUCIBILITY.md`
+- `docs/CODE_HYGIENE_CURRENT.md`
+- `docs/PROVENANCE_AND_LICENSE.md`
 
 ## Code of conduct
 
-- Be respectful and constructive.
-- Make methodological assumptions explicit.
-- Prefer transparent limitations over overclaiming.
-- Protect the scientific integrity of the NutEV protocol.
-
-Thank you for helping build NutEV/NutMEV.
+Be respectful and constructive. Make methodological assumptions explicit, prefer transparent limitations over overclaiming, and protect the scientific integrity of the project.

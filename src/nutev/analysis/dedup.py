@@ -1,10 +1,8 @@
-"""Article-level deduplication (extracted from master_pipeline for cohesion).
+"""Canonical article-level identity normalization and deduplication helpers.
 
-Pure functions that collapse duplicate records by a canonical key (DOI → PMID →
+Pure functions collapse duplicate records by a canonical key (DOI → PMID →
 PMCID → normalized URL → title+year → row hash) and merge the survivors,
-preferring stronger full-text URLs and unioning provider provenance. Moved here
-verbatim from ``pipelines/master_pipeline`` so the dedup responsibility is
-separately testable and the pipeline module is smaller — behavior is unchanged.
+preferring stronger full-text URLs and unioning provider provenance.
 """
 from __future__ import annotations
 

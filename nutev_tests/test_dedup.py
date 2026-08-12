@@ -1,10 +1,4 @@
-"""Direct coverage for the extracted `nutev.analysis.dedup` module.
-
-Dedup was moved out of `master_pipeline` for cohesion; these tests exercise the
-public API where it now lives, while `test_master_pipeline_dedup` /
-`test_deduplication` / `test_querypack_guidance_terms` continue to import the
-historical private aliases from the pipeline to prove the re-export is intact.
-"""
+"""Direct coverage for the canonical `nutev.analysis.dedup` public API."""
 from __future__ import annotations
 
 from nutev.analysis.dedup import (

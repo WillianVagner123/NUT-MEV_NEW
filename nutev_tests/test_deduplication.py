@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from nutev.pipelines.master_pipeline import _dedup_rows
+from nutev.analysis.dedup import dedup_rows
 
 
 def test_dedup_merges_doi_and_providers():
-    rows = _dedup_rows([
+    rows = dedup_rows([
         {"source_provider": "pubmed", "doi": "https://doi.org/10.1/a", "title": "A", "abstract": "short", "url": "https://doi.org/10.1/a"},
         {"source_provider": "crossref", "doi": "10.1/a", "title": "A", "abstract": "longer abstract", "url": "https://example.org/a.pdf"},
     ])

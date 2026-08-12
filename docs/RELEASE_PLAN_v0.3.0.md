@@ -6,7 +6,7 @@ The current source tree remains `0.3.0.dev1`. This document defines the evidence
 
 ## Why this release could be meaningful
 
-The development line now includes the canonical one-global-search workflow and the first gate-aware `nutev play` one-command PILOT orchestrator. A future `v0.3.0` can be a defensible software milestone if the exact release SHA is validated and the provenance/license boundary is resolved.
+The development line now includes the canonical one-global-search workflow, the gate-aware `nutev play` PILOT orchestrator, lawful full-text/OCR handling and removal of the obsolete parallel workstream/querypack runtime. A future `v0.3.0` can be a defensible software milestone if the exact release SHA is validated and the provenance/license boundary is resolved.
 
 A release is not evidence that GF-02/PRESS/GF-10 or the Article 1 formal search are complete. If those gates remain open at publication time, release notes and metadata must state that the software supports PILOT execution and human-review workflows while formal scientific authorization remains separate.
 
@@ -29,18 +29,32 @@ Close or explicitly resolve #1014:
 - establish the best-supported derivation point if known, otherwise state unknown;
 - audit any substantial inherited material still present;
 - human-confirm the copyright holder/name for original NutEV contributions;
-- decide whether original NutEV contributions continue to be distributed under MIT or another deliberate license for future releases;
+- decide the final license/copyright presentation for current NutEV contributions;
 - preserve upstream notices where required;
 - reconcile `LICENSE`, `NOTICE.md`, `docs/PROVENANCE_AND_LICENSE.md`, `pyproject.toml`, `CITATION.cff`, `.zenodo.json` and release notes.
 
 ### R-03 — code hygiene
 
-- keep #1015 open until compatibility code is either still deliberately supported or safely retired;
-- remove only files proven unreferenced/superseded;
-- no blind deletion of `master_pipeline.py` or historical workstream modules while supported tests/runtime still import them;
-- current docs must describe the current tree, not completed migration plans as future work.
+- the obsolete `master_pipeline.py`, `querypacks/**`, legacy `busca1/busca2a/busca2b` domain modules/configs and default CLI `--workstreams` mode must remain absent from the candidate tree;
+- legacy-only tests/examples/docs must remain removed or migrated to the canonical PLAY/global-search path;
+- repository docs must describe the current tree, not superseded migration plans;
+- no supported current runtime may import deleted legacy modules;
+- #1015 may close only after the retirement PR passes the canonical gates.
 
-### R-04 — exact-SHA validation
+### R-04 — search/filter hardening
+
+Before the software is presented as ready to support a definitive FORMAL search:
+
+- validate date ranges and reject inverted/invalid ranges;
+- normalize/validate language filters;
+- normalize publication-type filters and record provider support explicitly;
+- sanitize/escape query input so user text cannot silently alter provider syntax;
+- add negative/adversarial tests for quotes, Boolean operators, field tags and special characters;
+- preserve exact normalized input and rendered expression in the immutable strategy record.
+
+These filter gates are separate from the human scientific decision about what final date/language/publication filters the protocol should use (GF-06).
+
+### R-05 — exact-SHA validation
 
 On the candidate SHA:
 
@@ -56,9 +70,9 @@ On the candidate SHA:
 - wheel/sdist metadata are valid;
 - clean installation exposes `nutev play`.
 
-### R-05 — release identity reconciliation
+### R-06 — release identity reconciliation
 
-Only after R-01–R-04:
+Only after R-01–R-05:
 
 1. choose the final semantic version;
 2. change `src/nutev/__version__.py` from the development identity to the release identity;
@@ -91,7 +105,7 @@ record the real DOI in post-release metadata/documentation
 
 Do not invent a DOI in advance.
 
-Because this repository contains both `.zenodo.json` and `CITATION.cff`, the release-preparation review must treat `.zenodo.json` as the Zenodo GitHub-archive metadata source and keep `CITATION.cff` synchronized for GitHub/citation usability.
+Because this repository contains both `.zenodo.json` and `CITATION.cff`, release preparation must keep the Zenodo deposit metadata and citation metadata synchronized around one exact software object.
 
 ## Files that must NOT enter the citable software archive intentionally
 
@@ -101,9 +115,9 @@ Because this repository contains both `.zenodo.json` and `CITATION.cff`, the rel
 - `.env` files, API keys, cookies or credentials;
 - private research data;
 - patient/participant data;
-- local databases that contain non-redistributable scientific content.
+- local databases containing non-redistributable scientific content.
 
-Release artifacts should contain the software, configuration, documentation and safe demonstration material required to reproduce the software behavior, not the protected evidence corpus itself.
+Release artifacts should contain the software, configuration, documentation and safe demonstration material required to reproduce software behavior, not the protected evidence corpus itself.
 
 ## Go / no-go
 
@@ -113,4 +127,4 @@ The release decision should end with one of:
 - `TECHNICALLY READY — scientific/human gate remains open but accurately documented`;
 - `GO — exact release SHA approved for tag/GitHub Release/Zenodo archive`.
 
-Zenodo publication is not performed merely because this checklist exists; it follows the explicit GO decision on one exact SHA.
+Zenodo publication is not performed merely because this checklist exists; it follows an explicit GO decision on one exact SHA.

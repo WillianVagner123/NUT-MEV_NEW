@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 from nutev.analysis.relevance import score_record
-from nutev.querypacks.semantic_blocks import semantic_terms
 
 SCORING_RULES = json.loads(
     (Path(__file__).resolve().parents[1] / "config" / "scoring_rules.json").read_text(
@@ -16,15 +15,6 @@ SCORING_RULES = json.loads(
 def _score(title: str, workstream: str) -> float:
     record = score_record({"title": title, "source": "pubmed"}, SCORING_RULES, workstream)
     return float(record["relevance_score"])
-
-
-def test_busca2b_semantic_block_includes_behavior_framework_terms() -> None:
-    terms = {term.lower() for term in semantic_terms("busca2b", min_priority=4)}
-
-    assert "behavior change wheel" in terms
-    assert "behaviour change wheel" in terms
-    assert "com-b" in terms
-    assert "intervention mapping" in terms
 
 
 def test_behavior_framework_titles_gain_priority_in_busca2b() -> None:

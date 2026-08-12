@@ -1,5 +1,0 @@
-record_id,title,authors,year,source_type,workstream,doi,official_url
-DEMO-B1-001,[DEMO] National Food-Based Dietary Guidelines (synthetic),Demo Agency,2023,official_guide,busca1,,https://example.org/official/dietary-guidelines
-DEMO-B1-002,[DEMO] Healthy Eating Official Guide (synthetic),Demo Ministry of Health,2022,official_guide,busca1,,https://example.org/official/healthy-eating
-DEMO-B2A-001,[DEMO] Clinical Practice Guideline on Lifestyle Nutrition (synthetic),Demo Society,2021,clinical_guideline,busca2a,10.0000/demo.b2a.001,https://example.org/official/cpg-lifestyle-nutrition
-DEMO-B2A-002,[DEMO] Consensus Statement on Dietary Patterns (synthetic),Demo Consensus Panel,2020,consensus,busca2a,10.0000/demo.b2a.002,
