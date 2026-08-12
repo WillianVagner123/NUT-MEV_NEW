@@ -151,3 +151,20 @@ def test_resolve_many_caches_provider_oa_url():
     ]
     resolve_many(recs)
     assert all(r["retrieval_method"] == "provider_oa_url" for r in recs)
+
+
+def test_provider_oa_is_not_shadowed_by_cached_doi_paywall():
+    s = _Session(unpaywall={})
+    recs = [
+        {"doi": "10.9/same"},
+        {
+            "doi": "10.9/same",
+            "oa_url": "https://repo.example/same.pdf",
+        },
+    ]
+    resolve_many(recs, email="me@x.org", session=s)
+
+    assert recs[0]["fulltext_status"] == "paywall"
+    assert recs[1]["fulltext_status"] == "fulltext_oa"
+    assert recs[1]["retrieval_method"] == "provider_oa_url"
+    assert recs[1]["fulltext_url"] == "https://repo.example/same.pdf"
