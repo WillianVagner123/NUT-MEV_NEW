@@ -21,6 +21,10 @@ The former NutEV parallel workstream/querypack runtime has also been retired in 
 - `src/nutev/analysis/domains_busca1.py`;
 - `src/nutev/analysis/domains_busca2a.py`;
 - `src/nutev/analysis/domains_busca2b.py`;
+- `src/nutev/analysis/prisma.py` (old generic/workstream PRISMA helper);
+- `src/nutev/analysis/synthesis.py` (old workstream synthesis/export layer);
+- `src/nutev/export/methods_writer.py` (old workstream methods/querypack writer);
+- `src/nutev/export/qualification_writer.py` (old workstream qualification writer);
 - `config/domain_rules_busca1.json`;
 - `config/domain_rules_busca2a.json`;
 - `config/domain_rules_busca2b.json`;
@@ -28,7 +32,7 @@ The former NutEV parallel workstream/querypack runtime has also been retired in 
 - parity/tests that existed only to preserve that retired runtime;
 - the obsolete `examples/article1_pilot/**` workstream-era demonstration.
 
-The canonical replacement is the registered global-search path plus `nutev play`. Git history remains intact.
+Where a mixed test also covered still-supported behavior, that coverage was moved to canonical modules instead of restoring the old runtime. The canonical replacement is the registered global-search path plus `nutev play`. Git history remains intact.
 
 ## Obsolete documentation removed
 
@@ -47,9 +51,12 @@ Point-in-time audit/migration/refactor material that no longer described the can
 - `docs/RELEASE_CANDIDATE_v0.3.0.md`;
 - `docs/PROMPT_OTIMIZACAO.md`;
 - `docs/NUTEV_PILOT_REAL_PROTOCOL.md`;
-- `docs/AUDITORIA_PEGAR_TUDO.md`.
+- `docs/AUDITORIA_PEGAR_TUDO.md`;
+- `docs/PUBLIC_RELEASE_AUDIT.md`;
+- `docs/AUDITORIA_CRUZADA_DRIVE_GITHUB_ARTIGO1.md`;
+- `docs/NUTEV_REAL_RUN_READINESS_AND_LIMITATIONS.md`.
 
-Historical contents remain available through Git history. Current PLAY/full-text behavior is documented in `docs/PLAY.md`; current release planning is in `docs/RELEASE_PLAN_v0.3.0.md`; current scientific rules are in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` and `docs/SCIENTIFIC_GOVERNANCE.md`.
+Historical contents remain available through Git history. Current PLAY/full-text behavior is documented in `docs/PLAY.md`; current release planning is in `docs/RELEASE_PLAN_v0.3.0.md`; current scientific rules are in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`, `docs/SCIENTIFIC_GOVERNANCE.md` and `docs/REPRODUCIBILITY.md`.
 
 ## Canonical runtime
 
