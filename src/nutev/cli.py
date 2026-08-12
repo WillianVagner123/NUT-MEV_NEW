@@ -11,10 +11,12 @@ from nutev.settings import NutevSettings
 
 
 def main() -> None:
-    # The runtime_compat shim was fully dissolved into first-class code
-    # (docs/REFACTOR_RUNTIME_COMPAT_MIGRATION.md), so no bootstrap is needed here.
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(
+        prog="nutev",
+        description="NutEV Evidence Engine — canonical command-line interface",
+    )
     sub = p.add_subparsers(dest="command")
+
     gw = sub.add_parser("global-watch")
     gw.add_argument("--project-root", type=Path, required=True)
     gw.add_argument("--since-days", type=int, default=7)
@@ -63,7 +65,7 @@ def main() -> None:
 
     guides = sub.add_parser(
         "guides",
-        help="Fetch ALL official guides, OCR them, code A/B/C/D and extract key phrases",
+        help="Fetch official guides, extract/OCR them, code A/B/C/D and extract key phrases",
     )
     guides.add_argument("--project-root", type=Path, required=True)
     guides.add_argument(
@@ -99,16 +101,15 @@ def main() -> None:
         "--discover-fao",
         action="store_true",
         help=(
-            "Crawl the FAO FBDG registry live for ALL countries + real guide files "
-            "(instead of the static manifest)"
+            "Crawl the FAO FBDG registry live for countries + guide files "
+            "instead of relying only on the static manifest"
         ),
     )
     guides.add_argument(
         "--report",
         action="store_true",
         help=(
-            "Also write the corpus report (fuzzy dedup + clustering + heatmap); "
-            "needs pip install -e \".[report]\""
+            "Also write the corpus report; needs pip install -e \".[report]\""
         ),
     )
 
@@ -177,20 +178,16 @@ def main() -> None:
         help="Stop after search + corpus; do not resolve/download/extract full text",
     )
 
-    p.add_argument("--project-root", type=Path)
-    p.add_argument(
-        "--workstreams",
-        nargs="+",
-        default=["busca1", "busca2a", "busca2b", "a3"],
-    )
-    p.add_argument("--web-enabled", action="store_true")
-    p.add_argument("--llm-enabled", action="store_true")
     args = p.parse_args()
+
+    if not args.command:
+        p.print_help()
+        return
 
     if args.command == "global-watch":
         from nutev.global_watch.watch_pipeline import run_global_watch
 
-        if not getattr(args, "web_enabled", False):
+        if not args.web_enabled:
             os.environ["NUTEV_DISABLE_NETWORK"] = "1"
         s = NutevSettings(
             project_root=args.project_root,
@@ -199,8 +196,8 @@ def main() -> None:
             since_days=args.since_days,
             llm_enabled=args.llm_enabled,
         )
-        for d in s.output_dirs.values():
-            d.mkdir(parents=True, exist_ok=True)
+        for directory in s.output_dirs.values():
+            directory.mkdir(parents=True, exist_ok=True)
         logger = setup_logger(s.output_dirs["07_logs"])
         result = run_global_watch(
             s,
@@ -342,23 +339,19 @@ def main() -> None:
             timeout=args.timeout,
             include_countries=not args.no_countries,
         )
-        out = (
-            args.project_root
-            / "07_logs"
-            / "NUTEV_OFFICIAL_SOURCES_VERIFICATION.csv"
-        )
+        out = args.project_root / "07_logs" / "NUTEV_OFFICIAL_SOURCES_VERIFICATION.csv"
         write_verification_report(rows, out)
         total = len(rows)
-        alive = sum(1 for r in rows if r.get("ok"))
-        dead = [r for r in rows if not r.get("ok")]
+        alive = sum(1 for row in rows if row.get("ok"))
+        dead = [row for row in rows if not row.get("ok")]
         print(
             f"Verificadas {total} fontes oficiais: {alive} acessíveis, "
             f"{len(dead)} com problema."
         )
-        for r in dead[:50]:
+        for row in dead[:50]:
             print(
-                f"  [{r.get('status_code')}] {r.get('reason')}  "
-                f"{r.get('name')}  {r.get('url')}"
+                f"  [{row.get('status_code')}] {row.get('reason')}  "
+                f"{row.get('name')}  {row.get('url')}"
             )
         print(f"Relatório completo: {out}")
         return
@@ -367,8 +360,8 @@ def main() -> None:
         from nutev.pipelines.guides_pipeline import run_guides
 
         s = NutevSettings(project_root=args.project_root)
-        for d in s.output_dirs.values():
-            d.mkdir(parents=True, exist_ok=True)
+        for directory in s.output_dirs.values():
+            directory.mkdir(parents=True, exist_ok=True)
         logger = setup_logger(s.output_dirs["07_logs"])
 
         session = None
@@ -381,27 +374,22 @@ def main() -> None:
 
             session = requests.Session()
             session.headers["User-Agent"] = "NutEV Guides Fetcher/1.0"
-            # Size the connection pool to the worker count so parallel fetches
-            # reuse connections instead of contending for a tiny default pool.
-            _pool = max(args.workers * 2, 10)
-            adapter = HTTPAdapter(pool_connections=_pool, pool_maxsize=_pool)
+            pool = max(args.workers * 2, 10)
+            adapter = HTTPAdapter(pool_connections=pool, pool_maxsize=pool)
             session.mount("https://", adapter)
             session.mount("http://", adapter)
 
-            # Per-THREAD rate limit: a global sleep would serialize all workers
-            # (throughput 1/rate no matter how many workers). Throttling per
-            # thread keeps each worker polite while giving ~workers/rate overall.
-            _orig_get = session.get
-            _local = threading.local()
+            original_get = session.get
+            local = threading.local()
 
-            def _throttled_get(*a, **k):
+            def _throttled_get(*call_args, **call_kwargs):
                 now = time.monotonic()
-                last = getattr(_local, "last", 0.0)
+                last = getattr(local, "last", 0.0)
                 wait = args.rate - (now - last)
                 if wait > 0:
                     time.sleep(wait)
-                _local.last = time.monotonic()
-                return _orig_get(*a, **k)
+                local.last = time.monotonic()
+                return original_get(*call_args, **call_kwargs)
 
             session.get = _throttled_get  # type: ignore[assignment]
 
@@ -456,21 +444,7 @@ def main() -> None:
             print(f"\nGrade completa (provider × amplitude) salva em: {args.out}")
         return
 
-    if not args.project_root:
-        p.error("--project-root is required for default pipeline mode")
-
-    from nutev.pipelines.master_pipeline import run_pipeline
-
-    s = NutevSettings(
-        project_root=args.project_root,
-        web_enabled=args.web_enabled,
-        llm_enabled=args.llm_enabled,
-    )
-    for d in s.output_dirs.values():
-        d.mkdir(parents=True, exist_ok=True)
-    logger = setup_logger(s.output_dirs["07_logs"])
-    result = run_pipeline(s, args.workstreams, logger)
-    logger.info("Resumo: %s", result)
+    p.error(f"unsupported command: {args.command}")
 
 
 if __name__ == "__main__":
