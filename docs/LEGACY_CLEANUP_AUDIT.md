@@ -1,45 +1,51 @@
-# Legacy Cleanup Audit (Local Deep Research → NutEV)
+# Legacy Cleanup Audit — final state
 
-## Scope
-Audit of inherited components to identify what is canonical NutEV, what is legacy, and what can be cleaned safely.
+Status: **completed for the current working tree**.
 
-## 1) Clearly inherited from Local Deep Research
-- `src/local_deep_research/` (full legacy app stack). **Recommendation:** `needs_manual_review` (large surface, referenced by non-NutEV tests and legacy scripts).
-- `docs/*` pages centered on LDR web/search internals (e.g., analytics dashboard, CLI tools, architecture of LDR web). **Recommendation:** `move_to_legacy`.
-- `docker-compose.yml`, Dockerfile stages for `ldr-web` legacy UI. **Recommendation:** `keep` for now (still operational for legacy users), later `move_to_legacy`.
+This file is kept as a concise provenance/cleanup record. It no longer describes pending removal work.
 
-## 2) Still used by NutEV
-- `src/nutev/**` (Evidence/Audit/Control Center/demo/review/global watch). **Recommendation:** `keep`.
-- `config/*` NutEV configs (`audit_rules`, ontology/lenses/source registry, scoring/taxonomy). **Recommendation:** `keep`.
-- `tests/nutev/**`. **Recommendation:** `keep`.
+## Current canonical tree
 
-## 3) Probably obsolete (NutEV scope)
-- Legacy web/frontend docs not used by NutEV runtime. **Recommendation:** `move_to_legacy`.
-- Legacy benchmarking/rate-limit references in docs. **Recommendation:** `move_to_legacy`.
+The supported NutEV runtime is:
 
-## 4) Dangerous to remove without deeper analysis
-- `src/local_deep_research/**` currently referenced by many repository tests and entrypoints (`ldr`, `ldr-web`, `ldr-mcp`). **Recommendation:** `needs_manual_review`.
-- `.github/workflows/web-frontend.yml` and legacy JS infra tests. **Recommendation:** `needs_manual_review`.
+- `src/nutev/**`;
+- `config/**`;
+- `nutev_tests/**`;
+- current governance/methodology documentation;
+- the `nutev` CLI, dashboard and API components.
 
-## 5) Dependencies linked mainly to legacy
-- Flask/websocket/auth stack and large LDR ecosystem dependencies in `pyproject.toml` likely primarily legacy.
-- **Recommendation:** `needs_manual_review` with staged dependency-pruning plan after isolating NutEV package profile.
+## Removed inherited runtime
 
-## 6) Old scripts likely unused by NutEV runtime
-- Legacy dev scripts under docs/developing and LDR helper scripts. **Recommendation:** `move_to_legacy` or keep documented as historical.
+The inherited Local Deep Research (LDR) runtime and its old application stack are no longer present in the current working tree:
 
-## 7) Old frontend/web
-- Root Vite/frontend and `src/local_deep_research/web/**` are legacy-facing. **Recommendation:** `needs_manual_review`.
+- `src/local_deep_research/**` — removed;
+- legacy `tests/**` — removed;
+- legacy LDR console entry points — removed;
+- legacy frontend/Docker/tooling — removed;
+- historical runtime compatibility shims — removed.
 
-## 8) Old docker-compose stack
-- Legacy stack still documents LDR services/network (`ldr-network`). **Recommendation:** `keep` short term, tag as historical/legacy.
+The old code remains recoverable from Git history. Do not restore it into the canonical NutEV runtime merely to preserve history.
 
-## 9) Textual references to Local Deep Research
-- Present across many docs and CI templates. **Recommendation:** reduce in top-level README, consolidate historical note, map legacy docs.
+## Provenance
 
-## 10) Item-level recommendation matrix
-- `src/nutev/**`: **keep**
-- `tests/nutev/**`: **keep**
-- `src/local_deep_research/**`: **needs_manual_review**
-- legacy LDR docs: **move_to_legacy**
-- legacy docker/web workflow files: **needs_manual_review**
+The repository evolved from the open-source Local Deep Research project by LearningCircuit. Historical MIT attribution is preserved in `LICENSE`, `NOTICE.md` and Git history. The current `src/nutev/**` tree is the NutEV Evidence Engine implementation.
+
+See `NOTICE.md` for the authoritative provenance boundary. Do not infer that every current line originated upstream.
+
+## Remaining compatibility surface
+
+Some NutEV modules still use historical names such as `busca1`, `busca2a`, `busca2b`, `a3` or the legacy `master_pipeline` orchestration. These are compatibility/downstream analysis surfaces, not authorization to execute multiple independent scientific searches for Article 1.
+
+Removal of those names requires dependency/test analysis and should happen only when the canonical global-search + `nutev play` path fully replaces their remaining runtime use.
+
+## Cleanup rule going forward
+
+Delete or archive a file only after confirming that:
+
+1. canonical runtime does not import it;
+2. canonical tests do not require it;
+3. current documentation does not rely on it as normative truth;
+4. any useful scientific/provenance content has a canonical replacement;
+5. the deletion is covered by tests/CI.
+
+Historical audit reports may remain in Git history instead of the active documentation set when they contradict current code.

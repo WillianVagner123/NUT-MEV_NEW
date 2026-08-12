@@ -1,72 +1,42 @@
-# Legacy Migration Plan
+# Legacy Migration Record — Local Deep Research → NutEV
 
-How the inherited `local_deep_research` (LDR) engine is progressively isolated
-and eventually removed from the main NutEV/NutMEV distribution — **without**
-breaking the `nutev` command at any step.
+Status: **migration completed for the current working tree**.
 
-> ✅ **Executed (delete option).** By maintainer decision, the inherited engine
-> (`src/local_deep_research/**`), the legacy test suite (`tests/**`), the legacy
-> examples, and the legacy frontend/Docker/tooling were **removed** from the
-> working tree. The code remains in Git history; provenance/attribution is
-> preserved (`LICENSE`, `NOTICE.md`). The `nutev` command and canonical
-> `nutev_tests/` are unaffected (the core never imported LDR). The steps below
-> are kept as the record of how this was sequenced.
+This document replaces the former pending migration plan. The detailed historical sequence remains available in Git history; the active repository should describe the state that actually exists now.
 
-## Guardrails
+## Result
 
-- Do **not** move or delete legacy code until: dependencies are mapped, tests
-  run, dependents are documented, a migration plan exists, and `nutev` still
-  works. (This document is that plan; the audit is `docs/PUBLIC_RELEASE_AUDIT.md`.)
-- No history rewrite / `git filter-repo` / `git push --force` in this phase.
-- Each step is a **small, separate PR**.
+The inherited Local Deep Research (LDR) application runtime has been removed from the current tree while preserving provenance and history.
 
-## Current state (baseline)
+Completed outcomes:
 
-- `src/nutev` imports `local_deep_research`: **none** (verified).
-- Coupling is only at the packaging layer, and steps 1–3 below are **already
-  done** on this branch:
-  - [x] Version decoupled → `src/nutev/__version__.py`.
-  - [x] Entrypoints decoupled → only `nutev` remains; `ldr*` removed from main.
-  - [x] Dependencies split → legacy stack moved to the `legacy` extra.
-- Still shipped in-tree: `src/local_deep_research/**`, legacy `tests/` (1905
-  files), legacy frontend/Docker/cookiecutter/unraid, `README_old.md`.
+- NutEV version source is independent under `src/nutev/__version__.py`;
+- the canonical console entry point is `nutev`;
+- `src/nutev/**` does not depend on `src/local_deep_research/**`;
+- the inherited `src/local_deep_research/**` tree is removed;
+- the legacy `tests/**` tree is removed;
+- old LDR frontend/Docker/tooling is removed;
+- legacy `ldr`, `ldr-web` and `ldr-mcp` entry points are removed;
+- canonical tests live under `nutev_tests/**`;
+- canonical packaging contains no `legacy` optional dependency group;
+- provenance is retained in `LICENSE`, `NOTICE.md` and Git history.
 
-## PR sequence
+## What remains intentionally
 
-| # | PR | Scope | Risk | Blocking condition |
-|---|---|---|---|---|
-| 1 | `build: decouple nutev version from legacy package` | version source → nutev | low | **done** |
-| 2 | `build: remove legacy console scripts from main install` | drop `ldr*` scripts | low | **done** |
-| 3 | `build: split core and optional dependencies` | legacy deps → `legacy` extra | med | **done** |
-| 4 | `refactor: remove cross-imports (if any appear)` | keep nutev free of LDR imports; add CI guard `git grep local_deep_research src/nutev` must be empty | low | none |
-| 5 | `test: separate legacy tests from canonical CI` | canonical CI runs only `nutev_tests/`; legacy `tests/` excluded from default runs | low | canonical suite green |
-| 6 | `docs: move legacy docs to docs/legacy/` | `README_old.md` + legacy `docs/*` → `docs/legacy/` | low | link check |
-| 7 | `chore: move legacy frontend + Docker to legacy/` | frontend/`Dockerfile`/`docker-compose*`/`cookiecutter-docker`/`unraid-templates` → `legacy/` | med | confirm nothing canonical imports them |
-| 8 | Decide legacy destination | (a) `legacy/` folder, (b) separate repo, or (c) history branch `legacy/local-deep-research` | — | maintainer decision (see below) |
-| 9 | `build: drop local_deep_research from the wheel` | exclude legacy package + its `[tool.setuptools.package-data]` from the built distribution; keep in `legacy` extra only if still needed | med | steps 5–8 complete, `nutev` install still works |
+Historical terminology can still occur in documentation, Git history and compatibility/downstream NutEV modules. Names such as `busca1`, `busca2a`, `busca2b`, `a3` and `master_pipeline` do not represent the canonical Article 1 search architecture.
 
-## Step 8 — where legacy goes (decision pending, maintainer)
+The canonical scientific path is the versioned global strategy → actual execution → master corpus → human review workflow. `nutev play` is being introduced as the one-command computational orchestrator for that path.
 
-| Option | Pros | Cons |
-|---|---|---|
-| `legacy/` folder in-repo | simple; discoverable; no history change | keeps repo large |
-| Separate repo | clean split; smaller main repo | loses inline history unless mirrored |
-| History branch only | smallest main branch | harder to discover; still in history |
+## Licensing/provenance boundary
 
-Recommended default: **`legacy/` folder now** (cheap, reversible), with an
-explicit `legacy/README.md` pointing to provenance (`NOTICE.md`) and stating the
-package is unsupported for scientific use. Repo/branch extraction can follow
-later if size becomes a problem — and it is a history rewrite, out of scope here.
+The repository was derived historically from LearningCircuit's Local Deep Research under the MIT License. Do not remove upstream copyright/license notices from inherited/substantial upstream material without a provenance review. Conversely, do not describe all current NutEV source code as authored by LearningCircuit merely because the historical base was MIT-licensed.
 
-## Acceptance for "legacy removed from main distribution"
+`NOTICE.md` is the authoritative active provenance note.
 
-- `pip install -e .` in a clean env installs **no** legacy dependency.
-- `nutev demo-data` / `nutev dashboard` work without the legacy extra.
-- Canonical `nutev_tests/` pass without `local_deep_research` installed.
-- The legacy engine remains reproducible via `pip install -e ".[legacy]"`.
-- Provenance/licensing preserved (`LICENSE`, `NOTICE.md`).
+## No history rewrite
 
-## Still out of scope
+Do not use `git filter-repo`, force-push or tag rewriting merely to erase the inherited project. Git history is part of the provenance record.
 
-- Rewrite git history / `git filter-repo` / force-push (the removed code stays in
-  history intentionally, preserving provenance).
+## Future cleanup
+
+Further removal should target only demonstrably unused compatibility modules, stale audit documents or redundant configuration. Each deletion must be supported by import/reference analysis and the canonical test suite.

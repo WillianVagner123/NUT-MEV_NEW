@@ -55,31 +55,134 @@ def main() -> None:
     verify = sub.add_parser("verify-sources")
     verify.add_argument("--project-root", type=Path, required=True)
     verify.add_argument("--timeout", type=float, default=20.0)
-    verify.add_argument("--no-countries", action="store_true", help="Check only the base manifest (skip per-country sources)")
+    verify.add_argument(
+        "--no-countries",
+        action="store_true",
+        help="Check only the base manifest (skip per-country sources)",
+    )
 
     guides = sub.add_parser(
         "guides",
         help="Fetch ALL official guides, OCR them, code A/B/C/D and extract key phrases",
     )
     guides.add_argument("--project-root", type=Path, required=True)
-    guides.add_argument("--limit", type=int, default=None, help="Process only the first N guides (default: all)")
+    guides.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Process only the first N guides (default: all)",
+    )
     guides.add_argument("--timeout", type=float, default=30.0)
-    guides.add_argument("--rate", type=float, default=0.5, help="Seconds between downloads per worker (politeness)")
-    guides.add_argument("--offline", action="store_true", help="Skip downloads; only process guides already in 03C_official_docs")
-    guides.add_argument("--workers", type=int, default=4, help="Parallel workers for fetch+OCR (default: 4)")
-    guides.add_argument("--fresh", action="store_true", help="Ignore the checkpoint and reprocess everything from scratch")
-    guides.add_argument("--discover-fao", action="store_true", help="Crawl the FAO FBDG registry live for ALL countries + real guide files (instead of the static manifest)")
-    guides.add_argument("--report", action="store_true", help='Also write the corpus report (fuzzy dedup + clustering + heatmap); needs pip install -e ".[report]"')
+    guides.add_argument(
+        "--rate",
+        type=float,
+        default=0.5,
+        help="Seconds between downloads per worker (politeness)",
+    )
+    guides.add_argument(
+        "--offline",
+        action="store_true",
+        help="Skip downloads; only process guides already in 03C_official_docs",
+    )
+    guides.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Parallel workers for fetch+OCR (default: 4)",
+    )
+    guides.add_argument(
+        "--fresh",
+        action="store_true",
+        help="Ignore the checkpoint and reprocess everything from scratch",
+    )
+    guides.add_argument(
+        "--discover-fao",
+        action="store_true",
+        help=(
+            "Crawl the FAO FBDG registry live for ALL countries + real guide files "
+            "(instead of the static manifest)"
+        ),
+    )
+    guides.add_argument(
+        "--report",
+        action="store_true",
+        help=(
+            "Also write the corpus report (fuzzy dedup + clustering + heatmap); "
+            "needs pip install -e \".[report]\""
+        ),
+    )
 
     strategy = sub.add_parser(
         "strategy",
-        help="Build transparent per-base search expressions from a question/PICOS spec (broad/balanced/specific)",
+        help=(
+            "Build transparent per-base search expressions from a question/PICOS "
+            "spec (broad/balanced/specific)"
+        ),
     )
-    strategy.add_argument("--spec", type=Path, required=True, help="JSON file: a PICOS dict (population/intervention/…) or {\"concepts\": [...]}")
-    strategy.add_argument("--out", type=Path, default=None, help="Optional path to write the full provider×breadth grid as JSON")
+    strategy.add_argument(
+        "--spec",
+        type=Path,
+        required=True,
+        help=(
+            "JSON file: a PICOS dict (population/intervention/…) or "
+            "{\"concepts\": [...]}"
+        ),
+    )
+    strategy.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Optional path to write the full provider×breadth grid as JSON",
+    )
+
+    play = sub.add_parser(
+        "play",
+        help=(
+            "Run the gate-aware one-command PILOT pipeline: search, master corpus, "
+            "lawful full-text recovery, download, text extraction and OCR"
+        ),
+    )
+    play.add_argument("--project-root", type=Path, required=True)
+    play.add_argument(
+        "--version-id",
+        type=str,
+        default=None,
+        help="Immutable strategy version ID (default: latest registered version)",
+    )
+    play.add_argument(
+        "--breadth",
+        choices=["broad", "balanced", "specific"],
+        default="specific",
+    )
+    play.add_argument(
+        "--limit",
+        type=int,
+        default=10000,
+        help="Maximum records requested from each executable provider (1..10000)",
+    )
+    play.add_argument(
+        "--providers",
+        nargs="+",
+        default=None,
+        help="Optional subset: pubmed europepmc crossref openalex",
+    )
+    play.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Ignore provider checkpoints for this PLAY invocation",
+    )
+    play.add_argument(
+        "--metadata-only",
+        action="store_true",
+        help="Stop after search + corpus; do not resolve/download/extract full text",
+    )
 
     p.add_argument("--project-root", type=Path)
-    p.add_argument("--workstreams", nargs="+", default=["busca1", "busca2a", "busca2b", "a3"])
+    p.add_argument(
+        "--workstreams",
+        nargs="+",
+        default=["busca1", "busca2a", "busca2b", "a3"],
+    )
     p.add_argument("--web-enabled", action="store_true")
     p.add_argument("--llm-enabled", action="store_true")
     args = p.parse_args()
@@ -116,6 +219,43 @@ def main() -> None:
         logger.info("Global watch: %s", result)
         return
 
+    if args.command == "play":
+        from nutev.pipelines.play_pipeline import run_play
+
+        s = NutevSettings(project_root=args.project_root, web_enabled=True)
+        for directory in s.output_dirs.values():
+            directory.mkdir(parents=True, exist_ok=True)
+        logger = setup_logger(s.output_dirs["07_logs"])
+        summary = run_play(
+            args.project_root,
+            version_id=args.version_id,
+            breadth=args.breadth,
+            providers=args.providers,
+            limit=args.limit,
+            resume=not args.no_resume,
+            metadata_only=args.metadata_only,
+            logger=logger,
+        )
+        print("\nNutEV PLAY complete")
+        print(f"play_id: {summary['play_id']}")
+        print(f"status: {summary['status']['execution_status']}")
+        print(
+            "records: "
+            f"{summary['search']['records_returned']} -> "
+            f"{summary['corpus']['unique_records']} unique"
+        )
+        print(
+            "full text: "
+            f"{summary['fulltext']['downloaded']} downloaded | "
+            f"{summary['extraction']['usable_text']} usable text | "
+            f"{summary['extraction']['ocr_used']} OCR"
+        )
+        print(f"summary: {summary['artifacts']['summary_path']}")
+        if summary["search"]["any_truncated"]:
+            print("WARNING: at least one provider was truncated; this is not exhaustive.")
+        print("Scientific state: PILOT only; PRISMA/formal execution remains blocked.")
+        return
+
     if args.command == "dashboard":
         dashboard_path = Path(__file__).parent / "ui" / "dashboard.py"
         url = f"http://localhost:{args.port}"
@@ -134,7 +274,10 @@ def main() -> None:
                     "--",
                 ],
                 check=True,
-                env={**os.environ, "NUTEV_DASHBOARD_PROJECT_ROOT": str(args.project_root)},
+                env={
+                    **os.environ,
+                    "NUTEV_DASHBOARD_PROJECT_ROOT": str(args.project_root),
+                },
             )
         except ModuleNotFoundError:
             print('Streamlit não está instalado. Rode: pip install -e ".[dashboard]"')
@@ -152,7 +295,10 @@ def main() -> None:
     if args.command in {"serve", "platform"}:
         landing = f"http://{args.host}:{args.port}"
         if args.host == "0.0.0.0":
-            print("Atenção: você está expondo a API na rede. Use apenas em ambiente controlado.")
+            print(
+                "Atenção: você está expondo a API na rede. "
+                "Use apenas em ambiente controlado."
+            )
         print(f"Landing page: {landing}")
         print(f"API docs: {landing}/docs")
         print(f"Redoc: {landing}/redoc")
@@ -196,14 +342,24 @@ def main() -> None:
             timeout=args.timeout,
             include_countries=not args.no_countries,
         )
-        out = args.project_root / "07_logs" / "NUTEV_OFFICIAL_SOURCES_VERIFICATION.csv"
+        out = (
+            args.project_root
+            / "07_logs"
+            / "NUTEV_OFFICIAL_SOURCES_VERIFICATION.csv"
+        )
         write_verification_report(rows, out)
         total = len(rows)
         alive = sum(1 for r in rows if r.get("ok"))
         dead = [r for r in rows if not r.get("ok")]
-        print(f"Verificadas {total} fontes oficiais: {alive} acessíveis, {len(dead)} com problema.")
+        print(
+            f"Verificadas {total} fontes oficiais: {alive} acessíveis, "
+            f"{len(dead)} com problema."
+        )
         for r in dead[:50]:
-            print(f"  [{r.get('status_code')}] {r.get('reason')}  {r.get('name')}  {r.get('url')}")
+            print(
+                f"  [{r.get('status_code')}] {r.get('reason')}  "
+                f"{r.get('name')}  {r.get('url')}"
+            )
         print(f"Relatório completo: {out}")
         return
 
@@ -262,9 +418,12 @@ def main() -> None:
         )
         logger.info("Guias: %s", result)
         print(
-            f"Guias processados: {result['guides_processed']}/{result['guides_in_manifest']} | "
-            f"novos: {result['guides_new_this_run']} | retomados: {result['guides_resumed_from_checkpoint']} | "
-            f"com texto: {result['guides_with_fulltext']} | OCR: {result['guides_ocr_used']} | "
+            f"Guias processados: {result['guides_processed']}/"
+            f"{result['guides_in_manifest']} | "
+            f"novos: {result['guides_new_this_run']} | "
+            f"retomados: {result['guides_resumed_from_checkpoint']} | "
+            f"com texto: {result['guides_with_fulltext']} | "
+            f"OCR: {result['guides_ocr_used']} | "
             f"frases-chave: {result['key_phrases_total']}"
         )
         print(f"Checkpoint (salvar & continuar): {result['checkpoint']}")
@@ -278,7 +437,11 @@ def main() -> None:
         from nutev.search.strategy_builder import build_all, parse_concepts, parse_picos
 
         spec_data = json.loads(args.spec.read_text(encoding="utf-8"))
-        spec = parse_concepts(spec_data["concepts"]) if isinstance(spec_data, dict) and "concepts" in spec_data else parse_picos(spec_data)
+        spec = (
+            parse_concepts(spec_data["concepts"])
+            if isinstance(spec_data, dict) and "concepts" in spec_data
+            else parse_picos(spec_data)
+        )
         grid = build_all(spec)
         for provider, by_breadth in grid.items():
             print(f"\n=== {provider} ===")
@@ -286,7 +449,10 @@ def main() -> None:
                 print(f"[{breadth}] {expression or '(vazio)'}")
         if args.out:
             args.out.parent.mkdir(parents=True, exist_ok=True)
-            args.out.write_text(json.dumps(grid, ensure_ascii=False, indent=2), encoding="utf-8")
+            args.out.write_text(
+                json.dumps(grid, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
             print(f"\nGrade completa (provider × amplitude) salva em: {args.out}")
         return
 

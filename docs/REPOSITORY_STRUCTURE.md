@@ -1,96 +1,105 @@
-# Repository Structure (NutEV Canonical)
+# Repository Structure — NutEV canonical
 
 ## Canonical runtime
 
-Use this namespace for current NutEV/NutMEV scientific work:
+Use `src/nutev/` for current scientific work.
 
-- `src/nutev/`
-  - `audit/`: claim extraction, claim evaluation, conflict detection, candidate recommendation models;
-  - `analysis/`: classification, relevance scoring, PRISMA, synthesis helpers;
-  - `demo/`: simulated demo data for dashboard and qualification demonstration;
-  - `engine/`: run IDs, events, artifacts, job snapshots;
-  - `export/`: tables, logs, Rayyan exports, methods text, curation outputs;
-  - `global_watch/`: monitoring and watch workflows;
-  - `pipelines/`: main pipeline orchestration;
-  - `querypacks/`: query generation and provider-specific query rendering;
-  - `review/`: human review and adjudication support;
-  - `search/`: PubMed, Europe PMC, OpenAlex, Crossref and official source connectors;
-  - `ui/`: dashboard/control-center components;
-  - `cli.py`, `settings.py`.
+Key areas:
 
-## Configs
+- `search/` — global strategy registry/execution, provider adapters, snapshots, corpus construction;
+- `review/` — human screening, full-text assessment and adjudication support;
+- `acquire/` and `download/` — lawful full-text resolution and document acquisition;
+- `extract/` — native text extraction and OCR;
+- `analysis/` — classification, relevance, PRISMA and synthesis helpers;
+- `engine/` — run IDs, events, validation and artifact provenance;
+- `pipelines/` — orchestration, including the canonical `play_pipeline.py`;
+- `export/` — tables, logs, methods text, curation and manuscript-facing outputs;
+- `ui/` — dashboard/control-center components;
+- `global_watch/` — surveillance/monitoring, distinct from the definitive Article 1 search;
+- `cli.py`, `settings.py`.
 
-- `config/`
-  - `audit_rules.json`
-  - `evidence_lenses.json`
-  - `nutev_ontology.json`
-  - `recommendation_rules.json`
-  - `source_registry.json`
-  - `keyword_taxonomy.json`
-  - `scoring_rules.json`
-  - `official_sources_manifest.json`
+## Scientific execution path
 
-## Docs metodológicos
+The Article 1 canonical architecture is:
 
-- `docs/NUTEV_AUDIT_ENGINE.md`
-- `docs/NUTEV_CONTROL_CENTER.md`
-- `docs/NUTEV_EVIDENCE_TO_PROTOCOL_FLOW.md`
-- `docs/CHANGELOG_METODOLOGICO.md`
-- `docs/VALIDATION_REPORT.md`
-- `docs/LEGACY_CLEANUP_AUDIT.md`
-- `docs/LEGACY_DEPENDENCY_MAP.md`
+```text
+versioned global strategy
+        ↓
+actual provider execution + immutable snapshots
+        ↓
+master corpus
+        ↓
+identity resolution / deduplication
+        ↓
+human screening
+        ↓
+full text
+        ↓
+extraction / codebook / quality / synthesis
+```
 
-## Testes NutEV
+Historical identifiers such as `busca1`, `busca2a`, `busca2b` and `a3` may remain in compatibility or downstream analysis modules. They are not separate canonical Article 1 searches.
 
-Caminho padronizado:
+## One-command orchestration
+
+The supported one-command pilot path is:
+
+```powershell
+.\.venv\Scripts\nutev.exe play --project-root .\project_output_scientific
+```
+
+See `docs/PLAY.md`.
+
+The first `nutev play` implementation is intentionally PILOT-only. Formal/PRISMA execution remains blocked until scientific gate/freeze authorization is represented in software.
+
+## Configuration
+
+Canonical configuration lives under `config/`, including provider/source registry, taxonomy, ontology, evidence lenses, scoring and official-source manifests.
+
+Provider capability does not imply methodological inclusion.
+
+## Tests
+
+Canonical tests live under:
 
 - `nutev_tests/`
 
-Comando:
+Run:
 
 ```bash
 PYTHONPATH=src python -m pytest -q nutev_tests
 ```
 
-## Outputs locais
+## Project outputs
 
-- Default local output root: `project_output/`
-- Demo output root: `project_output_demo/`
-- Pilot output root: `project_output_pilot/`
+Local project roots such as `project_output_scientific/` are ignored by Git.
 
-Pastas esperadas:
+Important layers include:
 
-- `06_tables/`: matrizes, PRISMA e artefatos de auditoria;
-- `07_logs/`: logs, eventos, snapshots e resumo final;
-- `10_curated/`: metadados curados e documentos únicos.
+- `01_querypacks/` — search registry/version state;
+- `03_corpus/search_raw/` — immutable provider snapshots;
+- `03_corpus/search_processed/` — normalized/master corpus builds;
+- `03_corpus/03B_public_downloads/` — lawful public downloads;
+- `03_corpus/03C_official_docs/` — official documents;
+- `04_ocr_text/` — OCR outputs;
+- `05_extraction/` — extracted text;
+- `06_tables/` — analysis/evidence tables;
+- `07_logs/` — logs, ledgers and checkpoints;
+- `10_curated/` — curated outputs;
+- `12_play/` — one-command PLAY summaries and ledgers.
 
-## Legacy area (removed)
+## Inherited Local Deep Research code
 
-- O motor herdado `src/local_deep_research/`, os testes legados `tests/` e a
-  infraestrutura antiga (Docker/frontend) foram **removidos** da árvore; ver
-  `NOTICE.md` e `docs/LEGACY_MIGRATION_PLAN.md`. Permanecem apenas no histórico Git.
-- Todo módulo NutEV/NutMEV vive em `src/nutev/`.
+The inherited `src/local_deep_research/**`, old tests, frontend/Docker/tooling and LDR console entry points are not part of the current working tree. They remain in Git history for provenance.
 
-## Run demo
+Active provenance is documented in `NOTICE.md`. Historical cleanup status is summarized in `docs/LEGACY_CLEANUP_AUDIT.md` and `docs/LEGACY_MIGRATION_PLAN.md`.
 
-```bash
-nutev demo-data --project-root ./project_output_demo
-nutev dashboard --project-root ./project_output_demo --port 8501
-```
+Do not restore removed inherited runtime merely to preserve history.
 
-## Run pilot
+## Compatibility pipeline
 
-```bash
-nutev --project-root ./project_output_pilot --workstreams busca1 busca2a busca2b a3 --web-enabled
-```
+`src/nutev/pipelines/master_pipeline.py` and old workstream vocabulary remain compatibility/downstream surfaces while `nutev play` is matured. Do not use the legacy workstream command as the definitive methodological representation of the Article 1 formal search.
 
-## Methodological guardrail
+## Scientific guardrail
 
-`RecommendationCandidate` é candidata à recomendação, não recomendação final. A inclusão no protocolo requer revisão humana, adjudicação de conflitos e lastro documental auditável.
-
-## Canonical and legacy search layers
-
-- `src/nutev/`: canonical NutEV/NutMEV runtime, including CLI, pipelines, provider orchestration, checkpoints, exports and Global Watch.
-- `src/nutev/search/`: robust provider layer for PubMed, Europe PMC, OpenAlex, Crossref, optional Google/SerpAPI stubs, provider orchestration and checkpoints.
-
-The inherited `src/local_deep_research/` package was removed (see `NOTICE.md`).
+`RecommendationCandidate` is not a clinical recommendation. Machine assistance does not replace human inclusion/exclusion, PRESS, freeze authorization or scientific adjudication.
