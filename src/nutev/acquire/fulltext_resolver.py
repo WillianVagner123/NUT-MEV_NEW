@@ -1,18 +1,20 @@
-"""P2.2 — Full-text resolver for clinical guidelines (busca2a/busca2b).
+"""Lawful open-access full-text resolver for NutEV documents.
 
-Indexed-database search is used only for *discovery* (metadata). This module
-resolves an open-access full-text location for a record, in this fallback order:
+Indexed-database retrieval is discovery/metadata. This module resolves an
+open-access full-text location for a record in a conservative fallback order:
 
-    (a) an existing PMCID              -> PMC free full text
-    (b) DOI  -> Unpaywall              -> best_oa_location.url_for_pdf
-    (c) PMID -> E-utilities elink      -> PMCID -> PMC free full text
-    (d) none -> fulltext_status="paywall" (queue for institutional access)
+    (a) existing PMCID                     -> PMC free full text
+    (b) provider-declared open-access URL  -> provider OA location
+    (c) DOI -> Unpaywall                   -> best OA location/PDF
+    (d) PMID -> E-utilities elink          -> PMCID -> PMC free full text
+    (e) none                               -> paywall / institutional-access queue
 
-It NEVER fabricates text and never bypasses a paywall — it only finds a
-legitimately open location. The actual download reuses the existing downloader;
-this module returns the resolved URL + provenance. The HTTP session is injected
-(mockable, rate-limitable) and results are cached. Secrets (the Unpaywall email)
-come from the caller / environment.
+It NEVER fabricates text and never bypasses a paywall. Provider URLs are trusted
+as OA only when they are explicitly carried in an OA field (for example
+``oa_url``/``pdf_url``) or the provider explicitly marks the record open access.
+The actual download reuses the existing downloader; this module only returns a
+resolved URL plus provenance. Network sessions are injected and results may be
+cached by the caller.
 """
 from __future__ import annotations
 
@@ -37,9 +39,42 @@ def _norm_pmcid(pmcid: str) -> str:
     return pmcid
 
 
+def _is_http_url(value: object) -> bool:
+    url = _clean(value).lower()
+    return url.startswith("https://") or url.startswith("http://")
+
+
+def _is_truthy_oa(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    return _clean(value).casefold() in {"1", "true", "yes", "y", "open", "oa"}
+
+
+def _explicit_provider_oa_url(record: dict) -> str:
+    """Return only an OA URL explicitly declared by provider metadata.
+
+    ``oa_url`` and ``pdf_url`` are explicit OA/full-text fields in current
+    provider normalizers. A generic ``url`` is accepted only when the same
+    record explicitly marks itself open access. This avoids treating an ordinary
+    DOI/publisher landing page as lawful OA merely because it is reachable.
+    """
+    for field in ("oa_url", "pdf_url"):
+        candidate = _clean(record.get(field))
+        if candidate and _is_http_url(candidate):
+            return candidate
+
+    generic = _clean(record.get("url"))
+    if generic and _is_http_url(generic) and _is_truthy_oa(record.get("is_open_access")):
+        return generic
+    return ""
+
+
 def _unpaywall_pdf(doi: str, email: str, session: Any, timeout: float) -> str:
     try:
-        resp = session.get(_UNPAYWALL.format(doi=doi.lower(), email=email), timeout=timeout)
+        resp = session.get(
+            _UNPAYWALL.format(doi=doi.lower(), email=email),
+            timeout=timeout,
+        )
         if getattr(resp, "status_code", 0) != 200:
             return ""
         data = resp.json()
@@ -52,7 +87,7 @@ def _unpaywall_pdf(doi: str, email: str, session: Any, timeout: float) -> str:
 
 
 def _pmcid_from_pmid(pmid: str, session: Any, timeout: float) -> str:
-    """Resolve a PMID to a PMCID via E-utilities elink (pubmed -> pmc)."""
+    """Resolve a PMID to a PMCID via E-utilities elink (PubMed -> PMC)."""
     try:
         resp = session.get(_ELINK.format(pmid=pmid), timeout=timeout)
         if getattr(resp, "status_code", 0) != 200:
@@ -76,18 +111,22 @@ def resolve_fulltext(
     cache: dict[str, dict] | None = None,
     timeout: float = 20.0,
 ) -> dict:
-    """Return the best open-access full-text location for a record.
+    """Return the best lawful open-access full-text location for a record.
 
     Result keys: ``fulltext_status`` (``fulltext_oa`` | ``paywall`` |
-    ``needs_network``), ``retrieval_method`` (``existing_pmcid`` | ``unpaywall``
-    | ``pmc_elink`` | ``none``), ``fulltext_url`` and ``pmcid``. No download is
-    performed here.
+    ``needs_network``), ``retrieval_method`` (``existing_pmcid`` |
+    ``provider_oa_url`` | ``unpaywall`` | ``pmc_elink`` | ``none``),
+    ``fulltext_url`` and ``pmcid``. No download is performed here.
     """
     doi = _clean(record.get("doi"))
     pmid = _clean(record.get("pmid"))
     pmcid = _norm_pmcid(_clean(record.get("pmcid")))
+    provider_oa_url = _explicit_provider_oa_url(record)
 
-    cache_key = doi or pmid or pmcid
+    # Cache according to the same precedence used for resolution. In particular,
+    # a provider-declared OA URL must not be shadowed by a previous paywall result
+    # cached only by DOI for a different manifestation/provider record.
+    cache_key = pmcid or provider_oa_url or doi or pmid
     if cache is not None and cache_key and cache_key in cache:
         return dict(cache[cache_key])
 
@@ -96,16 +135,29 @@ def resolve_fulltext(
             cache[cache_key] = dict(result)
         return result
 
-    # (a) existing PMCID — already a free full text, no network needed.
+    # (a) Existing PMCID is already a public PMC full-text route.
     if pmcid:
-        return _finish({
-            "fulltext_status": "fulltext_oa",
-            "retrieval_method": "existing_pmcid",
-            "fulltext_url": _PMC_URL.format(pmcid=pmcid),
-            "pmcid": pmcid,
-        })
+        return _finish(
+            {
+                "fulltext_status": "fulltext_oa",
+                "retrieval_method": "existing_pmcid",
+                "fulltext_url": _PMC_URL.format(pmcid=pmcid),
+                "pmcid": pmcid,
+            }
+        )
 
-    # Network is required for the remaining steps.
+    # (b) Reuse provider-declared OA metadata before making another resolver call.
+    if provider_oa_url:
+        return _finish(
+            {
+                "fulltext_status": "fulltext_oa",
+                "retrieval_method": "provider_oa_url",
+                "fulltext_url": provider_oa_url,
+                "pmcid": "",
+            }
+        )
+
+    # Network is required for the remaining resolver methods.
     if session is None:
         return {
             "fulltext_status": "needs_network",
@@ -114,35 +166,41 @@ def resolve_fulltext(
             "pmcid": "",
         }
 
-    # (b) DOI -> Unpaywall.
+    # (c) DOI -> Unpaywall.
     if doi and email:
         pdf = _unpaywall_pdf(doi, email, session, timeout)
         if pdf:
-            return _finish({
-                "fulltext_status": "fulltext_oa",
-                "retrieval_method": "unpaywall",
-                "fulltext_url": pdf,
-                "pmcid": "",
-            })
+            return _finish(
+                {
+                    "fulltext_status": "fulltext_oa",
+                    "retrieval_method": "unpaywall",
+                    "fulltext_url": pdf,
+                    "pmcid": "",
+                }
+            )
 
-    # (c) PMID -> elink -> PMCID.
+    # (d) PMID -> elink -> PMCID.
     if pmid:
         resolved = _pmcid_from_pmid(pmid, session, timeout)
         if resolved:
-            return _finish({
-                "fulltext_status": "fulltext_oa",
-                "retrieval_method": "pmc_elink",
-                "fulltext_url": _PMC_URL.format(pmcid=resolved),
-                "pmcid": resolved,
-            })
+            return _finish(
+                {
+                    "fulltext_status": "fulltext_oa",
+                    "retrieval_method": "pmc_elink",
+                    "fulltext_url": _PMC_URL.format(pmcid=resolved),
+                    "pmcid": resolved,
+                }
+            )
 
-    # (d) no open access found -> paywall (queue for institutional access).
-    return _finish({
-        "fulltext_status": "paywall",
-        "retrieval_method": "none",
-        "fulltext_url": "",
-        "pmcid": "",
-    })
+    # (e) No lawful OA route found -> paywall/institutional-access queue.
+    return _finish(
+        {
+            "fulltext_status": "paywall",
+            "retrieval_method": "none",
+            "fulltext_url": "",
+            "pmcid": "",
+        }
+    )
 
 
 def resolve_many(
@@ -155,5 +213,13 @@ def resolve_many(
     """Resolve a batch, sharing one cache. Returns records enriched in place."""
     cache: dict[str, dict] = {}
     for rec in records:
-        rec.update(resolve_fulltext(rec, email=email, session=session, cache=cache, timeout=timeout))
+        rec.update(
+            resolve_fulltext(
+                rec,
+                email=email,
+                session=session,
+                cache=cache,
+                timeout=timeout,
+            )
+        )
     return records
