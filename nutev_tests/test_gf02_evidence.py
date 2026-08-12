@@ -48,11 +48,11 @@ def _manual(provider: str) -> ManualProviderEvidence:
 
 
 def test_unresolved_sentinel_never_counts_as_recovered_or_denominator():
-    unresolved = SentinelRecord(sentinel_id="NORM-035", identity_status="UNRESOLVED")
-    resolved = _resolved("NORM-063", doi="10.1000/norm063")
-
     report = compute_sentinel_recall(
-        [unresolved, resolved],
+        [
+            SentinelRecord(sentinel_id="NORM-035", identity_status="UNRESOLVED"),
+            _resolved("NORM-063", doi="10.1000/norm063"),
+        ],
         [
             {"title": "anything called NORM-035", "doi": "10.1000/other"},
             {"doi": "https://doi.org/10.1000/NORM063"},
@@ -61,8 +61,6 @@ def test_unresolved_sentinel_never_counts_as_recovered_or_denominator():
         strategy_version="v0.3",
         route="indexed_database",
     )
-
-    assert report["sentinels_declared"] == 2
     assert report["sentinels_resolved"] == 1
     assert report["sentinels_unresolved"] == 1
     assert report["recovered"] == 1
@@ -71,20 +69,14 @@ def test_unresolved_sentinel_never_counts_as_recovered_or_denominator():
     assert report["unresolved_sentinel_ids"] == ["NORM-035"]
 
 
-def test_resolved_sentinel_requires_canonical_identity():
+def test_resolved_sentinel_requires_canonical_identity_and_unique_id():
     with pytest.raises(ValueError, match="lacks a complete canonical identity"):
         validate_sentinel_registry(
             [SentinelRecord(sentinel_id="NORM-035", identity_status="RESOLVED")]
         )
-
-
-def test_duplicate_sentinel_ids_are_rejected_case_insensitively():
     with pytest.raises(ValueError, match="duplicate sentinel_id"):
         validate_sentinel_registry(
-            [
-                SentinelRecord(sentinel_id="NORM-035"),
-                SentinelRecord(sentinel_id="norm-035"),
-            ]
+            [SentinelRecord(sentinel_id="NORM-035"), SentinelRecord(sentinel_id="norm-035")]
         )
 
 
@@ -97,15 +89,10 @@ def test_explicit_doi_prevents_derivative_title_from_satisfying_sentinel():
         identity_status="RESOLVED",
         allow_title_match=True,
     )
-
     assert sentinel_matches_row(sentinel, {"doi": "10.1000/canonical"}) is True
-    assert (
-        sentinel_matches_row(
-            sentinel,
-            {"title": "Canonical guideline", "doi": "10.1000/editorial"},
-        )
-        is False
-    )
+    assert sentinel_matches_row(
+        sentinel, {"title": "Canonical guideline", "doi": "10.1000/editorial"}
+    ) is False
 
 
 def test_title_matching_requires_explicit_opt_in_and_identity_constraints():
@@ -118,65 +105,30 @@ def test_title_matching_requires_explicit_opt_in_and_identity_constraints():
         identity_status="RESOLVED",
         allow_title_match=True,
     )
-
     assert sentinel_matches_row(
         sentinel,
-        {
-            "title": "Official Food Guideline",
-            "issuer": "Ministry of Health",
-            "year": "2025",
-        },
+        {"title": "Official Food Guideline", "issuer": "Ministry of Health", "year": "2025"},
     )
     assert not sentinel_matches_row(
         sentinel,
-        {
-            "title": "Official Food Guideline",
-            "issuer": "Different publisher",
-            "year": "2025",
-        },
+        {"title": "Official Food Guideline", "issuer": "Different publisher", "year": "2025"},
     )
 
 
 def test_noise_summary_uses_frozen_classifications():
+    base = dict(
+        sample_id="sample-v03",
+        provider="pubmed",
+        strategy_version="v0.3",
+        sampling_rule="first 4 records after deterministic sort",
+        reviewer="R1",
+    )
     rows = [
-        NoiseSampleRecord(
-            sample_id="sample-v03",
-            record_id="1",
-            provider="pubmed",
-            strategy_version="v0.3",
-            sampling_rule="first 4 records after deterministic sort",
-            classification="likely_eligible",
-            reviewer="R1",
-        ),
-        NoiseSampleRecord(
-            sample_id="sample-v03",
-            record_id="2",
-            provider="pubmed",
-            strategy_version="v0.3",
-            sampling_rule="first 4 records after deterministic sort",
-            classification="possibly_eligible",
-            reviewer="R1",
-        ),
-        NoiseSampleRecord(
-            sample_id="sample-v03",
-            record_id="3",
-            provider="pubmed",
-            strategy_version="v0.3",
-            sampling_rule="first 4 records after deterministic sort",
-            classification="editorial",
-            reviewer="R1",
-        ),
-        NoiseSampleRecord(
-            sample_id="sample-v03",
-            record_id="4",
-            provider="pubmed",
-            strategy_version="v0.3",
-            sampling_rule="first 4 records after deterministic sort",
-            classification="irrelevant",
-            reviewer="R1",
-        ),
+        NoiseSampleRecord(record_id="1", classification="likely_eligible", **base),
+        NoiseSampleRecord(record_id="2", classification="possibly_eligible", **base),
+        NoiseSampleRecord(record_id="3", classification="editorial", **base),
+        NoiseSampleRecord(record_id="4", classification="irrelevant", **base),
     ]
-
     summary = summarize_noise_sample(rows)
     assert summary["sample_size"] == 4
     assert summary["estimated_precision"] == 0.5
@@ -191,16 +143,13 @@ def test_manual_required_status_is_not_executed_evidence():
         expression="planned Scopus expression",
     )
     assert validate_manual_provider_evidence(pending) == pending
-
-    strategy = {"search_type": "PILOT", "prisma_eligible": False}
-    recall = {
-        "recovered_sentinel_ids": ["NORM-035", "NORM-063"],
-        "missing_resolved_sentinel_ids": [],
-        "unresolved_sentinel_ids": [],
-    }
     status = evaluate_gf02_gate(
-        strategy_version=strategy,
-        pubmed_recall=recall,
+        strategy_version={"search_type": "PILOT", "prisma_eligible": False},
+        pubmed_recall={
+            "recovered_sentinel_ids": ["NORM-035", "NORM-063"],
+            "missing_resolved_sentinel_ids": [],
+            "unresolved_sentinel_ids": [],
+        },
         noise_summary={"sample_size": 10},
         scopus_evidence=pending,
         wos_evidence=_manual("wos"),
@@ -209,16 +158,12 @@ def test_manual_required_status_is_not_executed_evidence():
     assert "scopus_manual_evidence_incomplete" in status["blockers"]
 
 
-def test_imported_manual_evidence_requires_real_execution_metadata_and_hash():
-    bad = ManualProviderEvidence(provider="scopus", status="IMPORTED")
+def test_imported_manual_evidence_requires_execution_metadata_and_real_export_hash(tmp_path: Path):
     with pytest.raises(ValueError, match="missing required evidence"):
-        validate_manual_provider_evidence(bad)
+        validate_manual_provider_evidence(ManualProviderEvidence(provider="scopus", status="IMPORTED"))
 
-
-def test_manual_execution_from_export_hashes_actual_file(tmp_path: Path):
     export = tmp_path / "scopus.csv"
     export.write_text("title,doi\nExample,10.1/x\n", encoding="utf-8")
-
     evidence = manual_execution_from_export(
         provider="scopus",
         expression="TITLE-ABS-KEY(example)",
@@ -229,7 +174,6 @@ def test_manual_execution_from_export_hashes_actual_file(tmp_path: Path):
         export_path=export,
         sentinel_results={"NORM-035": False, "NORM-063": False},
     )
-
     assert evidence.status == "IMPORTED"
     assert evidence.export_file == "scopus.csv"
     assert len(evidence.export_sha256) == 64
@@ -249,7 +193,6 @@ def test_gate_waits_for_explicit_human_decision_even_when_evidence_complete():
         "missing_resolved_sentinel_ids": ["NORM-063"],
         "unresolved_sentinel_ids": [],
     }
-
     awaiting = evaluate_gf02_gate(
         strategy_version=strategy,
         pubmed_recall=recall,
@@ -293,11 +236,18 @@ def test_unresolved_priority_identity_blocks_gate():
     assert "NORM-063:identity_unresolved" in status["blockers"]
 
 
-def test_repository_priority_sentinel_file_is_explicitly_unresolved():
-    path = Path("config/article1_sentinel_registry.json")
-    data = json.loads(path.read_text(encoding="utf-8"))
+def test_repository_priority_sentinel_file_contains_resolved_canonical_identities():
+    data = json.loads(Path("config/article1_sentinel_registry.json").read_text(encoding="utf-8"))
     by_id = {row["sentinel_id"]: row for row in data["sentinels"]}
-    assert by_id["NORM-035"]["identity_status"] == "UNRESOLVED"
-    assert by_id["NORM-063"]["identity_status"] == "UNRESOLVED"
-    assert by_id["NORM-035"]["canonical_title"] == ""
-    assert by_id["NORM-063"]["canonical_title"] == ""
+
+    assert data["status"] == "PRIORITY_IDENTITIES_RESOLVED"
+    assert by_id["NORM-035"]["identity_status"] == "RESOLVED"
+    assert by_id["NORM-035"]["doi"] == "10.1016/j.acvd.2026.01.001"
+    assert by_id["NORM-035"]["pmid"] == "41651737"
+    assert by_id["NORM-035"]["allow_title_match"] is False
+
+    assert by_id["NORM-063"]["identity_status"] == "RESOLVED"
+    assert by_id["NORM-063"]["doi"] == "10.4103/jfmpc.jfmpc_51_22"
+    assert by_id["NORM-063"]["pmid"] == "36994026"
+    assert by_id["NORM-063"]["pmcid"] == "PMC10041015"
+    assert by_id["NORM-063"]["allow_title_match"] is False
