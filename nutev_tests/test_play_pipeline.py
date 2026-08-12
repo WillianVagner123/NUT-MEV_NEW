@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from hashlib import sha256
 import json
 from pathlib import Path
 
@@ -132,7 +133,17 @@ def test_play_metadata_only_executes_search_and_corpus_without_prisma(
     assert summary["search"]["any_truncated"] is True
     assert summary["corpus"]["unique_records"] == 1
     assert summary["fulltext"]["metadata_only_mode"] is True
-    assert Path(summary["artifacts"]["summary_path"]).is_file()
+
+    summary_path = Path(summary["artifacts"]["summary_path"])
+    hash_path = Path(summary["artifacts"]["summary_sha256_path"])
+    assert summary_path.is_file()
+    assert hash_path.is_file()
+    actual_sha256 = sha256(summary_path.read_bytes()).hexdigest()
+    assert summary["artifacts"]["summary_sha256"] == actual_sha256
+    assert hash_path.read_text(encoding="utf-8").split()[0] == actual_sha256
+    persisted = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert "summary_sha256" not in persisted["artifacts"]
+    assert persisted["artifacts"]["summary_sha256_path"] == str(hash_path)
     assert (tmp_path / "12_play" / "latest_summary.json").is_file()
 
 
