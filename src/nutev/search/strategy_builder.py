@@ -22,6 +22,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from nutev.search.strategy_validation import (
+    FILTER_SUPPORT,
+    normalize_languages,
+    normalize_publication_types,
+    normalize_query_terms,
+    normalize_year_range,
+    openalex_language_code,
+    pubmed_language_name,
+)
+
 PROVIDERS = ("pubmed", "europepmc", "crossref", "openalex")
 BREADTHS = ("broad", "balanced", "specific")
 ARTICLE_SCOPE_ALL = "all_articles"
@@ -72,11 +82,12 @@ def _as_terms(value: object) -> list[str]:
 
 
 def _filters_from_spec(spec: dict) -> dict:
+    year_lo, year_hi = normalize_year_range(spec.get("year_from"), spec.get("year_to"))
     return {
-        "year_from": spec.get("year_from"),
-        "year_to": spec.get("year_to"),
-        "languages": _as_terms(spec.get("languages")),
-        "publication_types": _as_terms(spec.get("publication_types")),
+        "year_from": year_lo,
+        "year_to": year_hi,
+        "languages": normalize_languages(spec.get("languages")),
+        "publication_types": normalize_publication_types(spec.get("publication_types")),
     }
 
 
@@ -90,12 +101,12 @@ def parse_strategy(spec: dict) -> StrategySpec:
     raw_query = spec.get("query")
     query_mesh: list[str] = []
     if isinstance(raw_query, dict):
-        query_terms = _as_terms(raw_query.get("terms"))
+        query_terms = normalize_query_terms(raw_query.get("terms"))
         query_mesh = _as_terms(raw_query.get("mesh"))
-    elif isinstance(raw_query, str):
-        query_terms = _split_unified_terms(raw_query)
+    elif raw_query is not None:
+        query_terms = normalize_query_terms(raw_query)
     else:
-        query_terms = _as_terms(raw_query)
+        query_terms = []
 
     if query_terms:
         return StrategySpec(
@@ -136,27 +147,8 @@ def _split_terms(text: object) -> list[str]:
 
 
 def _split_unified_terms(text: object) -> list[str]:
-    """Split the single research field into deduplicated OR alternatives."""
-    if text is None:
-        return []
-    out: list[str] = []
-    seen: set[str] = set()
-    normalized = str(text).replace(";", "\n").replace(",", "\n")
-    for chunk in normalized.split("\n"):
-        term = chunk.strip()
-        key = term.casefold()
-        if term and key not in seen:
-            out.append(term)
-            seen.add(key)
-    return out
-
-
-def _year(value: object) -> int | None:
-    try:
-        year = int(value)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
-        return None
-    return year or None
+    """Split and validate the single research field into OR alternatives."""
+    return normalize_query_terms(text)
 
 
 def unified_from_text(
@@ -172,17 +164,17 @@ def unified_from_text(
     if not terms:
         return {}
 
+    year_lo, year_hi = normalize_year_range(year_from, year_to)
+    langs = normalize_languages(languages)
+    pts = normalize_publication_types(publication_types)
+
     spec: dict = {"query": terms, "article_scope": ARTICLE_SCOPE_ALL}
-    year_lo = _year(year_from)
-    year_hi = _year(year_to)
     if year_lo is not None:
         spec["year_from"] = year_lo
     if year_hi is not None:
         spec["year_to"] = year_hi
-    langs = _split_terms(str(languages).replace(",", "\n"))
     if langs:
         spec["languages"] = langs
-    pts = _split_terms(publication_types)
     if pts:
         spec["publication_types"] = pts
     return spec
@@ -214,16 +206,16 @@ def picos_from_text(
         terms = _split_terms(value)
         if terms:
             spec[key] = terms
-    year_lo = _year(year_from)
-    year_hi = _year(year_to)
+
+    year_lo, year_hi = normalize_year_range(year_from, year_to)
+    langs = normalize_languages(languages)
+    pts = normalize_publication_types(publication_types)
     if year_lo is not None:
         spec["year_from"] = year_lo
     if year_hi is not None:
         spec["year_to"] = year_hi
-    langs = _split_terms(str(languages).replace(",", "\n"))
     if langs:
         spec["languages"] = langs
-    pts = _split_terms(publication_types)
     if pts:
         spec["publication_types"] = pts
     return spec
@@ -283,8 +275,7 @@ def _pubmed_filters(spec: StrategySpec, breadth: str) -> list[str]:
         lo = spec.year_from or 1900
         hi = spec.year_to or 3000
         out.append(f'("{lo}"[dp] : "{hi}"[dp])')
-    language_names = {"eng": "english", "por": "portuguese", "spa": "spanish"}
-    langs = [f"{language_names.get(x, x)}[lang]" for x in spec.languages]
+    langs = [f"{pubmed_language_name(x)}[la]" for x in spec.languages]
     if langs:
         out.append("(" + " OR ".join(langs) + ")")
     pts = [f'{_quote(pt, "pubmed")}[pt]' for pt in spec.publication_types]
@@ -326,7 +317,7 @@ def _openalex_filter_param(spec: StrategySpec, breadth: str) -> str:
     if spec.year_to:
         parts.append(f"to_publication_date:{spec.year_to}-12-31")
     if spec.languages:
-        parts.append("language:" + "|".join(spec.languages))
+        parts.append("language:" + "|".join(openalex_language_code(x) for x in spec.languages))
     return ",".join(parts)
 
 
@@ -361,3 +352,20 @@ def build_all(spec: StrategySpec) -> dict[str, dict[str, str]]:
         provider: {breadth: build_query(spec, provider, breadth) for breadth in BREADTHS}
         for provider in PROVIDERS
     }
+
+
+__all__ = [
+    "ARTICLE_SCOPE_ALL",
+    "BREADTHS",
+    "FILTER_SUPPORT",
+    "PROVIDERS",
+    "Concept",
+    "StrategySpec",
+    "build_all",
+    "build_query",
+    "parse_concepts",
+    "parse_picos",
+    "parse_strategy",
+    "picos_from_text",
+    "unified_from_text",
+]
