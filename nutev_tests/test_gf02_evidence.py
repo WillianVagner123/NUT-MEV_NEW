@@ -186,6 +186,23 @@ def test_gf02_cannot_use_formal_or_prisma_eligible_strategy():
         validate_gf02_pilot_strategy({"search_type": "PILOT", "prisma_eligible": True})
 
 
+def test_missing_priority_sentinel_requires_explicit_explanation():
+    status = evaluate_gf02_gate(
+        strategy_version={"search_type": "PILOT", "prisma_eligible": False},
+        pubmed_recall={
+            "recovered_sentinel_ids": ["NORM-035"],
+            "missing_resolved_sentinel_ids": ["NORM-063"],
+            "unresolved_sentinel_ids": [],
+        },
+        noise_summary={"sample_size": 20},
+        scopus_evidence=_manual("scopus"),
+        wos_evidence=_manual("web_of_science"),
+    )
+    assert status["evidence_complete"] is False
+    assert status["decision"] == "NOT_READY_FOR_PRESS"
+    assert "NORM-063:missing_without_explanation" in status["blockers"]
+
+
 def test_gate_waits_for_explicit_human_decision_even_when_evidence_complete():
     strategy = {"search_type": "PILOT", "prisma_eligible": False}
     recall = {
@@ -193,15 +210,20 @@ def test_gate_waits_for_explicit_human_decision_even_when_evidence_complete():
         "missing_resolved_sentinel_ids": ["NORM-063"],
         "unresolved_sentinel_ids": [],
     }
+    explanations = {
+        "NORM-063": "Canonical sentinel was not retrieved by the audited PubMed execution; cause documented."
+    }
     awaiting = evaluate_gf02_gate(
         strategy_version=strategy,
         pubmed_recall=recall,
         noise_summary={"sample_size": 20},
         scopus_evidence=_manual("scopus"),
         wos_evidence=_manual("web_of_science"),
+        missing_explanations=explanations,
     )
     assert awaiting["evidence_complete"] is True
     assert awaiting["decision"] == "EVIDENCE_COMPLETE_AWAITING_HUMAN_DECISION"
+    assert awaiting["missing_explanations"]["NORM-063"]
     assert awaiting["press_approval_inferred"] is False
     assert awaiting["formal_execution_authorized"] is False
     assert awaiting["prisma_eligible"] is False
@@ -212,6 +234,7 @@ def test_gate_waits_for_explicit_human_decision_even_when_evidence_complete():
         noise_summary={"sample_size": 20},
         scopus_evidence=_manual("scopus"),
         wos_evidence=_manual("web_of_science"),
+        missing_explanations=explanations,
         human_decision="READY_FOR_PRESS",
         human_decision_by="Methodological reviewer",
     )
