@@ -25,7 +25,8 @@ The former NutEV parallel workstream/querypack runtime has also been retired in 
 - `config/domain_rules_busca2a.json`;
 - `config/domain_rules_busca2b.json`;
 - the default CLI `--workstreams` mode;
-- parity/tests that existed only to preserve that retired runtime.
+- parity/tests that existed only to preserve that retired runtime;
+- the obsolete `examples/article1_pilot/**` workstream-era demonstration.
 
 The canonical replacement is the registered global-search path plus `nutev play`. Git history remains intact.
 
@@ -44,9 +45,11 @@ Point-in-time audit/migration/refactor material that no longer described the can
 - `docs/REFACTOR_GLOBAL_WATCH_UNIFICATION.md`;
 - `docs/REFACTOR_RUNTIME_COMPAT_MIGRATION.md`;
 - `docs/RELEASE_CANDIDATE_v0.3.0.md`;
-- `docs/PROMPT_OTIMIZACAO.md`.
+- `docs/PROMPT_OTIMIZACAO.md`;
+- `docs/NUTEV_PILOT_REAL_PROTOCOL.md`;
+- `docs/AUDITORIA_PEGAR_TUDO.md`.
 
-Historical contents remain available through Git history.
+Historical contents remain available through Git history. Current PLAY/full-text behavior is documented in `docs/PLAY.md`; current release planning is in `docs/RELEASE_PLAN_v0.3.0.md`; current scientific rules are in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` and `docs/SCIENTIFIC_GOVERNANCE.md`.
 
 ## Canonical runtime
 
