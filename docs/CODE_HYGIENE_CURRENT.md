@@ -2,9 +2,9 @@
 
 Status: **active cleanup record for the pre-release development tree**.
 
-The goal is to make the canonical NutEV runtime smaller and clearer **without deleting live compatibility behavior or provenance evidence blindly**.
+The goal is to keep the canonical NutEV runtime and documentation small, current and auditable without deleting live behavior or required provenance.
 
-## Already removed from the active tree
+## Removed from the active tree
 
 Historical Local Deep Research application/runtime surfaces are no longer present in the current working tree:
 
@@ -16,26 +16,37 @@ Historical Local Deep Research application/runtime surfaces are no longer presen
 
 Git history remains intact.
 
-## Removed in the PLAY hygiene cycle
+## Obsolete documentation removed
 
-- `docs/AUDIT_COMPLETE_PIPELINE_2026.md` — unreferenced, superseded point-in-time audit whose assertions no longer represented the canonical current state.
+The following point-in-time plans/audits were removed from the active tree after being superseded by current canonical governance, PLAY, release and hygiene documents:
 
-The content remains available through Git history.
+- `docs/AUDIT_COMPLETE_PIPELINE_2026.md`;
+- `docs/LEGACY_CLEANUP_AUDIT.md`;
+- `docs/LEGACY_DEPENDENCY_MAP.md`;
+- `docs/LEGACY_MIGRATION_PLAN.md`;
+- `docs/OPEN_PR_TRIAGE_2026-08-09.md`;
+- `docs/P0_AUDIT_CLOSURE_2026-08-09.md`;
+- `docs/P0_REMEDIATION_RECORD_2026-08-09.md`;
+- `docs/COMPLETE_CODE_SCIENTIFIC_AUDIT_2026-08-09.md`;
+- `docs/REFACTOR_GLOBAL_WATCH_UNIFICATION.md`;
+- `docs/REFACTOR_RUNTIME_COMPAT_MIGRATION.md`;
+- `docs/RELEASE_CANDIDATE_v0.3.0.md`;
+- `docs/PROMPT_OTIMIZACAO.md`.
 
-## Do NOT delete yet
+Their historical contents remain available through Git history. Current release planning belongs in `docs/RELEASE_PLAN_v0.3.0.md`; current PLAY behavior belongs in `docs/PLAY.md`; current scientific execution rules belong in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` and `docs/SCIENTIFIC_GOVERNANCE.md`.
 
-The following surfaces look historical but still have current runtime/test references:
+## Compatibility runtime still awaiting coordinated retirement
+
+The following surfaces are historical/non-canonical for Article 1, but still have runtime or test references and therefore are not safe blind-deletion targets:
 
 - `src/nutev/pipelines/master_pipeline.py`;
-- historical workstream concepts `busca1`, `busca2a`, `busca2b`, `a3`;
+- historical workstream vocabulary such as `busca1`, `busca2a`, `busca2b`, `a3`;
 - querypack/domain modules consumed by the compatibility pipeline;
-- tests that protect compatibility/offline behavior.
+- related compatibility/offline tests and configuration.
 
-They are tracked for controlled retirement in #1015. Blind deletion now would trade repository neatness for broken runtime/tests and lost behavior.
+Their controlled retirement is tracked in #1015. The removal must migrate or deliberately retire the remaining behavior, update CLI/docs/tests, and pass the canonical gates. The end state is one canonical PLAY/global-search runtime rather than two competing scientific execution paths.
 
 ## Canonical replacement direction
-
-The target runtime is:
 
 ```text
 registered/versioned global strategy
@@ -51,31 +62,23 @@ human-review queues
 extraction/codebook/quality/synthesis
 ```
 
-`nutev play` is the one-command computational orchestrator for this path. Once PLAY integrates the remaining protocol tracks and downstream exports, compatibility modules can be retired incrementally.
-
-## Candidate cleanup classes
-
-Before the next release, inspect candidates in these classes:
-
-1. **stale point-in-time audits** — delete from active docs only when no release record/normative doc depends on them;
-2. **duplicate migration plans** — replace with current-state records or Git history references;
-3. **compatibility CLI paths** — deprecate explicitly, migrate tests, then remove;
-4. **orphan Python modules** — require zero import/reference hits plus passing canonical tests after deletion;
-5. **unused configuration** — verify no runtime/fixture/document generator consumes it;
-6. **generated/local outputs** — keep ignored and outside releases;
-7. **third-party/inherited assets** — removal requires provenance/license review, not just import analysis.
+`nutev play` is the one-command computational orchestrator for this path.
 
 ## Deletion acceptance rule
 
-A source/config file is safe to delete only when all are true:
+A source/config file is safe to delete when all are true:
 
-- no supported runtime imports it;
-- no canonical test relies on it except a test being deliberately migrated;
-- no normative scientific path requires the behavior;
-- a replacement exists or the behavior is explicitly retired;
-- deletion does not erase required attribution/provenance;
+- no supported runtime imports it, or the importing legacy behavior is intentionally retired in the same change;
+- canonical tests are migrated or removed together with the retired behavior;
+- no normative scientific path requires it;
+- replacement behavior exists where required;
+- required attribution/provenance is preserved;
 - Python 3.12/3.13, Windows smoke, blocking lint/compile, build and release-artifact checks remain green.
+
+## License/provenance boundary
+
+`LICENSE`, `NOTICE.md`, Git history and the provenance records are **not cleanup trash**. The inherited-code/license boundary is tracked separately in #1014 and must be resolved before the next Zenodo archive without erasing required upstream attribution or misattributing current NutEV code.
 
 ## Release boundary
 
-Repository size in Git history is not reduced by deleting current-tree files. Do **not** rewrite history merely to make the repository look smaller before Zenodo. The release artifact should instead contain a clean current snapshot and exclude protected/local/generated outputs.
+Deleting files from the current tree does not shrink Git history. Do not rewrite history merely to make the repository look smaller before Zenodo. A citable release should instead archive a clean reviewed snapshot that excludes obsolete active-tree material, protected full texts, credentials and generated/local outputs.
