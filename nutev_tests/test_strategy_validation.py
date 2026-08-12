@@ -55,7 +55,7 @@ def test_publication_types_are_normalized_and_only_rendered_where_supported():
     grid = build_all(parse_strategy(payload))
     assert "Guideline[pt]" in grid["pubmed"]["specific"]
     assert '"Systematic Review"[pt]' in grid["pubmed"]["specific"]
-    assert '"Meta-Analysis"[pt]' in grid["pubmed"]["specific"]
+    assert "Meta-Analysis[pt]" in grid["pubmed"]["specific"]
     assert "Guideline" not in grid["europepmc"]["specific"]
     assert "Guideline" not in grid["crossref"]["specific"]
     assert "Guideline" not in grid["openalex"]["specific"]
