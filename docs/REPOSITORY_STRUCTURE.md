@@ -6,21 +6,21 @@ Use `src/nutev/` for current scientific work.
 
 Key areas:
 
-- `search/` — global strategy registry/execution, provider adapters, snapshots, corpus construction;
+- `search/` — global strategy registry/execution, provider adapters, snapshots and corpus construction;
 - `review/` — human screening, full-text assessment and adjudication support;
 - `acquire/` and `download/` — lawful full-text resolution and document acquisition;
 - `extract/` — native text extraction and OCR;
-- `analysis/` — classification, relevance, PRISMA and synthesis helpers;
+- `analysis/` — classification, relevance, identity/deduplication, PRISMA and synthesis helpers;
 - `engine/` — run IDs, events, validation and artifact provenance;
-- `pipelines/` — orchestration, including the canonical `play_pipeline.py`;
+- `pipelines/` — current orchestration, including `play_pipeline.py` and the official-guides pipeline;
 - `export/` — tables, logs, methods text, curation and manuscript-facing outputs;
 - `ui/` — dashboard/control-center components;
 - `global_watch/` — surveillance/monitoring, distinct from the definitive Article 1 search;
 - `cli.py`, `settings.py`.
 
-## Scientific execution path
+The old parallel `master_pipeline.py` + `querypacks/**` + default `--workstreams` runtime has been retired from the active tree. Git history preserves it for provenance.
 
-The Article 1 canonical architecture is:
+## Scientific execution path
 
 ```text
 versioned global strategy
@@ -31,18 +31,16 @@ master corpus
         ↓
 identity resolution / deduplication
         ↓
-human screening
+full-text resolution / download / OCR
         ↓
-full text
+human screening and eligibility
         ↓
 extraction / codebook / quality / synthesis
 ```
 
-Historical identifiers such as `busca1`, `busca2a`, `busca2b` and `a3` may remain in compatibility or downstream analysis modules. They are not separate canonical Article 1 searches.
+Article assignment happens after recovery. Historical labels such as `busca1`, `busca2a`, `busca2b` or `a3` may still occur in downstream taxonomy/scoring/history where they carry analytical meaning; they are not executable canonical search streams.
 
 ## One-command orchestration
-
-The supported one-command pilot path is:
 
 ```powershell
 .\.venv\Scripts\nutev.exe play --project-root .\project_output_scientific
@@ -50,33 +48,33 @@ The supported one-command pilot path is:
 
 See `docs/PLAY.md`.
 
-The first `nutev play` implementation is intentionally PILOT-only. Formal/PRISMA execution remains blocked until scientific gate/freeze authorization is represented in software.
+The automatic full PLAY remains PILOT-only until the scientific gate/freeze state required for a formal execution is implemented and satisfied.
 
 ## Configuration
 
-Canonical configuration lives under `config/`, including provider/source registry, taxonomy, ontology, evidence lenses, scoring and official-source manifests.
+Canonical configuration lives under `config/`, including provider/source registries, taxonomy/ontology, evidence lenses, scoring and official-source manifests.
 
 Provider capability does not imply methodological inclusion.
 
+Obsolete workstream-specific domain-rule configs were removed with the retired pipeline. Current configuration must be consumed by a supported runtime or documented scientific workflow.
+
 ## Tests
 
-Canonical tests live under:
-
-- `nutev_tests/`
-
-Run:
+Canonical tests live under `nutev_tests/`.
 
 ```bash
 PYTHONPATH=src python -m pytest -q nutev_tests
 ```
 
+Tests that existed solely to preserve the retired querypack/workstream runtime were removed. Current tests should protect supported global-search, PLAY, provider, corpus, review, full-text/OCR, export and governance behavior.
+
 ## Project outputs
 
-Local project roots such as `project_output_scientific/` are ignored by Git.
+Local roots such as `project_output_scientific/` are ignored by Git.
 
 Important layers include:
 
-- `01_querypacks/` — search registry/version state;
+- `01_querypacks/` — strategy registry/version state (directory name retained for output compatibility; not the deleted source-code `querypacks` package);
 - `03_corpus/search_raw/` — immutable provider snapshots;
 - `03_corpus/search_processed/` — normalized/master corpus builds;
 - `03_corpus/03B_public_downloads/` — lawful public downloads;
@@ -86,19 +84,19 @@ Important layers include:
 - `06_tables/` — analysis/evidence tables;
 - `07_logs/` — logs, ledgers and checkpoints;
 - `10_curated/` — curated outputs;
-- `12_play/` — one-command PLAY summaries and ledgers.
+- `12_play/` — PLAY summaries and ledgers.
 
-## Inherited Local Deep Research code
+## Inherited Local Deep Research history
 
 The inherited `src/local_deep_research/**`, old tests, frontend/Docker/tooling and LDR console entry points are not part of the current working tree. They remain in Git history for provenance.
 
-Active provenance is documented in `NOTICE.md`. Historical cleanup status is summarized in `docs/LEGACY_CLEANUP_AUDIT.md` and `docs/LEGACY_MIGRATION_PLAN.md`.
+Active provenance is documented in `NOTICE.md` and `docs/PROVENANCE_AND_LICENSE.md`. Do not restore removed inherited runtime merely to preserve history, and do not remove required upstream attribution merely because the files are no longer in the active tree.
 
-Do not restore removed inherited runtime merely to preserve history.
+## Hygiene rule
 
-## Compatibility pipeline
+A file belongs in the active tree only when it supports current runtime behavior, current scientific governance, reproducibility, current testing, release/provenance requirements or a deliberately retained downstream analytical function.
 
-`src/nutev/pipelines/master_pipeline.py` and old workstream vocabulary remain compatibility/downstream surfaces while `nutev play` is matured. Do not use the legacy workstream command as the definitive methodological representation of the Article 1 formal search.
+Superseded point-in-time migration plans, obsolete demos and dead compatibility code belong in Git history rather than the release snapshot.
 
 ## Scientific guardrail
 
