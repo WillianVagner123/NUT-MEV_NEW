@@ -64,6 +64,7 @@ project_output_scientific/
     └── play_<timestamp>_<id>/
         ├── play_state.json
         ├── play_summary.json
+        ├── play_summary.sha256
         ├── play_summary.md
         ├── search_providers.csv
         ├── fulltext_ledger.jsonl
@@ -71,6 +72,8 @@ project_output_scientific/
         ├── download_failures.jsonl
         └── extraction_manifest.jsonl
 ```
+
+`play_summary.json` is written once and then hashed. Its SHA-256 is stored in the sibling `play_summary.sha256` file, avoiding a circular/self-hash that would invalidate itself when embedded into the JSON being hashed.
 
 The summary makes truncation explicit by comparing provider-reported totals with returned rows. A provider with fewer returned records than `total_found` is marked `truncated=true`; that run must not be described as exhaustive.
 
