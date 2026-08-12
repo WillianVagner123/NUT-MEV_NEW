@@ -1,11 +1,11 @@
 """One-command computational orchestration for NutEV pilot runs.
 
-`nutev play` is intentionally gate-aware.  The first implementation supports
+`nutev play` is intentionally gate-aware. The first implementation supports
 PILOT strategy versions only: it may execute the frozen registered strategy,
 build the auditable master corpus, resolve lawful open-access full text,
 download accessible artifacts, extract native text and run OCR when required.
 
-It must NOT silently promote a pilot to a formal/PRISMA run.  Formal execution
+It must NOT silently promote a pilot to a formal/PRISMA run. Formal execution
 remains blocked here until the scientific gate/freeze model (GF-02/GF-03/GF-06/
 GF-07/GF-10) is implemented and authorized.
 """
@@ -116,7 +116,8 @@ def _resolve_strategy_version(project_root: Path, version_id: str | None) -> dic
     versions = list_strategy_versions(db_path, limit=1)
     if not versions:
         raise ValueError(
-            "no registered search strategy exists; save a PILOT version in Search Strategy first"
+            "no registered search strategy exists; save a PILOT version in "
+            "Search Strategy first"
         )
     return versions[0]
 
@@ -156,8 +157,9 @@ def _write_summary_markdown(path: Path, summary: dict[str, Any]) -> None:
     fulltext = summary["fulltext"]
     extraction = summary["extraction"]
     providers = "\n".join(
-        f"- {row['provider']}: {row['status']} | returned={row['records_returned']} | "
-        f"total={row['total_found']} | truncated={row['truncated']}"
+        f"- {row['provider']}: {row['status']} | "
+        f"returned={row['records_returned']} | total={row['total_found']} | "
+        f"truncated={row['truncated']}"
         for row in search["providers"]
     ) or "- none"
     text = f"""# NutEV PLAY summary
@@ -267,7 +269,11 @@ def run_play(
     }
     _atomic_json(state_path, state)
 
-    log.info("PLAY %s: executing strategy version %s", play_id, version["version_id"])
+    log.info(
+        "PLAY %s: executing strategy version %s",
+        play_id,
+        version["version_id"],
+    )
     search_summary = execute_strategy_version(
         root,
         version_id=str(version["version_id"]),
@@ -308,9 +314,20 @@ def run_play(
     extraction_manifest: list[dict[str, Any]] = []
 
     if not metadata_only:
-        log.info("PLAY %s: resolving lawful open-access full text for %d documents", play_id, len(master_rows))
+        log.info(
+            "PLAY %s: resolving lawful open-access full text for %d documents",
+            play_id,
+            len(master_rows),
+        )
         session = requests.Session()
-        session.headers.update({"User-Agent": "NutEV PLAY/0.3 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"})
+        session.headers.update(
+            {
+                "User-Agent": (
+                    "NutEV PLAY/0.3 "
+                    "(+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
+                )
+            }
+        )
         email = (
             os.environ.get("UNPAYWALL_EMAIL")
             or os.environ.get("CROSSREF_MAILTO")
@@ -336,7 +353,11 @@ def run_play(
             enriched["url"] = fulltext_url
             downloadable.append(enriched)
 
-        log.info("PLAY %s: downloading %d open-access candidates", play_id, len(downloadable))
+        log.info(
+            "PLAY %s: downloading %d open-access candidates",
+            play_id,
+            len(downloadable),
+        )
         download_manifest, download_failed = download_records(
             downloadable,
             root / "03_corpus" / "03B_public_downloads",
@@ -358,7 +379,11 @@ def run_play(
         _atomic_jsonl(play_dir / "download_manifest.jsonl", download_manifest)
         _atomic_jsonl(play_dir / "download_failures.jsonl", download_failed)
 
-        log.info("PLAY %s: extracting text / OCR from %d artifacts", play_id, len(download_manifest))
+        log.info(
+            "PLAY %s: extracting text / OCR from %d artifacts",
+            play_id,
+            len(download_manifest),
+        )
         for item in download_manifest:
             path_value = str(item.get("path") or "")
             if not path_value:
@@ -401,11 +426,19 @@ def run_play(
         _atomic_json(state_path, state)
 
     fulltext_counts = {
-        "fulltext_oa": sum(row.get("fulltext_status") == "fulltext_oa" for row in fulltext_rows),
-        "paywall": sum(row.get("fulltext_status") == "paywall" for row in fulltext_rows),
-        "needs_network": sum(row.get("fulltext_status") == "needs_network" for row in fulltext_rows),
+        "fulltext_oa": sum(
+            row.get("fulltext_status") == "fulltext_oa" for row in fulltext_rows
+        ),
+        "paywall": sum(
+            row.get("fulltext_status") == "paywall" for row in fulltext_rows
+        ),
+        "needs_network": sum(
+            row.get("fulltext_status") == "needs_network" for row in fulltext_rows
+        ),
     }
-    usable_text = sum(bool(str(row.get("text_path") or "")) for row in extraction_manifest)
+    usable_text = sum(
+        bool(str(row.get("text_path") or "")) for row in extraction_manifest
+    )
     ocr_used = sum(bool(row.get("used_ocr")) for row in extraction_manifest)
     failed_or_unusable = len(extraction_manifest) - usable_text
     any_truncated = any(bool(row.get("truncated")) for row in provider_rows)
@@ -440,8 +473,12 @@ def run_play(
         "search": {
             "run_id": search_summary["run_id"],
             "status": search_summary["status"],
-            "records_returned": int(search_summary.get("records_identified_before_deduplication") or 0),
-            "provider_reported_total_found": int(search_summary.get("provider_reported_total_found") or 0),
+            "records_returned": int(
+                search_summary.get("records_identified_before_deduplication") or 0
+            ),
+            "provider_reported_total_found": int(
+                search_summary.get("provider_reported_total_found") or 0
+            ),
             "providers": provider_rows,
             "any_truncated": any_truncated,
         },
@@ -449,8 +486,12 @@ def run_play(
             "build_id": corpus_summary["build_id"],
             "input_records": int(corpus_summary.get("input_records") or 0),
             "unique_records": int(corpus_summary.get("unique_records") or 0),
-            "duplicates_removed": int(corpus_summary.get("duplicates_removed") or 0),
-            "possible_duplicates": int(corpus_summary.get("possible_duplicates") or 0),
+            "duplicates_removed": int(
+                corpus_summary.get("duplicates_removed") or 0
+            ),
+            "possible_duplicates": int(
+                corpus_summary.get("possible_duplicates") or 0
+            ),
             "master_jsonl_path": str(master_path),
         },
         "fulltext": {
@@ -491,17 +532,31 @@ def run_play(
     }
 
     summary_path = play_dir / "play_summary.json"
-    summary_sha256 = _atomic_json(summary_path, summary)
+    summary_hash_path = play_dir / "play_summary.sha256"
     summary["artifacts"]["summary_path"] = str(summary_path)
-    summary["artifacts"]["summary_sha256"] = summary_sha256
-    _atomic_json(summary_path, summary)
+    summary["artifacts"]["summary_sha256_path"] = str(summary_hash_path)
+
+    # Write the summary exactly once, then hash the immutable bytes. The checksum
+    # is stored beside the summary rather than embedded into the file it hashes;
+    # embedding a self-checksum would necessarily change the bytes after hashing.
+    summary_sha256 = _atomic_json(summary_path, summary)
+    summary_hash_path.write_text(
+        f"{summary_sha256}  {summary_path.name}\n",
+        encoding="utf-8",
+    )
     _write_summary_markdown(play_dir / "play_summary.md", summary)
     _atomic_json(root / "12_play" / "latest_summary.json", summary)
 
     state["stages"]["finalize"] = {
         "status": execution_status,
         "summary_path": str(summary_path),
+        "summary_sha256": summary_sha256,
+        "summary_sha256_path": str(summary_hash_path),
     }
     state["finished_at"] = summary["finished_at"]
     _atomic_json(state_path, state)
+
+    # Returning the checksum is useful to callers, but it is intentionally not
+    # inserted into the persisted summary after hashing.
+    summary["artifacts"]["summary_sha256"] = summary_sha256
     return summary
