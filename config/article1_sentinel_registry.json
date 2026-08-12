@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "suite_version": "GF02-DRAFT-UNRESOLVED",
+  "status": "IDENTITY_AUDIT_REQUIRED",
+  "notes": "Priority sentinel IDs are registered without inventing canonical bibliographic identity. Complete the identity audit before recall is calculated. UNRESOLVED entries must never count as recovered or enter the recall denominator.",
+  "sentinels": [
+    {
+      "sentinel_id": "NORM-035",
+      "canonical_title": "",
+      "doi": "",
+      "pmid": "",
+      "pmcid": "",
+      "issuer": "",
+      "version_year": "",
+      "document_unit_rule": "",
+      "relationship_notes": "Canonical identity not yet established in repository evidence.",
+      "expected_routes": [],
+      "identity_status": "UNRESOLVED",
+      "allow_title_match": false
+    },
+    {
+      "sentinel_id": "NORM-063",
+      "canonical_title": "",
+      "doi": "",
+      "pmid": "",
+      "pmcid": "",
+      "issuer": "",
+      "version_year": "",
+      "document_unit_rule": "",
+      "relationship_notes": "Canonical identity not yet established in repository evidence.",
+      "expected_routes": [],
+      "identity_status": "UNRESOLVED",
+      "allow_title_match": false
+    }
+  ]
+}
