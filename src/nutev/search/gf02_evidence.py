@@ -416,23 +416,40 @@ def evaluate_gf02_gate(
     scopus_evidence: ManualProviderEvidence | None,
     wos_evidence: ManualProviderEvidence | None,
     priority_sentinels: tuple[str, ...] = PRIORITY_SENTINELS,
+    missing_explanations: dict[str, str] | None = None,
     human_decision: str | None = None,
     human_decision_by: str = "",
 ) -> dict[str, Any]:
-    """Evaluate completeness while reserving READY_FOR_PRESS for a human decision."""
+    """Evaluate completeness while reserving READY_FOR_PRESS for a human decision.
+
+    A priority sentinel can be either recovered or genuinely missing after an
+    audited execution. A missing result is complete evidence only when a
+    non-empty explanation is recorded for that canonical sentinel, matching the
+    GF-02 requirement "recovered or explicitly explained".
+    """
     blockers: list[str] = []
     try:
         validate_gf02_pilot_strategy(strategy_version)
     except ValueError as exc:
         blockers.append(str(exc))
 
+    explanations = {
+        str(key).strip(): _clean_text(value)
+        for key, value in (missing_explanations or {}).items()
+        if str(key).strip()
+    }
     unresolved = set(pubmed_recall.get("unresolved_sentinel_ids") or [])
     recovered = set(pubmed_recall.get("recovered_sentinel_ids") or [])
     missing = set(pubmed_recall.get("missing_resolved_sentinel_ids") or [])
     for sentinel_id in priority_sentinels:
         if sentinel_id in unresolved:
             blockers.append(f"{sentinel_id}:identity_unresolved")
-        elif sentinel_id not in recovered and sentinel_id not in missing:
+        elif sentinel_id in recovered:
+            continue
+        elif sentinel_id in missing:
+            if not explanations.get(sentinel_id, ""):
+                blockers.append(f"{sentinel_id}:missing_without_explanation")
+        else:
             blockers.append(f"{sentinel_id}:pubmed_assessment_missing")
 
     if int(noise_summary.get("sample_size") or 0) <= 0:
@@ -465,6 +482,7 @@ def evaluate_gf02_gate(
         "human_decision_by": human_decision_by.strip() or None,
         "blockers": blockers,
         "priority_sentinels": list(priority_sentinels),
+        "missing_explanations": explanations,
         "press_approval_inferred": False,
         "formal_execution_authorized": False,
         "prisma_eligible": False,
