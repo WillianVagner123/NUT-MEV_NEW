@@ -1,35 +1,46 @@
 {
   "schema_version": 1,
-  "suite_version": "GF02-DRAFT-UNRESOLVED",
-  "status": "IDENTITY_AUDIT_REQUIRED",
-  "notes": "Priority sentinel IDs are registered without inventing canonical bibliographic identity. Complete the identity audit before recall is calculated. UNRESOLVED entries must never count as recovered or enter the recall denominator.",
+  "suite_version": "GF02-SENTINELS-2026-08-12-v1",
+  "status": "PRIORITY_IDENTITIES_RESOLVED",
+  "notes": "Priority sentinel identities reconciled against the canonical Article 1 Drive staging audit and verified against NCBI bibliographic records. Recovery still requires actual provider execution evidence; identity resolution alone does not imply recall, PRESS approval, formal execution, inclusion, or PRISMA eligibility.",
   "sentinels": [
     {
       "sentinel_id": "NORM-035",
-      "canonical_title": "",
-      "doi": "",
-      "pmid": "",
+      "canonical_title": "Management of dyslipidemia in adults. A consensus statement from the French Society of Endocrinology (SFE), the French-speaking Diabetes Society (SFD), the New French-speaking Atherosclerosis Society (NSFA) and the French Society of Cardiology (SFC).",
+      "doi": "10.1016/j.acvd.2026.01.001",
+      "pmid": "41651737",
       "pmcid": "",
-      "issuer": "",
-      "version_year": "",
-      "document_unit_rule": "",
-      "relationship_notes": "Canonical identity not yet established in repository evidence.",
-      "expected_routes": [],
-      "identity_status": "UNRESOLVED",
+      "issuer": "French Society of Endocrinology (SFE); French-speaking Diabetes Society (SFD); New French-speaking Atherosclerosis Society (NSFA); French Society of Cardiology (SFC)",
+      "version_year": "2026",
+      "document_unit_rule": "Count the joint French dyslipidemia consensus as one intellectual guideline/consensus unit anchored to NORM-035; linked journal co-publications are manifestations of the same intellectual document and do not create additional sentinel denominator units.",
+      "relationship_notes": "Drive staging identifies NORM-036 (DOI 10.1016/j.ando.2025.102471) and a Diabetes & Metabolism manifestation as linked co-publications. They may support retrieval/provenance but must not silently satisfy or duplicate the canonical NORM-035 unit unless reconciled to this parent identity.",
+      "expected_routes": [
+        "pubmed",
+        "europepmc",
+        "scopus",
+        "web_of_science"
+      ],
+      "identity_status": "RESOLVED",
       "allow_title_match": false
     },
     {
       "sentinel_id": "NORM-063",
-      "canonical_title": "",
-      "doi": "",
-      "pmid": "",
-      "pmcid": "",
-      "issuer": "",
-      "version_year": "",
-      "document_unit_rule": "",
-      "relationship_notes": "Canonical identity not yet established in repository evidence.",
-      "expected_routes": [],
-      "identity_status": "UNRESOLVED",
+      "canonical_title": "Evidence and consensus-based clinical practice guidelines for management of overweight and obesity in midlife women: An AIIMS-DST initiative",
+      "doi": "10.4103/jfmpc.jfmpc_51_22",
+      "pmid": "36994026",
+      "pmcid": "PMC10041015",
+      "issuer": "AIIMS-DST initiative / guideline development group",
+      "version_year": "2022",
+      "document_unit_rule": "Count the complete AIIMS-DST clinical practice guideline as the parent intellectual document. Executive summaries and parallel summary publications are linked manifestations/materials and do not increase the sentinel denominator.",
+      "relationship_notes": "Drive staging identifies NORM-037 (PMC9190956; DOI 10.4103/jmh.jmh_7_22) and NORM-038 (DOI 10.1016/j.dsx.2022.102426) as Executive Summary/parallel manifestations linked to the complete parent guideline NORM-063. They must not substitute for or duplicate the parent document in sentinel recall.",
+      "expected_routes": [
+        "pubmed",
+        "pmc",
+        "europepmc",
+        "scopus",
+        "web_of_science"
+      ],
+      "identity_status": "RESOLVED",
       "allow_title_match": false
     }
   ]
