@@ -22,7 +22,7 @@ A release `v0.2.0` e as tags históricas são objetos imutáveis. A árvore `mai
 
 A arquitetura atualmente validada inclui **uma busca global**, proveniência `generated`/`executed`, corpus mestre, curadoria/revisão humana e validação reprodutível do artefato de software. Isso não implica que triagem humana, manuscrito ou recomendações clínicas estejam concluídos.
 
-Quando houver decisão futura de publicar uma nova release, versão do pacote, tag proposta, `CITATION.cff`, `.zenodo.json`, CHANGELOG, README e release notes deverão ser reconciliados novamente no mesmo SHA candidato e todos os gates deverão executar nesse SHA. Ver [`AGENTS.md`](AGENTS.md) e [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
+Quando houver decisão futura de publicar uma nova release, versão do pacote, tag proposta, `CITATION.cff`, `.zenodo.json`, CHANGELOG, README e release notes deverão ser reconciliados novamente no mesmo SHA candidato e todos os gates deverão executar nesse SHA. Ver [`AGENTS.md`](AGENTS.md), [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) e [`docs/RELEASE_PLAN_v0.3.0.md`](docs/RELEASE_PLAN_v0.3.0.md).
 
 ## Princípios científicos obrigatórios
 
@@ -137,6 +137,30 @@ nutev serve --project-root ./project_output_demo --host 127.0.0.1 --port 8000
 
 O workflow `release-artifact-validation` também constrói wheel/sdist, executa `twine check`, instala o wheel em ambiente virtual limpo, executa `pip check`, verifica a CLI e roda a demo zero-key a partir do artefato instalado.
 
+# ▶ NutEV PLAY — um comando para o fluxo computacional
+
+A `main` agora contém `nutev play`, o orquestrador computacional de um comando. A primeira versão é deliberadamente **PILOT-only**: ela usa uma versão registrada da estratégia, executa os providers integrados, constrói o corpus mestre, tenta resolver texto completo em acesso aberto, baixa artefatos acessíveis, extrai texto nativo e usa OCR automaticamente quando necessário.
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\nutev.exe play --project-root .\project_output_scientific
+```
+
+Teste sem full text/download:
+
+```powershell
+.\.venv\Scripts\nutev.exe play `
+  --project-root .\project_output_scientific `
+  --metadata-only
+```
+
+Cada execução cria uma pasta `12_play/<play_id>/` com estado, resumo, relatório por provider, ledgers de full text/download/extração e `play_summary.sha256`. Truncamento de provider permanece explícito.
+
+O PLAY atual **recusa execução FORMAL/PRISMA-eligible** enquanto GF-02, PRESS/GF-03, GF-06, GF-07 e GF-10/FREEZE não estiverem representados e autorizados. Scopus/WoS e os tracks institucional/repositórios ainda possuem lacunas de integração que são registradas, não escondidas.
+
+Veja [`docs/PLAY.md`](docs/PLAY.md).
+
 # Como rodar a pesquisa canônica
 
 ## 1. Abra um projeto exclusivo
@@ -229,7 +253,7 @@ O comando genérico abaixo continua existindo para compatibilidade, testes e pil
 nutev --project-root ./project_output_legacy --workstreams busca1 busca2a busca2b a3 --web-enabled
 ```
 
-**Não use esse comando como representação da execução científica canônica de “uma busca global” do Artigo 1.** Para execução formal, use a estratégia global versionada + executor registrado + corpus mestre descritos acima e no contrato do Artigo 1.
+**Não use esse comando como representação da execução científica canônica de “uma busca global” do Artigo 1.** O plano de retirada segura desse compatibility surface está em #1015; os módulos não devem ser apagados enquanto runtime/testes ainda dependem deles.
 
 # Guias e fontes oficiais
 
@@ -262,7 +286,8 @@ Camadas principais:
 - `02_metadata` — metadados e artefatos canônicos de claims/auditoria;
 - `06_tables` — matrizes e relatórios analíticos derivados;
 - `07_logs` — ledgers, eventos, snapshots, resumos e proveniência;
-- `10_curated` — outputs curados e priorização operacional.
+- `10_curated` — outputs curados e priorização operacional;
+- `12_play` — resumos, checksums e ledgers do orquestrador de um comando.
 
 Artefatos de claims/auditoria canônicos ficam em `02_metadata`, incluindo:
 
@@ -312,9 +337,12 @@ Ver [`docs/COPYRIGHT_AND_FULL_TEXT_POLICY.md`](docs/COPYRIGHT_AND_FULL_TEXT_POLI
 - [`AGENTS.md`](AGENTS.md)
 - [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md)
 - [`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md)
+- [`docs/PLAY.md`](docs/PLAY.md)
 - [`docs/RUN_LOCAL.md`](docs/RUN_LOCAL.md)
 - [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md)
 - [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md)
+- [`docs/RELEASE_PLAN_v0.3.0.md`](docs/RELEASE_PLAN_v0.3.0.md)
+- [`docs/PROVENANCE_AND_LICENSE.md`](docs/PROVENANCE_AND_LICENSE.md)
 - [`docs/SEARCH_PROVIDERS.md`](docs/SEARCH_PROVIDERS.md)
 - [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md)
 - [`NOTICE.md`](NOTICE.md)
@@ -327,4 +355,6 @@ ORCID, afiliação, data de release e DOI devem ser incluídos somente após con
 
 # Licença e proveniência
 
-Licença: MIT. O projeto evoluiu a partir de uma base histórica Local Deep Research / LearningCircuit; o runtime herdado foi removido, mas a atribuição e proveniência permanecem documentadas em [`NOTICE.md`](NOTICE.md) e no histórico Git.
+O estado atual do repositório declara MIT, e a base histórica Local Deep Research / LearningCircuit também foi recebida sob MIT. A próxima release possui um gate explícito de proveniência/licença (#1014): precisamos separar corretamente o aviso upstream dos direitos/autoria das contribuições NutEV e confirmar humanamente o titular/nome que deve constar para as contribuições originais.
+
+Até essa revisão, **não remova o aviso MIT/LearningCircuit do material herdado ou substancialmente derivado** e não descreva toda a árvore NutEV atual como se tivesse sido escrita pela LearningCircuit. A fronteira está documentada em [`NOTICE.md`](NOTICE.md) e [`docs/PROVENANCE_AND_LICENSE.md`](docs/PROVENANCE_AND_LICENSE.md).

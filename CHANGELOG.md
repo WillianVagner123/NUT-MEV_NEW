@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format is based on 
 
 Current source-tree package identity: **`0.3.0.dev1`**. A `0.3.0` release candidate was validated on 2026-08-10, but no `v0.3.0` tag or GitHub Release was published. Publication is deliberately deferred while development, backlog cleanup and scientific workflow validation continue. The latest public/citable release therefore remains **`v0.2.0`**.
 
+### One-command orchestration
+
+- Added `nutev play` as the canonical one-command **PILOT** computational orchestrator.
+- Reused the immutable registered-strategy executor, provider snapshots/ledgers and existing master-corpus builder rather than creating a second search/corpus pipeline.
+- Connected the PILOT path to lawful open-access full-text resolution, public download, native-text extraction and OCR-on-demand.
+- Added a `12_play/<play_id>/` audit package with state, provider report, full-text/download/extraction ledgers, human-readable summary and verifiable `play_summary.sha256`.
+- Made provider truncation explicit by comparing provider-reported totals with returned rows; capped retrieval is not silently described as exhaustive.
+- Added a hard guard that refuses PRISMA-eligible/FORMAL PLAY until GF-02/GF-03/GF-06/GF-07/GF-10 authorization is implemented and recorded.
+- Added regression tests for PILOT/formal separation, truncation reporting, latest-strategy selection and immutable summary checksums.
+
 ### Scientific architecture and provenance
 
 - Made the merged one-global-search architecture the canonical scientific workflow: one article-independent frozen strategy, provider-specific rendering, one `run_id`, one master corpus, deduplication once, then article-specific screening/eligibility/extraction.
@@ -18,6 +28,7 @@ Current source-tree package identity: **`0.3.0.dev1`**. A `0.3.0` release candid
 - Reserved `manuscript_ready` for explicit human-review and manuscript-gate completion rather than provider/pipeline success alone.
 - Added `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` with distinct indexed-database, official/institutional and supplementary-discovery tracks.
 - Clarified that the current SciELO connector is Crossref retrieval scoped to DOI prefix `10.1590`, not a comprehensive native SciELO platform free-text search.
+- Added explicit provenance/license documentation separating the inherited Local Deep Research MIT history from current NutEV contributions without erasing upstream attribution.
 
 ### Precision and current-main hardening
 
@@ -30,6 +41,13 @@ Current source-tree package identity: **`0.3.0.dev1`**. A `0.3.0` release candid
 - Made checkpoint JSON deterministic.
 - Hardened schema-bound CSV exports, Global Watch zero-row exports and operational empty manifests.
 
+### Repository hygiene
+
+- Converted stale Local Deep Research migration/cleanup plans into current-state provenance records.
+- Removed the unreferenced superseded `docs/AUDIT_COMPLETE_PIPELINE_2026.md` from the active tree; history remains recoverable in Git.
+- Added a controlled retirement plan for remaining compatibility surfaces such as `master_pipeline.py` and historical `busca*` workstream modules; they are not blind-deleted while runtime/tests still depend on them.
+- Added a prospective `v0.3.0` release plan that blocks tag/Zenodo publication on PLAY validation, license/provenance resolution and exact-SHA release checks.
+
 ### Validation, build and supply chain
 
 - Added branch-aware coverage measurement with a blocking floor of 70%; the validated 0.3.0 candidate measured 73.19% on Python 3.12.
@@ -40,6 +58,7 @@ Current source-tree package identity: **`0.3.0.dev1`**. A `0.3.0` release candid
 - Kept dependency review blocking and required it to execute successfully with GitHub Dependency Graph enabled.
 - Refreshed GitHub Actions to reviewed Node 24-compatible releases while preserving full-SHA pinning.
 - Reconciled the current Python dependency boundary, removed an unused third-party arXiv client and raised the `pypdf` security floor.
+- Validated the merged PLAY implementation on its PR head with canonical Python 3.12/3.13 CI, Windows smoke, Ruff/compile, type-check provenance core, dependency review, security scan, CodeQL and release-artifact validation before merge.
 
 ### Governance and documentation
 
@@ -47,13 +66,15 @@ Current source-tree package identity: **`0.3.0.dev1`**. A `0.3.0` release candid
 - Closed the P0 infrastructure audit after generated/executed provenance, readiness semantics and dependency-review gates were fixed.
 - Made README and local-run documentation canonical for the one-global-search workflow; legacy `--workstreams` execution is explicitly non-canonical for definitive scientific review.
 - Reconciled provider, reproducibility, code-availability, validation and release documentation with the immutable `v0.2.0` history and current development state.
-- Historical thematic PRs are being archived as superseded against canonical scientific backlog tickets rather than merged into the old workstream architecture.
+- Historical thematic PRs were consolidated into the canonical Article 1 scientific path and downstream codebook rather than merged into the old workstream architecture.
+- Added a dedicated release blocker for final MIT/upstream-provenance reconciliation before the next Zenodo archive.
 
 ### Development boundary
 
 - `RecommendationCandidate` remains a candidate requiring human adjudication, not a clinical recommendation.
 - NutEV Evidence Engine remains separate from any clinical Decision Engine.
 - Definitive Article 1 scientific executions remain governed by `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` and may be only `computationally_ready_for_human_review` until human/manuscript gates are explicitly completed.
+- `nutev play` currently remains PILOT-only; a successful PLAY does not imply GF-02/PRESS/FREEZE completion.
 - ORCID, affiliation and DOI remain omitted unless independently confirmed.
 - Published historical tags/releases, especially `v0.2.0`, remain immutable.
 - The previously validated `0.3.0` release candidate is historical validation evidence only; it is not a published release and does not freeze current development.
