@@ -1,6 +1,6 @@
 # Current code hygiene inventory
 
-Status: **canonical runtime cleanup in progress for the pre-release development tree**.
+Status: **canonical runtime cleanup completed for the retired workstream/querypack layer; residual semantic-label cleanup remains before the next citable release**.
 
 The goal is to keep the NutEV runtime and documentation small, current and auditable without deleting live scientific behavior or required provenance.
 
@@ -14,7 +14,7 @@ Historical Local Deep Research application/runtime surfaces are no longer presen
 - old frontend/Docker/cookiecutter tooling;
 - historical runtime compatibility shims.
 
-The former NutEV parallel workstream/querypack runtime has also been retired in the current cleanup branch:
+The former NutEV parallel workstream/querypack runtime has also been retired from the active tree:
 
 - `src/nutev/pipelines/master_pipeline.py`;
 - `src/nutev/querypacks/**`;
@@ -36,7 +36,7 @@ Where a mixed test also covered still-supported behavior, that coverage was move
 
 ## Obsolete documentation removed
 
-Point-in-time audit/migration/refactor material that no longer described the canonical architecture was removed from the active tree, including:
+Point-in-time audit/migration/refactor material that no longer describes the canonical architecture has been removed from the active tree, including:
 
 - `docs/AUDIT_COMPLETE_PIPELINE_2026.md`;
 - `docs/LEGACY_CLEANUP_AUDIT.md`;
@@ -54,7 +54,8 @@ Point-in-time audit/migration/refactor material that no longer described the can
 - `docs/AUDITORIA_PEGAR_TUDO.md`;
 - `docs/PUBLIC_RELEASE_AUDIT.md`;
 - `docs/AUDITORIA_CRUZADA_DRIVE_GITHUB_ARTIGO1.md`;
-- `docs/NUTEV_REAL_RUN_READINESS_AND_LIMITATIONS.md`.
+- `docs/NUTEV_REAL_RUN_READINESS_AND_LIMITATIONS.md`;
+- `docs/PILOT_AUDIT_RESPONSE.md` (superseded `busca1`-only pilot response).
 
 Historical contents remain available through Git history. Current PLAY/full-text behavior is documented in `docs/PLAY.md`; current release planning is in `docs/RELEASE_PLAN_v0.3.0.md`; current scientific rules are in `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`, `docs/SCIENTIFIC_GOVERNANCE.md` and `docs/REPRODUCIBILITY.md`.
 
@@ -77,6 +78,22 @@ extraction/codebook/quality/synthesis
 `nutev play` is the one-command computational orchestrator for this path.
 
 Independent current capabilities such as Global Watch, official-guide acquisition, dashboard/API, scoring/classification and export modules remain only when they still have supported downstream use; they are not a second canonical Article 1 search pipeline.
+
+## Residual semantic-label cleanup
+
+The executable `master_pipeline/querypacks` architecture is gone, but some active downstream models/configuration still use historical labels such as `busca1`, `busca2a`, `busca2b`, `a3`, `artigo3_framework` and the generic field name `workstream`.
+
+These references are **not authorization to restore the retired search streams**. They are compatibility/analytical debt and must be migrated deliberately because current models, relevance scoring, evidence lenses, exports and historical datasets may still consume them.
+
+The next cleanup layer should:
+
+1. replace historical lens names in new outputs with semantic names such as `policy_systems`, `clinical_outcomes`, `implementation` and `framework`;
+2. stop hard-coding retired search-stream names in current enums/configuration;
+3. preserve explicit import aliases only where needed to read historical artifacts;
+4. update tests and scoring configuration in the same change;
+5. avoid rewriting immutable historical release data merely to remove old labels.
+
+New canonical outputs should not introduce `busca1/busca2a/busca2b/a3` as active search-route identities.
 
 ## What is not cleanup trash
 
@@ -104,7 +121,9 @@ A source/config/test file is safe to delete when all are true:
 
 ## Current validation gate
 
-The workstream/querypack retirement is tracked by #1015 and PR #1019. It must remain unmerged if CI reveals a supported dependency on the deleted surface. Any such dependency must be migrated to the canonical path or explicitly retained before merge.
+The workstream/querypack retirement was completed in #1015 / PR #1019. The active hygiene gate is now residual semantic-label migration plus the separate provenance/license reconciliation in #1014 before the next Zenodo release.
+
+Scientific work remains governed independently by #1010/#1012: cleaning code must not convert PILOT evidence into FORMAL/PRISMA evidence or bypass PRESS/freeze/human-review gates.
 
 ## Release boundary
 
