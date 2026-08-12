@@ -1,10 +1,11 @@
-"""Article-level deduplication (extracted from master_pipeline for cohesion).
+"""Canonical article-level identity normalization and deduplication helpers.
 
-Pure functions that collapse duplicate records by a canonical key (DOI → PMID →
-PMCID → normalized URL → title+year → row hash) and merge the survivors,
-preferring stronger full-text URLs and unioning provider provenance. Moved here
-verbatim from ``pipelines/master_pipeline`` so the dedup responsibility is
-separately testable and the pipeline module is smaller — behavior is unchanged.
+Pure functions collapse duplicate records by a canonical key (DOI → PMID → PMCID
+→ normalized URL → title+year → row hash) and merge survivors while preserving
+provider provenance and preferring stronger full-text locations.
+
+These helpers are independent of any historical workstream pipeline and are used
+as reusable analysis primitives by current corpus/review workflows and tests.
 """
 from __future__ import annotations
 
@@ -31,74 +32,93 @@ def normalize_doi(value: object) -> str:
         return ""
     for prefix in ("https://doi.org/", "http://doi.org/", "doi:"):
         if text.startswith(prefix):
-            text = text[len(prefix) :]
-    return text.strip().strip("/")
+            text = text[len(prefix):]
+            break
+    return text.rstrip("/")
 
 
 def normalize_url(value: object) -> str:
     text = as_text(value)
     if not text:
         return ""
-    parsed = urlsplit(text)
-    if not parsed.scheme or not parsed.netloc:
-        return text.strip().rstrip("/").lower().removeprefix("www.")
-
-    netloc = parsed.netloc.lower().removeprefix("www.")
-    if parsed.scheme.lower() == "http" and netloc.endswith(":80"):
-        netloc = netloc[:-3]
-    if parsed.scheme.lower() == "https" and netloc.endswith(":443"):
-        netloc = netloc[:-4]
-
-    path = parsed.path.rstrip("/") or "/"
-    return f"{netloc}{path}".rstrip("/")
+    try:
+        parsed = urlsplit(text if "://" in text else f"https://{text}")
+    except ValueError:
+        return text.lower().rstrip("/")
+    host = (parsed.hostname or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    port = parsed.port
+    if port and not ((parsed.scheme == "https" and port == 443) or (parsed.scheme == "http" and port == 80)):
+        host = f"{host}:{port}"
+    path = re.sub(r"/+", "/", parsed.path or "/").rstrip("/")
+    return f"{host}{path}" if path else host
 
 
 def normalize_title(value: object) -> str:
-    text = _WHITESPACE_RE.sub(" ", as_text(value).lower()).strip()
-    return _NON_ALNUM_RE.sub(" ", text).strip()
+    text = as_text(value).casefold()
+    text = _NON_ALNUM_RE.sub(" ", text)
+    return _WHITESPACE_RE.sub(" ", text).strip()
 
 
 def normalize_year(value: object) -> str:
     text = as_text(value)
     if not text:
         return ""
-    try:
-        year = int(float(text))
-    except Exception:
-        return ""
-    return str(year)
+    match = re.search(r"\b(18|19|20|21)\d{2}\b", text)
+    return match.group(0) if match else ""
 
 
 def hash_fallback(row: dict) -> str:
     payload = json.dumps(row, ensure_ascii=False, sort_keys=True, default=str)
-    return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:16]  # noqa: S324
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def canonical_article_key(row: dict) -> tuple[str, str]:
     doi = normalize_doi(row.get("doi"))
     if doi:
         return "doi", doi
-
-    pmid = as_text(row.get("pmid")).lower()
+    pmid = as_text(row.get("pmid"))
     if pmid:
         return "pmid", pmid
-
-    pmcid = as_text(row.get("pmcid")).lower()
+    pmcid = as_text(row.get("pmcid")).upper()
     if pmcid:
         return "pmcid", pmcid
-
-    url = normalize_url(
-        row.get("final_url") or row.get("resolved_url") or row.get("original_url") or row.get("url")
-    )
+    url = normalize_url(row.get("url"))
     if url:
         return "url", url
-
     title = normalize_title(row.get("title"))
-    year = normalize_year(row.get("year"))
-    if title and year:
+    year = normalize_year(row.get("year") or row.get("publication_year") or row.get("publication_date"))
+    if title:
         return "title_year", f"{title}|{year}"
-
     return "row_hash", hash_fallback(row)
+
+
+def _provider_values(row: dict) -> list[str]:
+    values: list[str] = []
+    for key in ("matched_providers", "source_provider", "source"):
+        raw = as_text(row.get(key))
+        if not raw:
+            continue
+        for item in raw.split("|"):
+            item = item.strip()
+            if item and item not in values:
+                values.append(item)
+    return values
+
+
+def _url_rank(value: object) -> tuple[int, int]:
+    url = as_text(value).lower()
+    if not url:
+        return 0, 0
+    score = 1
+    if "pmc.ncbi.nlm.nih.gov" in url or "ncbi.nlm.nih.gov/pmc" in url:
+        score = 6
+    elif url.endswith(".pdf") or ".pdf?" in url:
+        score = 5
+    elif "doi.org/" not in url:
+        score = 3
+    return score, len(url)
 
 
 def merge_article_rows(existing: dict, incoming: dict) -> dict:
@@ -106,43 +126,32 @@ def merge_article_rows(existing: dict, incoming: dict) -> dict:
     for key, value in incoming.items():
         if value in (None, "", [], {}):
             continue
-        if key in {"abstract", "snippet", "summary"} and len(str(value)) > len(str(merged.get(key) or "")):
+        current = merged.get(key)
+        if current in (None, "", [], {}):
             merged[key] = value
-        elif not merged.get(key):
+            continue
+        if key in {"abstract", "snippet", "extracted_text"} and len(as_text(value)) > len(as_text(current)):
             merged[key] = value
-    # Keep the stronger URL for capture. PMC and direct full-text URLs tend to
-    # produce better artifacts than DOI landing pages.
-    existing_url = str(merged.get("url") or "")
-    incoming_url = str(incoming.get("url") or "")
-    if incoming_url and (
-        not existing_url
-        or "pmc.ncbi.nlm.nih.gov" in incoming_url
-        or incoming_url.lower().endswith(".pdf")
-    ):
-        merged["url"] = incoming_url
-    providers = []
-    for value in (merged.get("matched_providers"), merged.get("source_provider"), merged.get("source"), incoming.get("matched_providers"), incoming.get("source_provider"), incoming.get("source")):
-        for part in str(value or "").split("|"):
-            part = part.strip()
-            if part and part not in providers:
-                providers.append(part)
-    merged["matched_providers"] = "|".join(providers)
-    merged["source"] = merged.get("source") or incoming.get("source")
+        elif key in {"url", "oa_url", "pdf_url", "fulltext_url"} and _url_rank(value) > _url_rank(current):
+            merged[key] = value
+    providers: list[str] = []
+    for row in (existing, incoming):
+        for provider in _provider_values(row):
+            if provider not in providers:
+                providers.append(provider)
+    if providers:
+        merged["matched_providers"] = "|".join(providers)
     return merged
 
 
 def dedup_rows(rows: list[dict]) -> list[dict]:
-    by_key: dict[tuple[str, str], dict] = {}
     order: list[tuple[str, str]] = []
-    for r in rows:
-        key = canonical_article_key(r)
-        if key not in by_key:
-            r = dict(r)
-            provider = r.get("source_provider") or r.get("source")
-            if provider and not r.get("matched_providers"):
-                r["matched_providers"] = str(provider)
-            by_key[key] = r
+    grouped: dict[tuple[str, str], dict] = {}
+    for row in rows:
+        key = canonical_article_key(row)
+        if key not in grouped:
+            grouped[key] = dict(row)
             order.append(key)
         else:
-            by_key[key] = merge_article_rows(by_key[key], r)
-    return [by_key[key] for key in order]
+            grouped[key] = merge_article_rows(grouped[key], row)
+    return [grouped[key] for key in order]
