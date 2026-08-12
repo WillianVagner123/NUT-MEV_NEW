@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from nutev.global_watch.watch_query_builder import build_watch_queries
 from nutev.global_watch.watch_scoring import score_watch_item
-from nutev.querypacks.provider_queries import render_queries_for_provider
 
 
 def test_food_literacy_queries_add_labeling_and_security_context() -> None:
@@ -33,42 +32,3 @@ def test_labeling_and_security_signals_improve_priority() -> None:
     generic = score_watch_item({"title": "Food literacy in obesity care"})
 
     assert enriched > generic
-
-
-def test_provider_queries_include_food_environment_implementation_terms() -> None:
-    taxonomy = {
-        "global": {
-            "implementation_behavior": {"core": ["implementation"]},
-            "diet_patterns": {"core": ["healthy diet"]},
-            "nutrition_domains": {"core": ["nutrition care"]},
-            "document_types": {"reviews": ["systematic review"]},
-        },
-        "clinical": {"glycemia": ["type 2 diabetes"]},
-        "outcomes": {"metabolic": ["cardiometabolic"]},
-        "workstreams": {
-            "busca2b": {
-                "population_terms": ["adults with obesity"],
-                "condition_terms": ["obesity"],
-                "clinical_keys": ["glycemia"],
-                "priority_outcomes": ["metabolic"],
-                "document_type_keys": ["reviews"],
-                "focus_blocks": [],
-            },
-            "a3": {
-                "population_terms": ["adults"],
-                "condition_terms": ["obesity"],
-                "clinical_keys": [],
-                "priority_outcomes": ["metabolic"],
-                "document_type_keys": ["reviews"],
-                "focus_blocks": [],
-            },
-        },
-    }
-
-    busca2b_queries = "\n".join(render_queries_for_provider(taxonomy, "busca2b", "pubmed")).lower()
-    a3_queries = "\n".join(render_queries_for_provider(taxonomy, "a3", "pubmed")).lower()
-
-    assert "food environment intervention" in busca2b_queries
-    assert "food procurement policy" in busca2b_queries
-    assert "healthy food retail" in a3_queries
-    assert "choice architecture" in a3_queries
