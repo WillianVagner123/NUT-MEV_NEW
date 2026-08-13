@@ -7,44 +7,51 @@ from pathlib import Path
 import pytest
 
 from nutev.search.base import ProviderResult
-from nutev.search.gf02_pubmed_pilot import load_candidate_config, run_gf02_pubmed_pilot
+from nutev.search.gf02_pubmed_pilot import (
+    load_candidate_config,
+    resolved_line_expressions,
+    run_gf02_pubmed_pilot,
+)
 
 
-def test_candidate_config_is_explicitly_pilot_and_non_prisma(tmp_path: Path):
-    bad = tmp_path / "bad.json"
-    bad.write_text(
-        json.dumps(
-            {
-                "search_type": "FORMAL",
-                "prisma_eligible": True,
-                "candidates": {"v0.2": "x", "v0.3": "y"},
-            }
-        ),
-        encoding="utf-8",
-    )
-    with pytest.raises(ValueError, match="PILOT"):
-        load_candidate_config(bad)
+def _config() -> dict:
+    return {
+        "schema_version": 2,
+        "route_id": "B-NORM-PUBMED",
+        "search_type": "PILOT",
+        "prisma_eligible": False,
+        "formal_execution_authorized": False,
+        "current_candidate": "v0.4",
+        "candidate_status": "PROVISIONAL_PILOT_PENDING",
+        "methodology_decisions": ["D-093", "D-094"],
+        "canonical_operational_source": "02I_PRESS_ESTRATEGIAS",
+        "superseded_candidates": {
+            "v0.3": {"status": "SUPERSEDED", "execution_allowed": False}
+        },
+        "lines": {
+            "#1": {"label": "core", "query": "DIET_CORE"},
+            "#2": {"label": "normative", "query": "NORMATIVE_MAIN"},
+            "#3": {"label": "main", "combine": {"left": "#1", "operator": "AND", "right": "#2"}},
+            "#4": {"label": "neutral rescue", "query": "GUIDELINE_TITLE"},
+            "#5": {"label": "no abstract", "query": "NOT hasabstract AND NOT comment[pt]"},
+            "#6": {"label": "rescue", "combine": {"left": "#4", "operator": "AND", "right": "#5"}},
+            "#7": {"label": "final", "combine": {"left": "#3", "operator": "OR", "right": "#6"}},
+        },
+        "final_line": "#7",
+        "required_count_lines": ["#1", "#2", "#3", "#4", "#6", "#7"],
+        "rescue_only": {"left": "#6", "operator": "NOT", "right": "#3"},
+        "rescue_sample": {"minimum": 10, "maximum": 20, "default": 20},
+        "priority_expectations": {
+            "NORM-035": {"pmid": "41651737", "expected_final": True},
+            "NORM-063": {"pmid": "36994026", "expected_final": True},
+        },
+    }
 
 
-def test_runner_preserves_exact_queries_probes_sentinels_and_noise_template(tmp_path: Path):
-    repo = tmp_path / "repo"
-    project = tmp_path / "project"
+def _write_repo(repo: Path, config: dict | None = None) -> None:
     (repo / "config").mkdir(parents=True)
-
     (repo / "config" / "gf02_pubmed_candidates.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "route_id": "B-NORM-PUBMED",
-                "search_type": "PILOT",
-                "prisma_eligible": False,
-                "candidates": {
-                    "v0.2": "BASE QUERY",
-                    "v0.3": "BASE QUERY OR RESCUE NOT hasabstract",
-                },
-            }
-        ),
-        encoding="utf-8",
+        json.dumps(config or _config()), encoding="utf-8"
     )
     (repo / "config" / "article1_sentinel_registry.json").write_text(
         json.dumps(
@@ -73,105 +80,151 @@ def test_runner_preserves_exact_queries_probes_sentinels_and_noise_template(tmp_
         encoding="utf-8",
     )
 
-    def fake_search(query: str, limit: int, context: dict) -> ProviderResult:
-        is_v03 = "RESCUE NOT hasabstract" in query
-        if "41651737[pmid]" in query:
-            rows = (
-                [{"pmid": "41651737", "doi": "10.1016/j.acvd.2026.01.001", "title": "French"}]
-                if is_v03
-                else []
-            )
-            return ProviderResult("pubmed", query, rows=rows, total_found=len(rows))
-        if "36994026[pmid]" in query:
-            rows = (
-                [{"pmid": "36994026", "doi": "10.4103/jfmpc.jfmpc_51_22", "title": "AIIMS"}]
-                if is_v03
-                else []
-            )
-            return ProviderResult("pubmed", query, rows=rows, total_found=len(rows))
 
-        rows = [
-            {"pmid": "100", "doi": "10.1/a", "title": "Record A"},
-            {"pmid": "200", "doi": "10.1/b", "title": "Record B"},
-            {"pmid": "300", "doi": "10.1/c", "title": "Record C"},
-        ]
-        return ProviderResult("pubmed", query, rows=rows, total_found=3)
+def test_repository_candidate_is_v04_condition_neutral() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    config = load_candidate_config(repo_root / "config" / "gf02_pubmed_candidates.json")
+    expressions = resolved_line_expressions(config)
+
+    assert config["current_candidate"] == "v0.4"
+    assert config["superseded_candidates"]["v0.3"]["execution_allowed"] is False
+    assert config["required_count_lines"] == ["#1", "#2", "#3", "#4", "#6", "#7"]
+    assert "diabetes[ti]" not in expressions["#4"].lower()
+    assert "obes" not in expressions["#4"].lower()
+    assert expressions["#7"] == f"({expressions['#3']}) OR ({expressions['#6']})"
+
+
+def test_candidate_config_rejects_condition_specific_rescue(tmp_path: Path) -> None:
+    config = _config()
+    config["lines"]["#4"]["query"] = "guideline[ti] AND diabetes[ti]"
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="condition-neutral"):
+        load_candidate_config(path)
+
+
+def test_candidate_config_is_pilot_and_superseded_versions_are_not_executable(tmp_path: Path) -> None:
+    config = _config()
+    config["superseded_candidates"]["v0.3"]["execution_allowed"] = True
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="superseded"):
+        load_candidate_config(path)
+
+
+def test_runner_records_line_counts_mechanism_and_unclassified_rescue_sample(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    project = tmp_path / "project"
+    _write_repo(repo)
+
+    totals = {
+        "gf02_v04_line_1": 100,
+        "gf02_v04_line_2": 50,
+        "gf02_v04_line_3": 30,
+        "gf02_v04_line_4": 10,
+        "gf02_v04_line_6": 8,
+        "gf02_v04_line_7": 35,
+        "gf02_v04_rescue_only": 12,
+    }
+
+    def fake_search(query: str, limit: int, context: dict) -> ProviderResult:
+        workstream = context["workstream"]
+        if workstream.startswith("gf02_probe_"):
+            recovered = "line_3" not in workstream
+            rows = [{"pmid": query.split(" AND ")[-1].split("[")[0]}] if recovered else []
+            return ProviderResult(
+                "pubmed",
+                query,
+                rows=rows,
+                total_found=len(rows),
+                total_returned=len(rows),
+                status="completed" if rows else "empty",
+            )
+        total = totals[workstream]
+        if workstream == "gf02_v04_rescue_only":
+            rows = [
+                {"pmid": str(1000 + idx), "doi": f"10.1/{idx}", "title": f"Rescue {idx}"}
+                for idx in range(12)
+            ]
+        elif workstream == "gf02_v04_line_7":
+            rows = [
+                {"pmid": "2001", "title": "Final A"},
+                {"pmid": "2002", "title": "Final B"},
+                {"pmid": "2003", "title": "Final C"},
+            ]
+        else:
+            rows = [{"pmid": "1", "title": "Count probe"}]
+        return ProviderResult(
+            "pubmed",
+            query,
+            rows=rows[:limit],
+            total_found=total,
+            total_returned=min(len(rows), limit),
+            status="completed",
+            meta={"query_translation": f"translated:{workstream}"},
+        )
 
     manifest = run_gf02_pubmed_pilot(
         repo,
         project_root=project,
         limit=100,
-        noise_sample_size=2,
+        noise_sample_size=10,
         noise_seed=7,
         search_fn=fake_search,
-        started_at="2026-08-12T01:00:00-03:00",
-        run_id="gf02_test",
+        started_at="2026-08-13T19:30:00-03:00",
+        run_id="gf02_v04_test",
     )
 
     assert manifest["status"] == "SUCCEEDED"
+    assert manifest["candidate_version"] == "v0.4"
     assert manifest["search_type"] == "PILOT"
     assert manifest["prisma_eligible"] is False
     assert manifest["formal_execution_authorized"] is False
-    assert manifest["versions"]["v0.2"]["exact_query"] == "BASE QUERY"
-    assert manifest["versions"]["v0.3"]["exact_query"] == "BASE QUERY OR RESCUE NOT hasabstract"
-    assert manifest["priority_sentinel_comparison"] == {
-        "NORM-035": {"v0.2": False, "v0.3": True},
-        "NORM-063": {"v0.2": False, "v0.3": True},
+    assert manifest["line_counts"] == {
+        "#1": 100,
+        "#2": 50,
+        "#3": 30,
+        "#4": 10,
+        "#6": 8,
+        "#7": 35,
     }
+    assert manifest["final_ncbi_query_translation"] == "translated:gf02_v04_line_7"
+    assert manifest["pubmed_advanced_search_details_required"] is True
+    assert manifest["priority_sentinel_mechanism"] == {
+        "NORM-035": {"#3": False, "#6": True, "#7": True},
+        "NORM-063": {"#3": False, "#6": True, "#7": True},
+    }
+    assert manifest["rescue_only"]["total_found"] == 12
 
-    noise_path = Path(manifest["noise_sample"])
-    with noise_path.open(encoding="utf-8-sig", newline="") as handle:
-        rows = list(csv.DictReader(handle))
-    assert len(rows) == 2
-    assert all(row["classification"] == "" for row in rows)
-    assert all(row["reviewer"] == "" for row in rows)
-    assert all("seed=7" in row["sampling_rule"] for row in rows)
+    sample_path = Path(manifest["rescue_only_sample"])
+    with sample_path.open(encoding="utf-8-sig", newline="") as handle:
+        sample_rows = list(csv.DictReader(handle))
+    assert len(sample_rows) == 10
+    assert all(row["classification"] == "" for row in sample_rows)
+    assert all(row["reviewer"] == "" for row in sample_rows)
+    assert all("source=(#6 NOT #3)" in row["sampling_rule"] for row in sample_rows)
 
     stored = json.loads(
-        (project / "07_logs" / "gf02" / "pubmed" / "gf02_test" / "run_manifest.json").read_text(
+        (project / "07_logs" / "gf02" / "pubmed" / "gf02_v04_test" / "run_manifest.json").read_text(
             encoding="utf-8"
         )
     )
-    assert stored["prisma_eligible"] is False
-    assert stored["priority_sentinel_comparison"]["NORM-035"]["v0.3"] is True
+    assert stored["candidate_version"] == "v0.4"
+    assert stored["scientific_interpretation_allowed"] is False
+    assert stored["press_approved"] is False
+    assert stored["freeze_authorized"] is False
 
 
-def test_truncation_is_explicit_in_noise_sampling_rule(tmp_path: Path):
+def test_runner_rejects_rescue_sample_outside_methodological_range(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
-    project = tmp_path / "project"
-    (repo / "config").mkdir(parents=True)
-    (repo / "config" / "gf02_pubmed_candidates.json").write_text(
-        json.dumps(
-            {
-                "route_id": "B-NORM-PUBMED",
-                "search_type": "PILOT",
-                "prisma_eligible": False,
-                "candidates": {"v0.2": "Q2", "v0.3": "Q3"},
-            }
-        ), encoding="utf-8"
-    )
-    (repo / "config" / "article1_sentinel_registry.json").write_text(
-        json.dumps(
-            {
-                "sentinels": [
-                    {"sentinel_id": "NORM-035", "canonical_title": "A", "doi": "10.1/a", "pmid": "1", "document_unit_rule": "A", "identity_status": "RESOLVED"},
-                    {"sentinel_id": "NORM-063", "canonical_title": "B", "doi": "10.1/b", "pmid": "2", "document_unit_rule": "B", "identity_status": "RESOLVED"},
-                ]
-            }
-        ), encoding="utf-8"
-    )
+    _write_repo(repo)
 
-    def fake_search(query: str, limit: int, context: dict) -> ProviderResult:
-        if "[pmid]" in query:
-            return ProviderResult("pubmed", query, rows=[], total_found=0)
-        return ProviderResult(
-            "pubmed", query, rows=[{"pmid": "9", "title": "Only fetched row"}], total_found=99
+    with pytest.raises(ValueError, match="between 10 and 20"):
+        run_gf02_pubmed_pilot(
+            repo,
+            project_root=tmp_path / "project",
+            noise_sample_size=9,
+            search_fn=lambda query, limit, context: ProviderResult("pubmed", query),
         )
-
-    manifest = run_gf02_pubmed_pilot(
-        repo, project_root=project, limit=1, noise_sample_size=1, search_fn=fake_search, run_id="truncated"
-    )
-    assert manifest["versions"]["v0.3"]["truncated"] is True
-    with Path(manifest["noise_sample"]).open(encoding="utf-8-sig", newline="") as handle:
-        row = next(csv.DictReader(handle))
-    assert "truncated" in row["sampling_rule"]
