@@ -6,7 +6,7 @@ formal/frozen entries must carry enough operational metadata to be reproducible.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any, Iterable
 from urllib.parse import urlparse
