@@ -2,7 +2,7 @@
 
 Official guides are NOT indexed in bibliographic databases; they live in the FAO
 Food-Based Dietary Guidelines registry and on ministry sites. This module fetches
-them by sampling frame — reusing the existing ~120-country seed list in
+them by sampling frame — reusing the existing country seed list in
 ``config/official_sources_countries.json`` (loaded via
 ``nutev.search.official_sources.load_official_manifest``) instead of a second
 parallel list.
@@ -28,9 +28,9 @@ _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 
 def load_guide_sources(config_root: str | Path) -> list[dict]:
-    """Return the Track-1 guide seed list (busca1) from the official manifest."""
+    """Return the Track-1 dietary-guide seed list using canonical semantics."""
     manifest = load_official_manifest(Path(config_root), include_countries=True)
-    return list(manifest.get("workstreams", {}).get("busca1", []))
+    return list(manifest.get("workstreams", {}).get("policy_systems", []))
 
 
 def _slug(text: str, maxlen: int = 40) -> str:
@@ -47,7 +47,7 @@ def _content_kind(content_type: str, body: bytes) -> str:
 
 
 def _max_download_bytes() -> int:
-    """Optional cap on a single download's size (env NUTEV_MAX_DOWNLOAD_MB; 0 = no cap)."""
+    """Optional cap on one download (NUTEV_MAX_DOWNLOAD_MB; 0 = no cap)."""
     try:
         mb = float(os.environ.get("NUTEV_MAX_DOWNLOAD_MB", "0") or 0)
     except ValueError:
@@ -62,14 +62,7 @@ def fetch_guide(
     *,
     timeout: float = 30.0,
 ) -> dict:
-    """Fetch one guide, save it, and return an auditable provenance record.
-
-    Returns keys: ``name``, ``country``, ``institution``, ``source_url``,
-    ``access_date``, ``archived_pdf_path``, ``sha256``, ``fulltext_status``
-    (``fulltext_pdf`` | ``fulltext_html`` | ``error``), ``retrieval_method`` and
-    ``aacods_authority_tier``. Never raises on a network error — records
-    ``fulltext_status="error"`` with the reason.
-    """
+    """Fetch one guide, save it, and return an auditable provenance record."""
     dest = Path(dest_dir)
     dest.mkdir(parents=True, exist_ok=True)
     url = str(source.get("url") or "").strip()
@@ -101,16 +94,21 @@ def fetch_guide(
         if cap and len(body) > cap:
             base["reason"] = f"too_large_{len(body)}_bytes"
             return base
-        kind = _content_kind(getattr(resp, "headers", {}).get("Content-Type", "") if hasattr(resp, "headers") else "", body)
+        kind = _content_kind(
+            getattr(resp, "headers", {}).get("Content-Type", "") if hasattr(resp, "headers") else "",
+            body,
+        )
         ext = "pdf" if kind == "pdf" else ("html" if kind == "html" else "bin")
         fname = f"{_slug(source.get('country') or source.get('name'))}__{_slug(source.get('name'))}.{ext}"
         out_path = dest / fname
         out_path.write_bytes(body)
         base["archived_pdf_path"] = str(out_path)
         base["sha256"] = sha256_of_file(out_path) or ""
-        base["fulltext_status"] = "fulltext_pdf" if kind == "pdf" else ("fulltext_html" if kind == "html" else "other")
+        base["fulltext_status"] = (
+            "fulltext_pdf" if kind == "pdf" else ("fulltext_html" if kind == "html" else "other")
+        )
         base["reason"] = ""
-    except Exception as exc:  # network/IO — recorded, never fatal
+    except Exception as exc:
         base["reason"] = f"{type(exc).__name__}: {exc}"
     return base
 
