@@ -11,6 +11,8 @@ CATS = [
     "frameworks_instruments",
 ]
 
+WORKSTREAMS = ["policy_systems", "clinical_outcomes", "implementation", "framework"]
+
 
 def write_digest(rows, run_dir, latest_doc_path):
     digest_date = datetime.now(timezone.utc).date().isoformat()
@@ -60,7 +62,7 @@ def write_digest(rows, run_dir, latest_doc_path):
         )
 
     lines += ["", "## Impacto nos artigos"]
-    for workstream in ["busca1", "busca2a", "busca2b", "a3"]:
+    for workstream in WORKSTREAMS:
         lines.append(
             f"- {workstream}: "
             f"{sum(1 for row in rows if workstream in (row.get('workstream_affinity') or []))}"

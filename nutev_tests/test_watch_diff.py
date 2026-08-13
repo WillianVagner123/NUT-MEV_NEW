@@ -13,7 +13,7 @@ def test_update_seen_items_preserves_audit_fields():
             "title": "Dietary adherence guideline",
             "matched_categories": "implementation_behavior|guidelines_consensus",
             "matched_providers": "pubmed|openalex",
-            "workstream_affinity": ["busca1", "busca2b"],
+            "workstream_affinity": ["policy_systems", "implementation"],
             "evidence_type": "guideline",
             "relevance_score": 50,
             "watch_score": 91.5,
@@ -25,6 +25,6 @@ def test_update_seen_items_preserves_audit_fields():
 
     assert seen["doc1"]["matched_categories"] == "implementation_behavior|guidelines_consensus"
     assert seen["doc1"]["matched_providers"] == "pubmed|openalex"
-    assert seen["doc1"]["workstream_affinity"] == ["busca1", "busca2b"]
+    assert seen["doc1"]["workstream_affinity"] == ["policy_systems", "implementation"]
     assert seen["doc1"]["evidence_type"] == "guideline"
     assert seen["doc1"]["watch_score"] == 91.5

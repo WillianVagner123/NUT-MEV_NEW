@@ -13,7 +13,7 @@ from typing import Any
 
 from nutev.search.official_sources import load_official_manifest, manifest_sources
 
-WORKSTREAMS = ["busca1", "busca2a", "busca2b", "a3"]
+WORKSTREAMS = ["policy_systems", "clinical_outcomes", "implementation", "framework"]
 _USER_AGENT = "NutEV Source Verifier/1.0 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
 
 

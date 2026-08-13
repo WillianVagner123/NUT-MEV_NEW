@@ -1,21 +1,21 @@
 {
-  "_comment": "Phase-0 parity baseline for the global_watch unification (docs/REFACTOR_GLOBAL_WATCH_UNIFICATION.md). Locks run_watch_provider's dispatch -> normalized-hits output per provider from fixed input rows. Phase 1 (dispatch via search_provider) must keep these digests for the shared-connector providers (europepmc/openalex/crossref). Regenerate only with a documented decision.",
+  "_comment": "Global Watch dispatch parity baseline. The 2026-08 semantic-label migration intentionally changed only normalized workstream_affinity values from historical aliases to policy_systems/clinical_outcomes/implementation/framework; connector routing, fixed input rows, hit counts and provider behavior remain unchanged. Regenerate only with a documented decision.",
   "by_provider": {
     "crossref": {
       "n_hits": 3,
-      "sha256": "fa74c96382d72de401e9039213dc2cbb44088ea90d24b17cd5d0bcad9f9f708f"
+      "sha256": "dc7acba22ebebb6982439a22e08f885ba5c2657719ed6de2bafa1b297317321d"
     },
     "europepmc": {
       "n_hits": 3,
-      "sha256": "cb8ec1022bb661fee3f3c19f0bb516385824358d875e811632f35d7beb858ad0"
+      "sha256": "c91ddb2ee61449a1b519c3326df5e44ce789183940a1032dec6d07e06684294c"
     },
     "openalex": {
       "n_hits": 3,
-      "sha256": "9dbc5d3631450bd3b0d5175cdacaa61f4de2400efc97ba399c694a4a35f109e8"
+      "sha256": "c351ccbe5512dc7e22539d99edc22bc0e574733a19c212715e514da59ff45213"
     },
     "pubmed": {
       "n_hits": 3,
-      "sha256": "a9b82a59c1cb460b7c882f8fb8176c8330988e8a87100baf153e6e465acae420"
+      "sha256": "b45f1fc4a20a3a5ee9e505a18f891453726da9ed553d10ea568a256e13b35075"
     }
   },
   "input_rows": 3,

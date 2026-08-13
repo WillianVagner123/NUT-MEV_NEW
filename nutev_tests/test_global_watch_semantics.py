@@ -49,7 +49,7 @@ def test_watch_score_prioritizes_self_management_implementation_signals() -> Non
     assert enriched > baseline
 
 
-def test_infer_workstream_affinity_routes_self_management_titles_to_busca2b() -> None:
+def test_infer_workstream_affinity_routes_self_management_titles_to_implementation() -> None:
     affinity = infer_workstream_affinity(
         (
             "Dietitian-led obesity care uses self-management support and shared "
@@ -58,4 +58,5 @@ def test_infer_workstream_affinity_routes_self_management_titles_to_busca2b() ->
         "implementation_behavior",
     )
 
-    assert "busca2b" in affinity
+    assert "implementation" in affinity
+    assert "busca2b" not in affinity
