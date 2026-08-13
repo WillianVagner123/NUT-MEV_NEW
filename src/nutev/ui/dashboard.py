@@ -176,8 +176,9 @@ def run_dashboard(project_root: Path) -> None:
         )
         import json
 
-        from nutev.search.strategy_builder import BREADTHS, build_all, parse_strategy, unified_from_text
+        from nutev.search.strategy_builder import BREADTHS
         from nutev.ui.search_registry_panel import render_search_registry_panel
+        from nutev.ui.search_strategy_preview import prepare_search_strategy_preview
 
         query_text = st.text_area(
             "O que você deseja pesquisar?",
@@ -205,18 +206,24 @@ def run_dashboard(project_root: Path) -> None:
             with col_y4:
                 publication_types = st.text_input("Tipos de publicação", placeholder="Guideline")
 
-        spec_dict = unified_from_text(
+        preview = prepare_search_strategy_preview(
             query_text,
             year_from=year_from,
             year_to=year_to,
             languages=languages,
             publication_types=publication_types,
         )
+        spec_dict = preview["spec"]
+        grid = preview["grid"]
+        validation_error = str(preview["error"] or "")
 
-        if not spec_dict:
+        if validation_error:
+            warning_banner(f"Entrada de pesquisa inválida: {validation_error}")
+        elif not spec_dict:
             empty_state("Nenhuma pesquisa informada", "Digite um tema, pergunta ou conjunto de termos no campo acima.")
         else:
-            grid = build_all(parse_strategy(spec_dict))
+            for message in preview["warnings"]:
+                warning_banner(str(message))
             st.caption(
                 "broad e balanced usam o mesmo campo global; specific acrescenta "
                 "os filtros opcionais de ano, idioma e tipo de publicação."
