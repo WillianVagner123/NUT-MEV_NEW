@@ -259,18 +259,28 @@ def test_unresolved_priority_identity_blocks_gate():
     assert "NORM-063:identity_unresolved" in status["blockers"]
 
 
-def test_repository_priority_sentinel_file_contains_resolved_canonical_identities():
+def test_repository_sentinel_file_contains_full_resolved_canonical_suite():
     data = json.loads(Path("config/article1_sentinel_registry.json").read_text(encoding="utf-8"))
     by_id = {row["sentinel_id"]: row for row in data["sentinels"]}
+    expected_ids = {
+        "NORM-018", "NORM-035", "NORM-040", "NORM-044", "NORM-046", "NORM-049",
+        "NORM-051", "NORM-056", "NORM-057", "NORM-059", "NORM-060", "NORM-061",
+        "NORM-062", "NORM-063", "NORM-064", "NORM-065",
+    }
 
-    assert data["status"] == "PRIORITY_IDENTITIES_RESOLVED"
-    assert by_id["NORM-035"]["identity_status"] == "RESOLVED"
+    assert data["suite_version"] == "GF02-SENTINELS-2026-08-13-v2"
+    assert data["status"] == "FULL_DECLARED_SUITE_IDENTITIES_RESOLVED"
+    assert set(by_id) == expected_ids
+    assert len(data["sentinels"]) == 16
+    assert all(row["identity_status"] == "RESOLVED" for row in data["sentinels"])
+    assert all(row["allow_title_match"] is False for row in data["sentinels"])
+    records = [SentinelRecord(**row) for row in data["sentinels"]]
+    assert validate_sentinel_registry(records) == records
+
     assert by_id["NORM-035"]["doi"] == "10.1016/j.acvd.2026.01.001"
     assert by_id["NORM-035"]["pmid"] == "41651737"
-    assert by_id["NORM-035"]["allow_title_match"] is False
-
-    assert by_id["NORM-063"]["identity_status"] == "RESOLVED"
     assert by_id["NORM-063"]["doi"] == "10.4103/jfmpc.jfmpc_51_22"
     assert by_id["NORM-063"]["pmid"] == "36994026"
     assert by_id["NORM-063"]["pmcid"] == "PMC10041015"
-    assert by_id["NORM-063"]["allow_title_match"] is False
+    assert by_id["NORM-046"]["doi"] == "10.1016/j.jcjd.2022.10.004"
+    assert by_id["NORM-046"]["pmid"] == "36567079"
