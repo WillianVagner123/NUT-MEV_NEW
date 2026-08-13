@@ -3,7 +3,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from nutev.search.base import ProviderResult
+from nutev.search.formal_execution_guard import default_freeze_path, default_gate_path
+from nutev.search.scientific_gates import (
+    FreezeRecord,
+    GateRecord,
+    save_freeze_record,
+    save_gate_records,
+)
 from nutev.search.strategy_execution_ledger import (
     list_execution_artifacts,
     list_search_runs,
@@ -17,6 +26,9 @@ from nutev.search.strategy_registry import (
     list_search_executions,
     save_strategy_version,
 )
+
+GIT_SHA = "a" * 40
+CONFIG_DIGEST = "b" * 64
 
 
 def _payload() -> dict:
@@ -58,6 +70,60 @@ def _save_version(tmp_path: Path, *, search_type: str = "formal"):
     )
 
 
+def _authorize_formal(tmp_path: Path, version_id: str) -> None:
+    gate_ids = ("GF-02", "GF-03", "GF-04", "GF-05", "GF-06", "GF-07", "GF-08", "GF-09")
+    gates = [
+        GateRecord(
+            gate_id=gate_id,
+            requirement=f"Requirement for {gate_id}",
+            evidence=(f"evidence:{gate_id}",),
+            status="COMPLETED",
+            owner="human-reviewer",
+            completion_date="2026-08-13",
+        )
+        for gate_id in gate_ids
+    ]
+    gates.append(
+        GateRecord(
+            gate_id="GF-10",
+            requirement="Global search freeze",
+            evidence=("FREEZE-A1-001",),
+            status="AUTHORIZED",
+            owner="human-reviewer",
+            completion_date="2026-08-13",
+        )
+    )
+    save_gate_records(default_gate_path(tmp_path), gates, registry_version="gates-v1")
+    save_freeze_record(
+        default_freeze_path(tmp_path),
+        FreezeRecord(
+            freeze_id="FREEZE-A1-001",
+            date="2026-08-13",
+            software_version="0.3.0.dev1",
+            git_commit_sha=GIT_SHA,
+            strategy_versions=(version_id,),
+            source_registry_version="sources-v1",
+            repository_registry_version="repositories-v1",
+            sentinel_suite_version="sentinels-v1",
+            press_evidence_id="PRESS-001",
+            filters=(("language", "eng"),),
+            final_search_date_rule="real execution date",
+            config_digest=CONFIG_DIGEST,
+            reviewers=("human-reviewer",),
+        ),
+    )
+
+
+def _execute_formal(tmp_path: Path, version_id: str, **kwargs):
+    return execute_strategy_version(
+        tmp_path,
+        version_id=version_id,
+        authorization_git_sha=GIT_SHA,
+        authorization_config_digest=CONFIG_DIGEST,
+        **kwargs,
+    )
+
+
 def test_parse_provider_expression_preserves_boolean_and_extracts_api_filter():
     pubmed = '(diet[tiab]) AND ("2020"[dp] : "2026"[dp])'
     assert parse_provider_expression("pubmed", pubmed) == (pubmed, "")
@@ -71,8 +137,23 @@ def test_parse_provider_expression_preserves_boolean_and_extracts_api_filter():
     )
 
 
+def test_formal_execution_is_blocked_before_any_run_without_gate_and_freeze_evidence(tmp_path):
+    version = _save_version(tmp_path)
+    with pytest.raises(RuntimeError, match="FORMAL execution blocked"):
+        execute_strategy_version(
+            tmp_path,
+            version_id=version.version_id,
+            providers=["pubmed"],
+            search_fn=lambda **kwargs: ProviderResult(
+                provider=kwargs["provider"], query=kwargs["query"], status="empty"
+            ),
+        )
+    assert list_search_runs(default_registry_path(tmp_path), version_id=version.version_id) == []
+
+
 def test_execute_frozen_version_writes_snapshots_and_prisma_counts(tmp_path):
     version = _save_version(tmp_path)
+    _authorize_formal(tmp_path, version.version_id)
     calls: list[dict] = []
 
     def fake_search(**kwargs):
@@ -88,9 +169,9 @@ def test_execute_frozen_version_writes_snapshots_and_prisma_counts(tmp_path):
             meta={"fake": True},
         )
 
-    summary = execute_strategy_version(
+    summary = _execute_formal(
         tmp_path,
-        version_id=version.version_id,
+        version.version_id,
         breadth="specific",
         providers=["pubmed", "crossref"],
         limit=25,
@@ -101,6 +182,7 @@ def test_execute_frozen_version_writes_snapshots_and_prisma_counts(tmp_path):
     )
 
     assert summary["status"] == "SUCCEEDED"
+    assert summary["formal_authorization"]["authorized"] is True
     assert summary["records_identified_before_deduplication"] == 2
     assert summary["provider_reported_total_found"] == 14
     assert summary["prisma_records_identified"] == 2
@@ -153,12 +235,14 @@ def test_pilot_execution_is_audited_but_does_not_feed_prisma(tmp_path):
         run_id="search_run_test_pilot",
     )
     assert summary["records_identified_before_deduplication"] == 1
+    assert summary["formal_authorization"]["required"] is False
     assert summary["prisma_eligible"] is False
     assert summary["prisma_records_identified"] == 0
 
 
 def test_provider_failure_is_recorded_without_losing_successful_snapshot(tmp_path):
     version = _save_version(tmp_path)
+    _authorize_formal(tmp_path, version.version_id)
 
     def fake_search(**kwargs):
         if kwargs["provider"] == "crossref":
@@ -171,9 +255,9 @@ def test_provider_failure_is_recorded_without_losing_successful_snapshot(tmp_pat
             status="completed",
         )
 
-    summary = execute_strategy_version(
+    summary = _execute_formal(
         tmp_path,
-        version_id=version.version_id,
+        version.version_id,
         providers=["pubmed", "crossref"],
         search_fn=fake_search,
         run_id="search_run_test_partial",
