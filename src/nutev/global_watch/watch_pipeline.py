@@ -15,6 +15,7 @@ from nutev.engine.job import (
     write_search_case,
     write_search_job_snapshot,
 )
+from nutev.engine.validators import validate_workstream
 from nutev.global_watch.watch_capture import capture_watch_items
 from nutev.global_watch.watch_diff import (
     load_seen_items,
@@ -147,6 +148,17 @@ def _dedupe_values(*values: object) -> list[str]:
     return out
 
 
+def _canonical_workstream_values(*values: object) -> list[str]:
+    canonical: list[str] = []
+    seen: set[str] = set()
+    for value in _dedupe_values(*values):
+        normalized = validate_workstream(value)
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            canonical.append(normalized)
+    return canonical
+
+
 def _prefer_longer_text(existing: object, incoming: object) -> str:
     existing_text = str(existing or "").strip()
     incoming_text = str(incoming or "").strip()
@@ -203,7 +215,7 @@ def _merge_watch_rows(existing: dict[str, Any], incoming: dict[str, Any]) -> dic
     merged["fallback_used"] = bool(
         merged.get("fallback_used") or incoming.get("fallback_used")
     )
-    merged["workstream_affinity"] = _dedupe_values(
+    merged["workstream_affinity"] = _canonical_workstream_values(
         merged.get("workstream_affinity"),
         incoming.get("workstream_affinity"),
     )
@@ -239,7 +251,7 @@ def _dedup_watch_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         document_id = str(row.get("document_id") or make_document_id(row))
         normalized = dict(row)
         normalized["document_id"] = document_id
-        normalized["workstream_affinity"] = _dedupe_values(
+        normalized["workstream_affinity"] = _canonical_workstream_values(
             normalized.get("workstream_affinity")
         )
         normalized["matched_categories"] = "|".join(
@@ -354,7 +366,7 @@ def infer_workstream_affinity(
     text = f"{title} {abstract} {snippet} {category}".lower()
     workstreams: list[str] = []
 
-    busca1_terms = [
+    policy_systems_terms = [
         "guideline",
         "guidelines",
         "dietary guideline",
@@ -366,7 +378,7 @@ def infer_workstream_affinity(
         "food",
         "nutrition",
     ]
-    busca2a_terms = [
+    clinical_outcomes_terms = [
         "obesity",
         "cardio",
         "cardiometabolic",
@@ -384,7 +396,7 @@ def infer_workstream_affinity(
         "fatty liver",
         "steatotic liver disease",
     ]
-    busca2b_terms = [
+    implementation_terms = [
         "adherence",
         "dietary adherence",
         "treatment adherence",
@@ -487,7 +499,7 @@ def infer_workstream_affinity(
         "metabolic dysfunction associated fatty liver disease",
         "metabolic dysfunction-associated steatotic liver disease",
     ]
-    a3_terms = [
+    framework_terms = [
         "framework",
         "questionnaire",
         "instrument",
@@ -519,21 +531,21 @@ def infer_workstream_affinity(
         "scale development",
     ]
 
-    if _contains_any(text, busca1_terms):
-        workstreams.append("busca1")
-    if _contains_any(text, busca2a_terms):
-        workstreams.append("busca2a")
-    if _contains_any(text, busca2b_terms) or category == "implementation_behavior":
-        workstreams.append("busca2b")
-    if _contains_any(text, a3_terms) or category in {
+    if _contains_any(text, policy_systems_terms):
+        workstreams.append("policy_systems")
+    if _contains_any(text, clinical_outcomes_terms):
+        workstreams.append("clinical_outcomes")
+    if _contains_any(text, implementation_terms) or category == "implementation_behavior":
+        workstreams.append("implementation")
+    if _contains_any(text, framework_terms) or category in {
         "frameworks_instruments",
         "food_literacy_culinary_commensality",
     }:
-        workstreams.append("a3")
+        workstreams.append("framework")
 
     if workstreams:
         return list(dict.fromkeys(workstreams))
-    return ["busca1"]
+    return ["policy_systems"]
 
 
 def normalize_watch_hit(
@@ -784,7 +796,7 @@ def run_global_watch(
             manifest = load_official_manifest(
                 settings.config_root, include_countries=bool(country_discovery)
             )
-            for ws in ["busca1", "busca2a", "busca2b", "a3"]:
+            for ws in ["policy_systems", "clinical_outcomes", "implementation", "framework"]:
                 for record in manifest_sources(manifest, ws):
                     rows.append(
                         normalize_watch_hit(
