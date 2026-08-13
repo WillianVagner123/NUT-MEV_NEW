@@ -28,7 +28,7 @@ def test_evidence_lenses_reference_known_ontology_domains():
     assert configured_domains <= known_domains
 
 
-def test_evidence_lenses_classify_workstream_aligned_records():
+def test_evidence_lenses_classify_semantic_records():
     records = [
         {
             "title": "Mediterranean diet quality guideline for low-income adults",
@@ -44,7 +44,7 @@ def test_evidence_lenses_classify_workstream_aligned_records():
 
     classified = classify_evidence(records, _load_ontology(), _load_lenses())
 
-    assert classified[0]["lens_busca1_present"] == 1
-    assert classified[0]["lens_busca2a_present"] == 1
-    assert classified[1]["lens_busca2b_present"] == 1
-    assert "busca2b" in classified[1]["evidence_lenses"]
+    assert classified[0]["lens_policy_systems_present"] == 1
+    assert classified[0]["lens_clinical_outcomes_present"] == 1
+    assert classified[1]["lens_implementation_present"] == 1
+    assert "implementation" in classified[1]["evidence_lenses"]
