@@ -29,6 +29,17 @@ TRACKING_QUERY_PARAMS = {
     "utm_term",
 }
 
+LEGACY_WORKSTREAM_ALIASES = {
+    "busca1": Workstream.policy_systems.value,
+    "busca2a": Workstream.clinical_outcomes.value,
+    "busca2b": Workstream.implementation.value,
+    "a3": Workstream.framework.value,
+    "artigo3_framework": Workstream.framework.value,
+    "article3_framework": Workstream.framework.value,
+    "a4": Workstream.framework.value,
+    "a4_framework": Workstream.framework.value,
+}
+
 
 def normalize_doi(doi: str | None) -> str | None:
     if not doi:
@@ -128,22 +139,11 @@ def canonical_host(url: str | None) -> str:
 
 
 def validate_workstream(value: str | None) -> str | None:
+    """Normalize historical analytical labels to current canonical semantics."""
     if value in (None, ""):
         return None
     normalized = str(value).strip()
-    # Global Watch is a valid workstream (accepted verbatim, not aliased). Moved
-    # here from the former runtime_compat `_patch_workstream_validation` monkey-patch
-    # (Phase 4 of docs/REFACTOR_RUNTIME_COMPAT_MIGRATION.md).
-    if normalized == "global_watch":
-        return normalized
-    # Canonical article renumbering (P5): the behavioural framework is Article 4;
-    # a4/a4_framework map to the same workstream as the legacy a3 alias.
-    aliases = {
-        "article3_framework": "artigo3_framework",
-        "a4": "artigo3_framework",
-        "a4_framework": "artigo3_framework",
-    }
-    normalized = aliases.get(normalized, normalized)
+    normalized = LEGACY_WORKSTREAM_ALIASES.get(normalized, normalized)
     allowed = {item.value for item in Workstream}
     if normalized not in allowed:
         raise ValueError(f"Invalid workstream: {value}")

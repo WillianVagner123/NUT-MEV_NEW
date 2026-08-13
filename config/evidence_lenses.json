@@ -1,20 +1,20 @@
 {
-  "version": "1.1",
-  "description": "Evidence lenses that convert legacy workstreams (busca1/busca2a/busca2b/a3) into composable analysis layers aligned with NutMEV scope.",
+  "version": "2.0",
+  "description": "Canonical semantic evidence lenses for current NutEV analytical outputs. Historical busca* labels are import aliases only.",
   "lenses": {
-    "busca1": {
+    "policy_systems": {
       "focus": "policy_systems",
       "domains": ["policy_systems", "dietary_patterns", "equity"]
     },
-    "busca2a": {
+    "clinical_outcomes": {
       "focus": "clinical_outcomes",
       "domains": ["clinical_outcomes", "dietary_patterns", "policy_systems"]
     },
-    "busca2b": {
+    "implementation": {
       "focus": "implementation",
       "domains": ["implementation", "clinical_outcomes", "dietary_patterns"]
     },
-    "a3": {
+    "framework": {
       "focus": "framework",
       "domains": ["implementation", "policy_systems", "dietary_patterns"]
     }
