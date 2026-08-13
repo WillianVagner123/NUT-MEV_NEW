@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from nutev.search.strategy_builder import FILTER_SUPPORT, build_all, parse_strategy, unified_from_text
+from nutev.ui.search_strategy_preview import prepare_search_strategy_preview, provider_filter_warnings
 
 
 def test_year_range_rejects_inverted_bounds():
@@ -54,7 +55,7 @@ def test_publication_types_are_normalized_and_only_rendered_where_supported():
 
     grid = build_all(parse_strategy(payload))
     assert "Guideline[pt]" in grid["pubmed"]["specific"]
-    assert '"Systematic Review"[pt]' in grid["pubmed"]["specific"]
+    assert '\"Systematic Review\"[pt]' in grid["pubmed"]["specific"]
     assert "Meta-Analysis[pt]" in grid["pubmed"]["specific"]
     assert "Guideline" not in grid["europepmc"]["specific"]
     assert "Guideline" not in grid["crossref"]["specific"]
@@ -84,12 +85,12 @@ def test_global_field_rejects_manual_boolean_or_provider_syntax(query: str):
 
 
 def test_wrapping_quotes_are_normalized_without_double_quoting_provider_output():
-    payload = unified_from_text('"lifestyle medicine"; nutrition')
+    payload = unified_from_text('\"lifestyle medicine\"; nutrition')
     assert payload["query"] == ["lifestyle medicine", "nutrition"]
 
     pubmed = build_all(parse_strategy(payload))["pubmed"]["balanced"]
-    assert '"lifestyle medicine"[tiab]' in pubmed
-    assert '""lifestyle medicine""' not in pubmed
+    assert '\"lifestyle medicine\"[tiab]' in pubmed
+    assert '\"\"lifestyle medicine\"\"' not in pubmed
 
 
 def test_filter_support_matrix_is_explicit_and_matches_current_renderers():
@@ -109,3 +110,32 @@ def test_filter_support_matrix_is_explicit_and_matches_current_renderers():
         "language": True,
         "publication_type": False,
     }
+
+
+def test_dashboard_preview_converts_validation_failure_to_message_without_grid():
+    preview = prepare_search_strategy_preview("nutrition AND obesity")
+    assert preview["spec"] == {}
+    assert preview["grid"] == {}
+    assert preview["warnings"] == []
+    assert preview["error"]
+
+
+def test_dashboard_preview_rejects_inverted_years_without_rendering_grid():
+    preview = prepare_search_strategy_preview("nutrition", year_from=2026, year_to=2020)
+    assert preview["grid"] == {}
+    assert "Ano inicial não pode ser maior" in preview["error"]
+
+
+def test_dashboard_preview_normalizes_safe_input_and_reports_unsupported_filters():
+    preview = prepare_search_strategy_preview(
+        "nutrition; lifestyle medicine",
+        year_from=2020,
+        languages="English, português",
+        publication_types="Guideline",
+    )
+    assert preview["error"] == ""
+    assert preview["spec"]["languages"] == ["eng", "por"]
+    assert "pubmed" in preview["grid"]
+    assert provider_filter_warnings(preview["spec"]) == preview["warnings"]
+    assert any(message.startswith("crossref:") and "idioma" in message for message in preview["warnings"])
+    assert any(message.startswith("openalex:") and "tipo de publicação" in message for message in preview["warnings"])
