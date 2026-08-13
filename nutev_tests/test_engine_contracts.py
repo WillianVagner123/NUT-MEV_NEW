@@ -38,8 +38,15 @@ def test_normalize_url_removes_tracking_and_canonicalizes_netloc():
     assert normalize_url("http://www.example.org:80/a/") == "http://example.org/a"
 
 
-def test_workstream_alias_and_rejection():
-    assert validate_workstream("article3_framework") == "artigo3_framework"
+def test_workstream_aliases_normalize_to_canonical_semantics():
+    assert validate_workstream("busca1") == "policy_systems"
+    assert validate_workstream("busca2a") == "clinical_outcomes"
+    assert validate_workstream("busca2b") == "implementation"
+    assert validate_workstream("a3") == "framework"
+    assert validate_workstream("article3_framework") == "framework"
+    assert validate_workstream("a4_framework") == "framework"
+    assert validate_workstream("global_watch") == "global_watch"
+    assert validate_workstream("implementation") == "implementation"
     with pytest.raises(ValueError):
         validate_workstream("unknown")
 
@@ -54,6 +61,7 @@ def test_provider_hit_enforces_http_url_and_normalizes_doi():
         workstream="busca1",
     )
     assert hit.doi == "10.1000/abc"
+    assert hit.workstream == "policy_systems"
 
     with pytest.raises(ValidationError):
         ProviderHit(
@@ -78,7 +86,7 @@ def test_document_candidate_normalizes_ids_and_workstream():
     assert candidate.doi == "10.1000/xyz"
     assert candidate.pmid == "12345"
     assert candidate.pmcid == "PMC12345"
-    assert candidate.workstream == "artigo3_framework"
+    assert candidate.workstream == "framework"
 
 
 def test_evidence_record_rejects_incoherent_status_transition():
