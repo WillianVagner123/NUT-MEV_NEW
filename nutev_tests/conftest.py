@@ -32,8 +32,8 @@ def _synthetic_formal_authorization_for_downstream_tests(monkeypatch, request):
         prisma_eligible = bool(strategy_version.get("prisma_eligible"))
         if search_type == "FORMAL" or prisma_eligible:
             authorize_formal_strategy(Path(project_root), str(strategy_version["version_id"]))
-            kwargs.setdefault("current_git_sha", TEST_GIT_SHA)
-            kwargs.setdefault("current_config_digest", TEST_CONFIG_DIGEST)
+            kwargs["current_git_sha"] = TEST_GIT_SHA
+            kwargs["current_config_digest"] = TEST_CONFIG_DIGEST
         return original(project_root, strategy_version, **kwargs)
 
     monkeypatch.setattr(
