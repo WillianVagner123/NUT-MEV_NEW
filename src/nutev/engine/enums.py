@@ -12,11 +12,17 @@ class EventKind(str, Enum):
 
 
 class Workstream(str, Enum):
-    busca1 = "busca1"
-    busca2a = "busca2a"
-    busca2b = "busca2b"
-    a3 = "a3"
-    artigo3_framework = "artigo3_framework"
+    """Canonical analytical labels emitted by the current runtime.
+
+    Historical ``busca*``/article-framework labels are accepted only through
+    explicit import aliases in :func:`nutev.engine.validators.validate_workstream`.
+    """
+
+    policy_systems = "policy_systems"
+    clinical_outcomes = "clinical_outcomes"
+    implementation = "implementation"
+    framework = "framework"
+    global_watch = "global_watch"
 
 
 class DownloadStatus(str, Enum):
