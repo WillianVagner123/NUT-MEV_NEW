@@ -1,104 +1,55 @@
 # NutEV PLAY
 
-`nutev play` is the one-command computational orchestrator for the NutEV Evidence Engine.
+`nutev play` is the one-command computational orchestrator for current NutEV PILOT workflows.
 
 ## Current scope
 
-The first implementation is deliberately **PILOT-only**. It executes the latest registered PILOT strategy (or an explicit `--version-id`), builds the master corpus, resolves lawful open-access full text, downloads accessible artifacts, extracts native text and uses OCR automatically when needed.
-
-It does **not** create human scientific decisions and does not authorize a formal search.
+PLAY remains deliberately **PILOT-only**. It can execute a registered PILOT strategy, build a deduplicated corpus, resolve lawful open-access full text, download accessible artifacts, extract native text and use OCR when needed. It does not create human decisions and does not authorize FORMAL/PRISMA execution.
 
 ```text
 registered PILOT strategy
         ↓
 provider execution + immutable snapshots
         ↓
-master corpus + deterministic deduplication
+corpus + deterministic deduplication
         ↓
-lawful OA full-text resolution
+lawful OA resolution/download
         ↓
-download
+native extraction / OCR when needed
         ↓
-native-text extraction / OCR when needed
-        ↓
-12_play/<play_id>/ complete audit summary
+12_play/<play_id>/ audit package
 ```
 
 ## Run
-
-Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\nutev.exe play --project-root .\project_output_scientific
 ```
 
-The default requests up to 10,000 records per executable provider and resumes provider checkpoints when available.
-
-Useful options:
+Metadata-only:
 
 ```powershell
-.\.venv\Scripts\nutev.exe play `
-  --project-root .\project_output_scientific `
-  --version-id STRATEGY_VERSION_ID `
-  --breadth specific `
-  --limit 10000 `
-  --providers pubmed europepmc crossref openalex
-```
-
-Metadata-only test:
-
-```powershell
-.\.venv\Scripts\nutev.exe play `
-  --project-root .\project_output_scientific `
-  --metadata-only
+.\.venv\Scripts\nutev.exe play --project-root .\project_output_scientific --metadata-only
 ```
 
 ## Output
 
-Each invocation creates:
+Each run writes an auditable package under `12_play/`, including state/summary files, provider summary, full-text ledger, download/failure manifests and extraction manifest. The final JSON summary is hashed separately. Provider-reported totals versus returned rows are compared so truncation cannot be hidden.
 
-```text
-project_output_scientific/
-└── 12_play/
-    ├── latest_summary.json
-    └── play_<timestamp>_<id>/
-        ├── play_state.json
-        ├── play_summary.json
-        ├── play_summary.sha256
-        ├── play_summary.md
-        ├── search_providers.csv
-        ├── fulltext_ledger.jsonl
-        ├── download_manifest.jsonl
-        ├── download_failures.jsonl
-        └── extraction_manifest.jsonl
-```
+## Formal execution boundary
 
-`play_summary.json` is written once and then hashed. Its SHA-256 is stored in the sibling `play_summary.sha256` file, avoiding a circular/self-hash that would invalidate itself when embedded into the JSON being hashed.
+The lower canonical strategy executor has a separate FORMAL safety guard. A strategy marked `FORMAL` or PRISMA-eligible cannot start there unless persisted GF-02…GF-10/freeze evidence authorizes the exact strategy version and matches the frozen Git SHA/configuration digest.
 
-The summary makes truncation explicit by comparing provider-reported totals with returned rows. A provider with fewer returned records than `total_found` is marked `truncated=true`; that run must not be described as exhaustive.
-
-## Scientific gate
-
-The current implementation refuses strategy versions that are PRISMA-eligible. This is intentional while GF-02/GF-03/GF-06/GF-07/GF-10 are still being implemented.
-
-A future FORMAL `nutev play` must require recorded authorization for:
-
-- GF-02 sentinel recall + noise validation;
-- GF-03 PRESS;
-- GF-06 final search date and filters;
-- GF-07 human screening setup;
-- GF-10 freeze.
-
-No flag should silently bypass those requirements.
+That guard does **not** make PLAY a formal one-command Article 1 orchestrator. PLAY continues to reject PRISMA-eligible versions until the complete multi-track formal workflow is integrated and validated.
 
 ## Human boundary
 
-PLAY may retrieve, normalize, deduplicate, resolve, download, extract, OCR, calculate metrics and prepare review queues. It must not silently create `INCLUDE`, `EXCLUDE`, `ADJUDICATED`, PRESS approval, freeze authorization or a final clinical recommendation.
+Neither PLAY nor the lower executor may infer `INCLUDE`, `EXCLUDE`, `ADJUDICATED`, PRESS approval, freeze authorization or a clinical recommendation. Human/external evidence must be recorded explicitly.
 
 ## Full-text boundary
 
-PLAY only attempts lawful open-access resolution and ordinary public retrieval. Paywalls are not bypassed. Unavailable content remains visible as paywall/metadata-only/failure evidence.
+PLAY attempts lawful open-access resolution and ordinary public retrieval only. Paywalls are not bypassed; unavailable content remains visible as paywall/metadata-only/failure evidence.
 
-## Not integrated yet
+## Not yet one-command FORMAL
 
-The current one-command implementation does not yet merge all methodological tracks into a single master corpus. In particular, Scopus and Web of Science remain manual/licensed execution routes, and institutional/guideline-repository tracks still need the formal registry/gate integration defined for Article 1. These gaps are reported rather than hidden.
+A definitive Article 1 run must still coordinate real GF-02 evidence, PRESS, final temporal/filter decisions, reviewer setup, GF-10, Scopus/Web of Science licensed/manual evidence, and verified institutional/guideline-repository routes. Those scientific dependencies are reported, not fabricated.
