@@ -9,7 +9,13 @@ from nutev.search.scientific_gates import (
     formal_execution_authorization,
     freeze_digest,
     global_freeze_status,
+    load_freeze_record,
+    load_gate_records,
+    load_press_record,
     pre_freeze_blockers,
+    save_freeze_record,
+    save_gate_records,
+    save_press_record,
     validate_freeze_record,
     validate_gate_record,
     validate_press_record,
@@ -92,6 +98,50 @@ def test_freeze_record_is_hashable_and_binds_sha_and_config():
     assert validate_freeze_record(freeze) == freeze
     digest = freeze_digest(freeze)
     assert len(digest) == 64
+
+
+def test_gate_press_and_freeze_evidence_round_trip(tmp_path):
+    gates_path = tmp_path / "gates.json"
+    press_path = tmp_path / "press.json"
+    freeze_path = tmp_path / "freeze.json"
+
+    gates = [_completed("GF-02")]
+    save_gate_records(gates_path, gates, registry_version="gates-v1")
+    assert load_gate_records(gates_path) == gates
+
+    press = PressRecord(
+        press_submission_id="PRESS-001",
+        strategy_version="B-NORM-PUBMED:v0.3",
+        reviewer="human-reviewer",
+        submission_date="2026-08-13",
+        review_status="SUBMITTED",
+    )
+    save_press_record(press_path, press)
+    assert load_press_record(press_path) == press
+
+    freeze = _freeze()
+    save_freeze_record(freeze_path, freeze)
+    assert load_freeze_record(freeze_path) == freeze
+
+
+def test_press_and_freeze_files_reject_silent_replacement(tmp_path):
+    press_path = tmp_path / "press.json"
+    freeze_path = tmp_path / "freeze.json"
+    press = PressRecord(
+        press_submission_id="PRESS-001",
+        strategy_version="v0.3",
+    )
+    save_press_record(press_path, press)
+    with pytest.raises(FileExistsError):
+        save_press_record(
+            press_path,
+            PressRecord(press_submission_id="PRESS-001", strategy_version="v0.4"),
+        )
+
+    save_freeze_record(freeze_path, _freeze())
+    changed = FreezeRecord(**{**_freeze().__dict__, "git_commit_sha": "c" * 40})
+    with pytest.raises(FileExistsError):
+        save_freeze_record(freeze_path, changed)
 
 
 def test_formal_execution_requires_all_gates_gf10_and_exact_freeze_identity():
