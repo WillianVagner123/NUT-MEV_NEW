@@ -1,112 +1,63 @@
 # Article 1 search execution contract
 
-Status: **normative for future definitive Article 1 executions**.
+Status: **normative for definitive Article 1 executions**.
 
-This document defines how NutEV Evidence Engine proves what was actually searched. It intentionally separates search tracks whose sampling logic is different instead of pretending that every source is one homogeneous database.
+## Core rule
 
-## Non-negotiable rule
+No query, source, provider, navigation rule or result count may be described as executed without attempt-level evidence for the exact run. Generated ≠ executed; PILOT ≠ FORMAL; FORMAL ≠ PRISMA unless the scientific gates and freeze authorize it.
 
-> No query, navigation rule, provider, result count, or source may be described in the manuscript as executed unless it maps to execution evidence for the exact run.
+## Formal authorization boundary
 
-Generated strategy space is not execution evidence.
+`nutev.search.strategy_executor` is the canonical indexed-database execution boundary. A strategy marked `FORMAL` or PRISMA-eligible must be bound to persisted scientific-gate evidence and an immutable freeze record before a run is created.
 
-## Track A — frozen indexed-database search
+Authorization must match the exact strategy `version_id`, prerequisite gates, human-authorized GF-10, freeze identifier, Git SHA and configuration digest. Missing or mismatched evidence blocks execution. PILOT remains non-PRISMA.
 
-Use the immutable strategy registry and `nutev.search.strategy_executor` for provider expressions that are frozen before execution.
+## Track A — indexed databases
 
-Current primary formal providers are PubMed, Europe PMC, Crossref and OpenAlex when present in the frozen strategy version.
+Use the immutable strategy registry/executor for supported indexed searches. Preserve strategy/version identity, exact expression/filter, timestamp/status, limits/pagination/truncation, rows returned, provider-reported totals, raw snapshot/export and hash, run manifest and formal-authorization state.
 
-Minimum provenance:
+Scopus and Web of Science may remain manual/licensed routes when direct integration is unavailable. Preserve the exact executed expression, timestamp, executor, interface/database, total reported, export identity/hash, sentinel results and limitations. Never substitute another provider for them.
 
-- strategy id and immutable version id;
-- breadth (`specific`/other declared breadth);
-- exact provider expression;
-- provider query and provider-specific filter;
-- provider limit/pagination rule;
-- execution timestamp;
-- execution status;
-- rows returned;
-- provider-reported total when available;
-- append-only raw provider snapshot;
-- SHA-256 of the raw snapshot;
-- run manifest and manifest SHA-256;
-- whether the frozen strategy is formal or pilot;
-- PRISMA eligibility.
+## Track B — official / institutional sources
 
-A pilot strategy is auditable but must not enter formal PRISMA identification counts unless it is explicitly promoted/frozen as a formal strategy under the protocol.
+Official organizations, food guidelines and society documents are a distinct identification track. Use the canonical source-registry view and preserve source identity, route, retrieval date, configuration provenance, URL/resolved URL, retrieval/download/extraction state, failures and lawful artifact hashes.
 
-## Track B — official guideline / institutional source search
+Candidate source records are not frozen sources. Formal use requires verified operational rules including search mechanism, stopping/version rules and reviewer evidence.
 
-Official organizations, food guidelines, society documents and institutional sources are a distinct search track because their discovery logic is not equivalent to a bibliographic database query.
+## Track C — guideline repositories
 
-Minimum provenance:
+The canonical guideline-repository registry declares G-I-N, G-I-N BIGG, AWMF, Dutch Richtlijnendatabase, Minds and Ukraine Registry as candidate methodological routes. A repository remains `NOT_AUTHORIZED` until its operational search fields are verified. Repository identification and issuer confirmation retain distinct provenance.
 
-- exact source/organization manifest used by the run;
-- configuration provenance and `config_digest` that identify that manifest;
-- workstream and provider attempt in `query_execution_ledger.json/.csv`;
-- retrieval date/time;
-- source URL and resolved URL where available;
-- download/extraction status;
-- failure reason where retrieval failed;
-- downloaded artifact path where redistribution is legally permitted locally;
-- SHA-256 in `artifact_manifest.csv` for locally retained artifacts;
-- human inclusion/exclusion/coding state downstream.
+## Track D — supplementary discovery
 
-The official-source track must be reported separately from indexed-database identification in the manuscript/PRISMA accounting when the identification mechanism differs.
+Optional providers may be used only when protocol-declared. Technical capability does not imply inclusion. Missing credentials and failures remain visible; they are never converted into zero-result evidence. The current SciELO connector is DOI-prefix/Crossref scoped (`10.1590`), not a comprehensive native SciELO search.
 
-## Track C — supplementary discovery providers
+## Canonical execution evidence
 
-Optional providers such as DOAJ, ClinicalTrials.gov, SciELO connector, Semantic Scholar, arXiv, Google PSE, SerpAPI or Brave may be used only according to the protocol version for the run.
+The retired `querypack_*` runtime/artifact family is historical compatibility only and is not the current manuscript contract.
 
-For the generic pipeline, every actual attempt must be present in `provider_performance.csv` and the finalized `query_execution_ledger.json/.csv`. Missing credentials are recorded as `skipped`; provider errors remain visible rather than being converted into evidence absence.
+Current manuscript-grade evidence is based on immutable strategy versions, persisted scientific gates/freeze, execution records, provider snapshots/exports and hashes, attempt/failure ledgers where applicable, and configuration provenance with `config_digest`.
 
-A supplementary provider does not automatically become part of the definitive Article 1 search merely because the software can execute it. Its methodological role must be declared in the protocol before manuscript use.
+No generated expression is proof of submission.
 
-### SciELO naming constraint
+## Scientific readiness
 
-The current SciELO connector is prefix-scoped through Crossref (`10.1590`) rather than a comprehensive native SciELO platform free-text search. Outputs from this connector must therefore be described as **SciELO-prefix/Crossref retrieval** (or equivalent precise wording), not as a comprehensive search of the entire SciELO platform.
+Computational completion and scientific readiness are separate. Provider success cannot infer PRESS approval, freeze authorization, R1/R2/adjudication, inclusion or manuscript readiness.
 
-## Generated versus executed query artifacts
+## Definitive execution checklist
 
-The canonical semantics are:
+Before describing an execution as definitive for Article 1, preserve:
 
-- `querypack_generated.json/.csv`: generated workstream query space before execution constraints;
-- `provider_querypack_generated.json/.csv`: provider-rendered generated query space before execution constraints;
-- `query_execution_ledger.json/.csv`: canonical attempt-level evidence from `provider_performance.csv`;
-- `querypack_executed.json/.csv`: compatibility view containing only expressions with a real execution-attempt row;
-- `provider_querypack_executed.json/.csv`: provider-specific compatibility view containing only expressions with a real execution-attempt row.
+1. software version and exact Git SHA;
+2. strategy versions and exact expressions/navigation rules;
+3. source/repository/sentinel registry versions;
+4. PRESS evidence and GF-02…GF-10 records;
+5. real formal-search date and provider-specific filters;
+6. `config_digest` and relevant config hashes;
+7. every actual attempt, error, limit and truncation state;
+8. raw snapshots/exports plus hashes where required;
+9. route-preserving identity resolution/deduplication;
+10. human screening/adjudication state;
+11. PRISMA-eligible counts only from authorized formal evidence.
 
-The two `*_generated` families may contain expressions removed by query budgets, routing, or provider availability. They must never be used as proof of execution.
-
-## Scientific readiness contract
-
-`run_status` / `execution_status` answer only whether the computational run completed, partially completed or failed.
-
-`scientific_readiness` is separate:
-
-- `blocked`: a detectable computational/scientific prerequisite failed;
-- `computationally_ready_for_human_review`: computational gates detected by the software are satisfied, but human screening/adjudication/manuscript gates are not asserted;
-- `manuscript_ready`: reserved for runs carrying explicit `human_review_complete=true` and `manuscript_gates_complete=true`, with no blocking computational condition.
-
-The software must never infer human scientific approval from provider success or a completed pipeline.
-
-## Definitive Article 1 freeze checklist
-
-Before a run is cited as the definitive computational execution for Article 1, record and preserve:
-
-1. software version, Git tag and exact commit SHA;
-2. protocol/search-strategy version;
-3. `config_digest` and per-config hashes;
-4. retrieval date(s);
-5. every declared provider/search track and its role;
-6. every actual query/navigation attempt;
-7. provider limits, pagination/truncation rules and provider-reported totals when available;
-8. raw snapshots + SHA-256 for frozen indexed-database executions;
-9. official-source manifest provenance plus downloaded-artifact hashes where applicable;
-10. deduplication state and counts;
-11. full-text/recoverability state;
-12. coverage-loss events and unresolved failures;
-13. human screening/adjudication state;
-14. final PRISMA counts and manuscript-facing export identifiers.
-
-If any required evidence is missing, the run may remain useful for development or pilot analysis, but it must not be described as the definitive manuscript execution.
+If required evidence is missing, the run may remain useful as development/PILOT evidence but must not be represented as the definitive manuscript execution.
