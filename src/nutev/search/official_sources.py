@@ -53,7 +53,9 @@ def _dedupe_sources(sources: list[dict]) -> list[dict]:
 
 def _canonical_workstreams(manifest: dict) -> dict:
     output = dict(manifest) if isinstance(manifest, dict) else {}
-    raw = output.get("workstreams", {})
+    if "workstreams" not in output:
+        return output
+    raw = output.get("workstreams")
     if not isinstance(raw, dict):
         output["workstreams"] = {}
         return output
