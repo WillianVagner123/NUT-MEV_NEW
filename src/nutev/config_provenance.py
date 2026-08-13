@@ -34,6 +34,7 @@ DEFAULT_CONFIG_FAMILIES = (
     "nutev_ontology.json",
     "evidence_lenses.json",
     "source_registry.json",
+    "guideline_repository_registry.json",
 )
 
 
