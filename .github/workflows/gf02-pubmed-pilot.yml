@@ -26,6 +26,100 @@ jobs:
           python -m pip install -r requirements/nutev-ci.txt
           python -m pip install --no-deps -e .
 
+      - name: Capture raw ESearch translations and sentinel predicates
+        env:
+          NCBI_EMAIL: ${{ secrets.NCBI_EMAIL }}
+          NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+          NCBI_TOOL: nutev_gf02_diagnostic
+        run: |
+          PYTHONPATH=src python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import time
+          import requests
+
+          from nutev.search.gf02_pubmed_pilot import resolved_line_expressions
+
+          config = json.loads(Path('config/gf02_pubmed_candidates.json').read_text(encoding='utf-8'))
+          expressions = resolved_line_expressions(config)
+          rescue_spec = config['rescue_only']
+          rescue_only = (
+              f"({expressions[rescue_spec['left']]}) "
+              f"{rescue_spec['operator']} "
+              f"({expressions[rescue_spec['right']]})"
+          )
+          endpoint = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
+          session = requests.Session()
+          session.headers.update({'User-Agent': 'NutEV-GF02-diagnostic/1.0'})
+          api_key = os.environ.get('NCBI_API_KEY', '').strip()
+          email = os.environ.get('NCBI_EMAIL', '').strip()
+          tool = os.environ.get('NCBI_TOOL', 'nutev_gf02_diagnostic')
+
+          def esearch(term):
+              params = {'db': 'pubmed', 'retmode': 'json', 'retmax': 0, 'term': term, 'tool': tool}
+              if email:
+                  params['email'] = email
+              if api_key:
+                  params['api_key'] = api_key
+              time.sleep(0.15 if api_key else 0.40)
+              response = session.get(endpoint, params=params, timeout=(10, 60))
+              response.raise_for_status()
+              result = response.json().get('esearchresult', {})
+              return {
+                  'count': int(result.get('count') or 0),
+                  'querytranslation': str(result.get('querytranslation') or ''),
+                  'translationset': result.get('translationset') or [],
+                  'warninglist': result.get('warninglist') or {},
+                  'errorlist': result.get('errorlist') or {},
+              }
+
+          output = {
+              'schema_version': 1,
+              'candidate_version': config['current_candidate'],
+              'search_type': config['search_type'],
+              'prisma_eligible': config['prisma_eligible'],
+              'line_diagnostics': {},
+              'sentinel_predicates': {},
+          }
+          for line_id in config['required_count_lines']:
+              output['line_diagnostics'][line_id] = {
+                  'exact_query': expressions[line_id],
+                  **esearch(expressions[line_id]),
+              }
+          output['line_diagnostics']['rescue_only'] = {
+              'exact_query': rescue_only,
+              **esearch(rescue_only),
+          }
+
+          predicates = ['#1', '#2', '#4', '#5', '#3', '#6', '#7']
+          for sentinel_id, expected in config['priority_expectations'].items():
+              pmid = str(expected['pmid'])
+              checks = {
+                  'presence': f'{pmid}[pmid]',
+                  'hasabstract': f'{pmid}[pmid] AND hasabstract',
+                  'noabstract': f'{pmid}[pmid] AND NOT hasabstract',
+              }
+              for line_id in predicates:
+                  checks[line_id] = f'({expressions[line_id]}) AND {pmid}[pmid]'
+              output['sentinel_predicates'][sentinel_id] = {
+                  name: {'exact_query': query, **esearch(query)}
+                  for name, query in checks.items()
+              }
+
+          Path('gf02_pubmed_esearch_diagnostics.json').write_text(
+              json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps({
+              'candidate_version': output['candidate_version'],
+              'sentinel_counts': {
+                  sid: {name: item['count'] for name, item in checks.items()}
+                  for sid, checks in output['sentinel_predicates'].items()
+              },
+          }, ensure_ascii=False, indent=2, sort_keys=True))
+          PY
+
       - name: Execute GF-02 PubMed v0.4 PILOT
         env:
           NCBI_EMAIL: ${{ secrets.NCBI_EMAIL }}
@@ -43,6 +137,7 @@ jobs:
         run: |
           mkdir -p artifact_gf02_pubmed
           cp gf02_pubmed_pilot.stdout.json artifact_gf02_pubmed/ 2>/dev/null || true
+          cp gf02_pubmed_esearch_diagnostics.json artifact_gf02_pubmed/ 2>/dev/null || true
           if [ -d project_output_scientific/07_logs/gf02/pubmed ]; then
             find project_output_scientific/07_logs/gf02/pubmed -type f \
               ! -path '*/checkpoints/*' \
