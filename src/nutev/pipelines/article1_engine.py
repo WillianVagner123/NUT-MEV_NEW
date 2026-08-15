@@ -14,11 +14,15 @@ from typing import Any, Callable
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from nutev.pipelines.article1_formal_pipeline import run_or_resume_formal_chain
+from nutev.pipelines.article1_postformal import prepare_formal_human_review
+from nutev.pipelines.execution_coverage import write_search_coverage_ledger
+from nutev.pipelines.human_queue import write_human_queue
 from nutev.search.article1_scientific_status import derive_article1_scientific_status
 from nutev.search.gf02_pubmed_pilot import run_gf02_pubmed_pilot
 
 LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
-ENGINE_SCHEMA_VERSION = 1
+ENGINE_SCHEMA_VERSION = 2
 ProgressFn = Callable[[str], None]
 
 
@@ -41,6 +45,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 def _write_state(project_root: Path, state: dict[str, Any]) -> None:
     path = _state_path(project_root)
     path.parent.mkdir(parents=True, exist_ok=True)
+    state["schema_version"] = ENGINE_SCHEMA_VERSION
     state["updated_at"] = _now_iso()
     tmp = path.with_suffix(".tmp")
     tmp.write_text(
@@ -75,16 +80,59 @@ def _new_state(scientific: dict[str, Any]) -> dict[str, Any]:
         "waiting_on": None,
         "completed_stages": {},
         "gf02_run_id": f"gf02_pubmed_{safe_candidate}_resume_{token}",
+        "operational_artifacts": {},
+        "open_human_tasks": 0,
         "last_error": None,
     }
 
 
+def _refresh_operational_artifacts(
+    repo_root: Path,
+    project_root: Path,
+    state: dict[str, Any],
+    *,
+    scientific: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Refresh coverage and the single human-action queue after every transition."""
+    scientific = scientific or derive_article1_scientific_status(repo_root, project_root)
+    try:
+        coverage = write_search_coverage_ledger(
+            repo_root,
+            project_root,
+            scientific_status=scientific,
+        )
+        state.setdefault("operational_artifacts", {})["search_coverage"] = {
+            "json_path": coverage["json_path"],
+            "csv_path": coverage["csv_path"],
+        }
+    except Exception as exc:
+        state.setdefault("operational_artifacts", {})["search_coverage_error"] = str(exc)
+
+    try:
+        queue = write_human_queue(project_root, scientific_status=scientific)
+        state.setdefault("operational_artifacts", {})["human_queue"] = queue["path"]
+        state["open_human_tasks"] = int(queue.get("open_task_count") or 0)
+    except Exception as exc:
+        state.setdefault("operational_artifacts", {})["human_queue_error"] = str(exc)
+
+    _write_state(project_root, state)
+    return scientific
+
+
 def ensure_article1_engine_state(repo_root: Path, project_root: Path) -> dict[str, Any]:
-    scientific = derive_article1_scientific_status(Path(repo_root), Path(project_root))
-    state = load_article1_engine_state(project_root)
+    repo = Path(repo_root)
+    project = Path(project_root)
+    scientific = derive_article1_scientific_status(repo, project)
+    state = load_article1_engine_state(project)
     if not state or str(state.get("candidate_version") or "") != _candidate_version(scientific):
         state = _new_state(scientific)
-        _write_state(project_root, state)
+    else:
+        state.setdefault("completed_stages", {})
+        state.setdefault("operational_artifacts", {})
+        state.setdefault("open_human_tasks", 0)
+        state.setdefault("last_error", None)
+    _write_state(project, state)
+    _refresh_operational_artifacts(repo, project, state, scientific=scientific)
     return state
 
 
@@ -123,12 +171,7 @@ def run_or_resume_article1_engine(
     project_root: Path,
     progress_fn: ProgressFn | None = None,
 ) -> dict[str, Any]:
-    """Run all currently automatic Article 1 work and resume from checkpoints.
-
-    The controller never crosses human or external scientific gates by itself.
-    It persists a stable GF-02 run id so an interrupted PubMed PILOT can resume
-    inside the same audit directory.
-    """
+    """Run every currently authorized automatic Article 1 step and resume safely."""
     repo = Path(repo_root)
     project = Path(project_root)
     state = ensure_article1_engine_state(repo, project)
@@ -142,7 +185,7 @@ def run_or_resume_article1_engine(
             scientific = derive_article1_scientific_status(repo, project)
             phase = str(scientific.get("article1_current_phase") or "")
             state["current_phase"] = phase
-            _write_state(project, state)
+            _refresh_operational_artifacts(repo, project, state, scientific=scientific)
 
             if phase == "GF02_PUBMED_PILOT":
                 _emit(project, state, progress_fn, "Executando GF-02 PubMed a partir do último checkpoint...")
@@ -166,78 +209,143 @@ def run_or_resume_article1_engine(
                     "completed_at": _now_iso(),
                     "run_id": manifest.get("run_id"),
                     "manifest": str(
-                        project
-                        / "07_logs"
-                        / "gf02"
-                        / "pubmed"
-                        / str(manifest.get("run_id"))
-                        / "run_manifest.json"
+                        project / "07_logs" / "gf02" / "pubmed" / str(manifest.get("run_id")) / "run_manifest.json"
                     ),
                 }
                 _write_state(project, state)
                 continue
 
             if phase == "GF02_NOISE_REVIEW":
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
                 return _pause(
                     project,
                     state,
                     status="WAITING_HUMAN",
                     phase=phase,
                     message=(
-                        "Execução automática concluída até aqui. Aguardando classificação humana "
-                        "da amostra rescue-only; depois use o mesmo botão CONTINUAR."
+                        "PRECISO DE VOCÊ: classifique a amostra rescue-only. A tarefa e o arquivo exato "
+                        "estão salvos na fila humana; depois use CONTINUAR."
                     ),
                 )
 
             if phase == "GF02_HUMAN_DECISION":
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
                 return _pause(
                     project,
                     state,
                     status="WAITING_HUMAN",
                     phase=phase,
                     message=(
-                        "Aguardando decisão humana READY_FOR_PRESS ou NOT_READY_FOR_PRESS. "
-                        "Depois da decisão, use o mesmo botão CONTINUAR."
+                        "PRECISO DE VOCÊ: registre READY_FOR_PRESS ou NOT_READY_FOR_PRESS. "
+                        "O Engine não infere esta decisão; depois use CONTINUAR."
                     ),
                 )
 
             if phase == "GF03_PRESS":
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
                 return _pause(
                     project,
                     state,
                     status="WAITING_EXTERNAL",
                     phase=phase,
                     message=(
-                        "Aguardando PRESS. O Engine não inventa parecer nem aprovação. "
-                        "Quando o registro de PRESS existir, use CONTINUAR."
+                        "PRECISO DE VOCÊ: concluir e registrar o PRESS real. Quando o parecer existir, "
+                        "use CONTINUAR; o checkpoint permanece intacto."
                     ),
                 )
 
             if phase == "POST_PRESS_PROVIDER_VALIDATION":
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
                 return _pause(
                     project,
                     state,
                     status="WAITING_EXTERNAL",
                     phase=phase,
                     message=(
-                        "Fase pós-PRESS detectada. Scopus/WoS licenciado ainda exige integração/execução "
-                        "externa; o ponto de retomada ficou salvo."
+                        "PRECISO DE VOCÊ: registrar as execuções licenciadas pós-PRESS de Scopus/Web of Science. "
+                        "O Engine não substitui essas bases por outro provedor."
+                    ),
+                )
+
+            if phase in {"CLOSE_SCIENTIFIC_GATES", "GF_SCIENTIFIC_GATES"}:
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
+                return _pause(
+                    project,
+                    state,
+                    status="WAITING_HUMAN",
+                    phase=phase,
+                    message="PRECISO DE VOCÊ: feche os gates científicos pendentes com evidência real; depois use CONTINUAR.",
+                )
+
+            if phase in {"FREEZE", "GF10_FREEZE"}:
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
+                return _pause(
+                    project,
+                    state,
+                    status="WAITING_HUMAN",
+                    phase=phase,
+                    message="PRECISO DE VOCÊ: autorize o GF-10/FREEZE imutável; depois use CONTINUAR.",
+                )
+
+            if phase == "FORMAL_EXECUTION":
+                _emit(project, state, progress_fn, "FREEZE válido: iniciando/retomando a cadeia FORMAL autorizada...")
+
+                def formal_relay(message: str) -> None:
+                    _emit(project, state, progress_fn, message)
+
+                formal_summary = run_or_resume_formal_chain(project, progress_fn=formal_relay)
+                if str((formal_summary.get("status") or {}).get("execution_status") or "") not in {
+                    "COMPLETE",
+                    "COMPLETE_WITH_WARNINGS",
+                }:
+                    raise RuntimeError("A cadeia FORMAL não chegou a um estado terminal auditável.")
+                _emit(project, state, progress_fn, "Organizando a fila humana do corpus FORMAL...")
+                review_queue = prepare_formal_human_review(project, formal_summary)
+                state["completed_stages"]["FORMAL_EXECUTION"] = {
+                    "completed_at": _now_iso(),
+                    "formal_chain_state": str(
+                        (formal_summary.get("artifacts") or {}).get("formal_chain_state_path") or ""
+                    ),
+                    "search_run_id": str((formal_summary.get("search") or {}).get("run_id") or ""),
+                    "review_queue": str(review_queue.get("queue_path") or ""),
+                }
+                state.setdefault("operational_artifacts", {})["formal_review_queue"] = str(
+                    review_queue.get("queue_path") or ""
+                )
+                _write_state(project, state)
+                continue
+
+            if phase in {"SCREENING_HUMAN_REVIEW", "FULLTEXT_HUMAN_REVIEW", "ABCD_HUMAN_REVIEW", "ADJUDICATION"}:
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
+                return _pause(
+                    project,
+                    state,
+                    status="WAITING_HUMAN",
+                    phase=phase,
+                    message=(
+                        "PRECISO DE VOCÊ: existem unidades humanas pendentes. O Engine preservou o corpus e a fila; "
+                        "complete somente as decisões abertas e depois use CONTINUAR."
                     ),
                 )
 
             state["status"] = "COMPLETE"
             state["waiting_on"] = None
             state["last_message"] = "Todas as etapas atualmente automatizadas foram concluídas."
+            _refresh_operational_artifacts(repo, project, state, scientific=scientific)
             _write_state(project, state)
             return state
 
-    except Exception as exc:
+    except BaseException as exc:
         state["status"] = "FAILED"
-        state["last_error"] = str(exc)
+        state["last_error"] = str(exc) or type(exc).__name__
         state["last_message"] = (
             "Execução interrompida. O checkpoint foi preservado; use CONTINUAR para tentar novamente."
         )
-        _write_state(project, state)
+        try:
+            scientific = derive_article1_scientific_status(repo, project)
+            _refresh_operational_artifacts(repo, project, state, scientific=scientific)
+        finally:
+            _write_state(project, state)
         raise
 
 

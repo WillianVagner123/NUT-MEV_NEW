@@ -1,6 +1,7 @@
 """Minimal one-button execution surface for the canonical Article 1 engine."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import streamlit as st
@@ -24,7 +25,23 @@ def _phase_label(phase: str) -> str:
         "GF02_HUMAN_DECISION": "Decisão READY_FOR_PRESS",
         "GF03_PRESS": "PRESS",
         "POST_PRESS_PROVIDER_VALIDATION": "Validação pós-PRESS",
+        "CLOSE_SCIENTIFIC_GATES": "Fechamento dos gates científicos",
+        "FREEZE": "GF-10 / FREEZE",
+        "FORMAL_EXECUTION": "Execução FORMAL",
+        "SCREENING_HUMAN_REVIEW": "Triagem humana",
+        "FULLTEXT_HUMAN_REVIEW": "Triagem de texto completo",
+        "ABCD_HUMAN_REVIEW": "Extração ABCD 34/34",
+        "ADJUDICATION": "Consenso / adjudicação",
     }.get(phase, phase or "Pronto")
+
+
+def _load_human_queue(project_root: Path) -> dict:
+    path = Path(project_root) / "07_logs" / "engine" / "human_queue.json"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 def _status_copy(state: dict, scientific: dict) -> tuple[str, str]:
@@ -37,12 +54,35 @@ def _status_copy(state: dict, scientific: dict) -> tuple[str, str]:
     if status == "WAITING_EXTERNAL":
         return "Aguardando etapa externa", str(state.get("last_message") or "Existe um gate externo pendente.")
     if status == "COMPLETE":
-        return "Concluído", "Todas as etapas atualmente automatizadas foram concluídas."
+        return "Concluído", "Todas as etapas atualmente autorizadas foram concluídas."
     if state and status == "RUNNING":
         return "Pronto para continuar", "Uma execução anterior foi interrompida; o checkpoint está salvo."
     if phase == "GF02_PUBMED_PILOT":
         return "Pronto", "O Engine vai executar automaticamente tudo que puder e salvar cada avanço."
     return "Pronto para continuar", "O Engine detectou o ponto científico atual e continuará a partir dele."
+
+
+def _render_human_task(project_root: Path) -> None:
+    queue = _load_human_queue(project_root)
+    tasks = list(queue.get("tasks") or [])
+    if not tasks:
+        return
+    task = tasks[0]
+    title = str(task.get("title") or "Ação humana necessária")
+    instruction = str(task.get("instruction") or "Complete a ação pendente e depois use CONTINUAR.")
+    evidence_path = str(task.get("evidence_path") or "")
+    st.markdown(
+        f"""
+        <div class="nutev-human-card">
+          <div class="nutev-human-kicker">PRECISO DE VOCÊ</div>
+          <div class="nutev-human-title">{title}</div>
+          <div class="nutev-human-text">{instruction}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if evidence_path:
+        st.caption(f"Arquivo de trabalho: {evidence_path}")
 
 
 def render_article1_play_panel(project_root: Path) -> None:
@@ -57,7 +97,7 @@ def render_article1_play_panel(project_root: Path) -> None:
         """
         <style>
         div[data-testid="stButton"] > button {
-            min-height: 4.15rem;
+            min-height: 4.2rem;
             border-radius: 18px;
             font-size: 1.18rem;
             font-weight: 760;
@@ -73,6 +113,16 @@ def render_article1_play_panel(project_root: Path) -> None:
         .nutev-state {font-size: 1.05rem; font-weight: 720; margin-bottom: .25rem;}
         .nutev-message {font-size: .94rem; opacity: .74; margin-bottom: .25rem;}
         .nutev-phase {font-size: .82rem; opacity: .58; margin: .7rem 0 .9rem 0;}
+        .nutev-human-card {
+            margin: .6rem 0 1.1rem 0;
+            padding: 1rem 1.05rem;
+            border-radius: 16px;
+            border: 1px solid rgba(120, 120, 120, .18);
+            background: rgba(120, 120, 120, .055);
+        }
+        .nutev-human-kicker {font-size: .72rem; letter-spacing: .12em; font-weight: 800; opacity: .58;}
+        .nutev-human-title {font-size: 1.03rem; font-weight: 760; margin: .25rem 0 .3rem 0;}
+        .nutev-human-text {font-size: .91rem; line-height: 1.45; opacity: .76;}
         </style>
         """,
         unsafe_allow_html=True,
@@ -85,7 +135,7 @@ def render_article1_play_panel(project_root: Path) -> None:
             st.markdown('<div class="nutev-kicker">NUTEV EVIDENCE ENGINE</div>', unsafe_allow_html=True)
             st.markdown('<div class="nutev-title">Um botão. O Engine cuida do resto.</div>', unsafe_allow_html=True)
             st.markdown(
-                '<div class="nutev-sub">Executa o fluxo automático, salva checkpoints e retoma exatamente do ponto interrompido.</div>',
+                '<div class="nutev-sub">Executa o que está autorizado, salva checkpoints e retoma do ponto interrompido.</div>',
                 unsafe_allow_html=True,
             )
             st.markdown(f'<div class="nutev-state">{title}</div>', unsafe_allow_html=True)
@@ -94,6 +144,8 @@ def render_article1_play_panel(project_root: Path) -> None:
                 f'<div class="nutev-phase">Etapa atual: {_phase_label(phase)}</div>',
                 unsafe_allow_html=True,
             )
+
+            _render_human_task(project_root)
 
             if st.button(
                 button_label,
@@ -112,24 +164,24 @@ def render_article1_play_panel(project_root: Path) -> None:
                         project_root=project_root,
                         progress_fn=progress,
                     )
-                except Exception as exc:
+                except BaseException as exc:
                     status_box.update(
                         label="Execução interrompida — checkpoint salvo",
                         state="error",
                         expanded=True,
                     )
-                    st.error(str(exc))
+                    st.error(str(exc) or type(exc).__name__)
                 else:
                     result_status = str(result.get("status") or "")
                     if result_status == "WAITING_HUMAN":
                         status_box.update(
-                            label="Automação concluída até o gate humano",
+                            label="Automação concluída até a próxima ação humana",
                             state="complete",
                             expanded=False,
                         )
                     elif result_status == "WAITING_EXTERNAL":
                         status_box.update(
-                            label="Automação concluída até o gate externo",
+                            label="Automação concluída até a próxima etapa externa",
                             state="complete",
                             expanded=False,
                         )
@@ -151,8 +203,7 @@ def render_article1_play_panel(project_root: Path) -> None:
                     st.caption(f"Último erro: {state['last_error']}")
 
         st.caption(
-            "O Engine nunca atravessa gates humanos ou externos sozinho. Ele para, salva o estado "
-            "e continua depois pelo mesmo botão."
+            "Tudo que é computacional roda automaticamente. Decisões científicas humanas aparecem como uma única tarefa pendente, sem serem inferidas pelo software."
         )
 
 
