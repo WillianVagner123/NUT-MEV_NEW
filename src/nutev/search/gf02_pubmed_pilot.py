@@ -1,11 +1,11 @@
-"""Compatibility facade for the current GF-02 B-NORM-PUBMED v0.4 PILOT.
+"""Compatibility facade for the current GF-02 B-NORM-PUBMED PILOT.
 
-The public import path is kept stable while the implementation lives in
-``gf02_pubmed_v04``. This module remains PILOT-only and does not authorize
-FORMAL/PRISMA execution.
+The public import path remains stable while the implementation resolves the
+current candidate from ``config/gf02_pubmed_candidates.json``. This module is
+PILOT-only and never authorizes FORMAL/PRISMA execution.
 """
 
-from nutev.search.gf02_pubmed_v04 import (
+from nutev.search.gf02_pubmed_current import (
     load_candidate_config,
     load_sentinel_registry,
     resolved_line_expressions,
