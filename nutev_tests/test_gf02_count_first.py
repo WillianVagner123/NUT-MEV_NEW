@@ -116,6 +116,7 @@ def test_real_path_counts_without_downloading_full_final_set(tmp_path: Path, mon
     assert len(esearch_calls) == 12
     assert all(call.get("retmax") == 0 for call in esearch_calls)
     assert row_limits == [10]
-    assert manifest["execution_plan"] == "COUNT_FIRST_SAMPLE_ONLY"
+    assert manifest["execution_plan"] == "COUNT_FIRST_SAMPLE_ONLY_RESUMABLE"
+    assert manifest["resume_enabled"] is True
     assert manifest["final_records_returned"] == 0
     assert manifest["rescue_only"]["records_returned"] == 10
