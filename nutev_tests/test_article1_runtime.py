@@ -23,6 +23,7 @@ def test_runtime_initializes_additive_tables(tmp_path: Path):
         "article1_abcd_adjudications",
         "article1_relation_submissions",
         "article1_relation_evidence_instances",
+        "article1_relation_review_status",
         "article1_relation_adjudications",
         "article1_method_characterization",
         "article1_synthesis_snapshots",
@@ -101,16 +102,41 @@ def test_formal_guard_requires_real_assignment(tmp_path: Path):
         )
 
 
+def test_staging_does_not_require_gf07_or_formal_inclusion(tmp_path: Path):
+    db = tmp_path / "staging.sqlite3"
+    runtime.initialize_article1_runtime(db)
+    runtime._formal_guard(
+        db,
+        session_id="not-used",
+        execution_mode="STAGING",
+        reviewer_slot="REVIEWER_1",
+        reviewer_name="Calibration reviewer",
+    )
+
+
 def test_relation_calibration_is_descriptive(monkeypatch, tmp_path: Path):
     def fake_latest(_db_path, *, session_id, document_id=None, reviewer_slot=None):
-        rows = [
-            {"reviewer_slot": "REVIEWER_1", "relation_key": "A1|D5|SOURCE_TO_TARGET|MONITORS"},
-            {"reviewer_slot": "REVIEWER_2", "relation_key": "A1|D5|SOURCE_TO_TARGET|MONITORS"},
-            {"reviewer_slot": "REVIEWER_1", "relation_key": "C8|D3|SOURCE_TO_TARGET|MODIFIES"},
+        return [
+            {
+                "reviewer_slot": "REVIEWER_1",
+                "relation_key": "A1|D5|SOURCE_TO_TARGET|MONITORS",
+            },
+            {
+                "reviewer_slot": "REVIEWER_2",
+                "relation_key": "A1|D5|SOURCE_TO_TARGET|MONITORS",
+            },
+            {
+                "reviewer_slot": "REVIEWER_1",
+                "relation_key": "C8|D3|SOURCE_TO_TARGET|MODIFIES",
+            },
         ]
-        return rows
 
     monkeypatch.setattr(runtime, "_latest_relations", fake_latest)
+    monkeypatch.setattr(
+        runtime,
+        "_latest_relation_review_status",
+        lambda *args, **kwargs: {"REVIEWER_1": True, "REVIEWER_2": True},
+    )
     report = runtime.article1_relation_calibration_report(
         tmp_path / "unused.sqlite3",
         session_id="s",
@@ -121,4 +147,21 @@ def test_relation_calibration_is_descriptive(monkeypatch, tmp_path: Path):
     assert report["intersection"] == 1
     assert report["union"] == 2
     assert report["jaccard_descriptive"] == 0.5
+    assert report["review_completeness"] == 1.0
     assert "No Jaccard pass threshold" in report["interpretation"]
+
+
+def test_final_relation_set_requires_explicit_review_completion(
+    monkeypatch, tmp_path: Path
+):
+    monkeypatch.setattr(
+        runtime,
+        "_latest_relation_review_status",
+        lambda *args, **kwargs: {"REVIEWER_1": True, "REVIEWER_2": False},
+    )
+    with pytest.raises(ValueError, match="both reviewers"):
+        runtime.final_article1_relations(
+            tmp_path / "unused.sqlite3",
+            session_id="s",
+            document_id="d",
+        )
