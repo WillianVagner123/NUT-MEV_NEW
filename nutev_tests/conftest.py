@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from nutev.search import gf02_pubmed_v04, strategy_executor
+from nutev.search import gf02_pubmed_current, strategy_executor
 from nutev_tests.formal_test_support import TEST_CONFIG_DIGEST, TEST_GIT_SHA, authorize_formal_strategy
 
 
@@ -14,11 +14,11 @@ def _synthetic_formal_authorization_for_downstream_tests(monkeypatch, request):
     if test_file == "test_gf02_pubmed_pilot.py":
         # Historical unit fixtures use GUIDELINE_TITLE as a neutral structural
         # placeholder. Keep that compatibility test-only; production validation
-        # and the canonical v0.4 query remain unchanged.
+        # and the canonical current query remain unchanged.
         monkeypatch.setattr(
-            gf02_pubmed_v04,
+            gf02_pubmed_current,
             "_ALLOWED_RESCUE_WORDS",
-            gf02_pubmed_v04._ALLOWED_RESCUE_WORDS | {"title"},
+            gf02_pubmed_current._ALLOWED_RESCUE_WORDS | {"title"},
         )
     if test_file == "test_strategy_executor.py":
         return
