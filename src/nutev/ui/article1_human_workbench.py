@@ -2,10 +2,11 @@
 
 Only the human action required by the current persisted phase is rendered. The
 workbench never infers a scientific decision and writes to the same canonical
-SQLite ledgers used by the engine controller.
+ledgers/artifacts used by the engine controller.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,12 @@ from nutev.review.article1_screening_runtime import (
     full_text_queue,
     submit_screening_decision,
     title_abstract_queue,
+)
+from nutev.review.gf02_noise_review import (
+    ALLOWED_CLASSIFICATIONS,
+    read_rescue_only_sample,
+    review_progress,
+    save_rescue_only_classification,
 )
 from nutev.review.screening import EXCLUSION_REASONS
 from nutev.search.strategy_registry import default_registry_path
@@ -40,6 +47,109 @@ def _record_label(row: dict[str, Any]) -> str:
     year = str(row.get("year") or "").strip()
     suffix = str(row.get("document_id") or "")[-10:]
     return f"{title[:95]} · {year} · {suffix}"
+
+
+def _gf02_sample_path(scientific: dict[str, Any]) -> Path | None:
+    manifest_path = Path(str((scientific.get("gf02") or {}).get("latest_manifest") or ""))
+    if not manifest_path.is_file():
+        return None
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return None
+    sample = Path(str(payload.get("rescue_only_sample") or ""))
+    return sample if sample.is_file() else None
+
+
+def _gf02_row_label(row: dict[str, str]) -> str:
+    sample_id = str(row.get("sample_id") or "").strip()
+    title = str(row.get("title") or "Sem título").strip()
+    return f"{sample_id} · {title[:100]}"
+
+
+def _render_gf02_noise_review(scientific: dict[str, Any]) -> None:
+    sample_path = _gf02_sample_path(scientific)
+    if sample_path is None:
+        st.error("A amostra rescue-only não foi localizada no manifest GF-02 atual.")
+        return
+    try:
+        rows = read_rescue_only_sample(sample_path)
+        progress = review_progress(sample_path)
+    except (OSError, ValueError) as exc:
+        st.error(str(exc))
+        return
+
+    st.markdown("#### Revisão rescue-only")
+    st.caption(
+        "Faça a classificação humana aqui. O Engine apenas salva sua decisão no CSV auditável; "
+        "não estima precisão e não preenche decisões automaticamente."
+    )
+    st.caption(
+        f"Progresso: {progress['resolved']}/{progress['total']} classificados · "
+        f"{progress['pending']} pendentes"
+    )
+    if progress["complete"]:
+        st.success("A amostra está completa. Clique CONTINUAR para registrar a próxima decisão científica.")
+        return
+
+    pending = [
+        row
+        for row in rows
+        if not (
+            str(row.get("classification") or "").strip()
+            and str(row.get("reviewer") or "").strip()
+        )
+    ]
+    by_label = {_gf02_row_label(row): row for row in pending}
+    selected_label = st.selectbox(
+        "Registro pendente",
+        list(by_label),
+        key=f"gf02_noise_record_{sample_path}",
+    )
+    row = by_label[selected_label]
+    sample_id = str(row.get("sample_id") or "").strip()
+    title = str(row.get("title") or "Sem título").strip()
+    st.markdown(f"**{title}**")
+    metadata = []
+    pmid = str(row.get("pmid") or "").strip()
+    doi = str(row.get("doi") or "").strip()
+    if pmid:
+        metadata.append(f"PMID: {pmid}")
+    if doi:
+        metadata.append(f"DOI: {doi}")
+    if metadata:
+        st.caption(" · ".join(metadata))
+    st.caption(f"Amostra: {sample_id}")
+
+    existing_reviewers = [
+        str(item.get("reviewer") or "").strip()
+        for item in rows
+        if str(item.get("reviewer") or "").strip()
+    ]
+    default_reviewer = existing_reviewers[0] if existing_reviewers else ""
+    with st.form(f"gf02_noise_form_{sample_id}"):
+        reviewer = st.text_input("Revisor humano", value=default_reviewer)
+        classification = st.selectbox(
+            "Classificação",
+            [""] + list(ALLOWED_CLASSIFICATIONS),
+            format_func=lambda value: "Selecione..." if not value else value,
+        )
+        note = st.text_area("Nota / justificativa", value=str(row.get("note") or ""))
+        save = st.form_submit_button("Salvar e próximo", use_container_width=True)
+    if save:
+        try:
+            save_rescue_only_classification(
+                sample_path,
+                sample_id=sample_id,
+                classification=classification,
+                reviewer=reviewer,
+                note=note,
+            )
+        except (OSError, ValueError) as exc:
+            st.error(str(exc))
+        else:
+            st.success("Classificação humana salva no artefato GF-02.")
+            st.rerun()
 
 
 def _render_assignment(project_root: Path, scientific: dict[str, Any]) -> None:
@@ -267,7 +377,9 @@ def render_article1_human_workbench(
 ) -> None:
     """Render the current human task inline; render nothing for automatic phases."""
     phase = str(scientific.get("article1_current_phase") or "")
-    if phase == "SCREENING_REVIEWER_ASSIGNMENT":
+    if phase == "GF02_NOISE_REVIEW":
+        _render_gf02_noise_review(scientific)
+    elif phase == "SCREENING_REVIEWER_ASSIGNMENT":
         _render_assignment(project_root, scientific)
     elif phase in {"TITLE_ABSTRACT_HUMAN_REVIEW", "SCREENING_HUMAN_REVIEW"}:
         _render_dual_screening(project_root, scientific, phase="TITLE_ABSTRACT")
