@@ -17,7 +17,14 @@ from nutev.search.strategy_execution_ledger import create_search_run, finish_sea
 from nutev.search.strategy_registry import default_registry_path, get_strategy_version, record_search_execution
 
 LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
-EXECUTABLE_PROVIDERS = ("pubmed", "europepmc", "crossref", "openalex")
+EXECUTABLE_PROVIDERS = (
+    "pubmed",
+    "europepmc",
+    "crossref",
+    "openalex",
+    "scielo_native",
+    "lilacs_bvs",
+)
 
 
 def default_raw_search_root(project_root: Path) -> Path:
@@ -38,6 +45,21 @@ def parse_provider_expression(provider: str, expression: str) -> tuple[str, str]
         if not clean_query:
             raise ValueError(f"{clean_provider} query cannot be blank")
         return clean_query, filter_value.strip() if separator else ""
+    if clean_provider in {"scielo_native", "lilacs_bvs"}:
+        if not clean_expression.startswith("query="):
+            raise ValueError(f"{clean_provider} expression must start with 'query='")
+        body = clean_expression.removeprefix("query=")
+        query, separator, export_value = body.partition(" | export=")
+        clean_query = query.strip()
+        clean_export = export_value.strip() if separator else ""
+        if not clean_query:
+            raise ValueError(f"{clean_provider} query cannot be blank")
+        if not clean_export:
+            raise ValueError(
+                f"{clean_provider} requires an official CSV/RIS export: "
+                "query=<exact provider query> | export=<path>"
+            )
+        return clean_query, f"export={clean_export}"
     return clean_expression, ""
 
 
@@ -126,7 +148,12 @@ def execute_strategy_version(
         raise ValueError("limit must be between 1 and 10000")
 
     provider_grid = version.get("providers") or {}
-    available = [provider for provider in EXECUTABLE_PROVIDERS if provider in provider_grid and str((provider_grid.get(provider) or {}).get(normalized_breadth) or "").strip()]
+    available = [
+        provider
+        for provider in EXECUTABLE_PROVIDERS
+        if provider in provider_grid
+        and str((provider_grid.get(provider) or {}).get(normalized_breadth) or "").strip()
+    ]
     requested = list(providers) if providers is not None else available
     requested = list(dict.fromkeys(str(provider).strip().lower() for provider in requested))
     if not requested:
@@ -136,8 +163,21 @@ def execute_strategy_version(
         raise ValueError("providers unavailable for this version/breadth: " + ", ".join(unsupported))
 
     timestamp = started_at or datetime.now(LOCAL_TIMEZONE).isoformat(timespec="seconds")
-    resolved_run_id = run_id or ("search_run_" + datetime.now(LOCAL_TIMEZONE).strftime("%Y%m%dT%H%M%S%z") + "_" + uuid4().hex[:10])
-    create_search_run(db_path, version_id=version_id, breadth=normalized_breadth, provider_limit=safe_limit, resume_enabled=resume, run_id=resolved_run_id, started_at=timestamp)
+    resolved_run_id = run_id or (
+        "search_run_"
+        + datetime.now(LOCAL_TIMEZONE).strftime("%Y%m%dT%H%M%S%z")
+        + "_"
+        + uuid4().hex[:10]
+    )
+    create_search_run(
+        db_path,
+        version_id=version_id,
+        breadth=normalized_breadth,
+        provider_limit=safe_limit,
+        resume_enabled=resume,
+        run_id=resolved_run_id,
+        started_at=timestamp,
+    )
 
     run_dir = default_raw_search_root(root) / _safe_component(version_id) / _safe_component(resolved_run_id)
     checkpoint_dir = root / "07_logs" / "checkpoints" / "search_registry"
@@ -150,7 +190,22 @@ def execute_strategy_version(
         expression = str(provider_grid[provider][normalized_breadth]).strip()
         provider_query, provider_filter = parse_provider_expression(provider, expression)
         try:
-            result = search_fn(provider=provider, query=provider_query, workstream=f"search_registry_{version_id}", limit=safe_limit, checkpoint_dir=checkpoint_dir, resume=resume, run_id=resolved_run_id, logs_dir=logs_dir, context={"provider_filter": provider_filter, "strategy_version_id": version_id, "exact_expression": expression})
+            result = search_fn(
+                provider=provider,
+                query=provider_query,
+                workstream=f"search_registry_{version_id}",
+                limit=safe_limit,
+                checkpoint_dir=checkpoint_dir,
+                resume=resume,
+                run_id=resolved_run_id,
+                logs_dir=logs_dir,
+                context={
+                    "provider_filter": provider_filter,
+                    "strategy_version_id": version_id,
+                    "exact_expression": expression,
+                    "project_root": str(root),
+                },
+            )
             if not isinstance(result, ProviderResult):
                 raise TypeError("search provider returned an invalid result object")
         except Exception as exc:
@@ -161,17 +216,91 @@ def execute_strategy_version(
             errors.append(f"{provider}: {result.error}")
         snapshot_path = run_dir / f"{_safe_component(provider)}.jsonl"
         snapshot_sha256 = _write_jsonl_atomic(snapshot_path, list(result.rows or []))
-        records_found = int(result.total_found) if result.total_found is not None else int(result.total_returned)
-        execution = record_search_execution(db_path, version_id=version_id, provider=provider, breadth=normalized_breadth, expression=expression, status=_registry_status(result.status), records_found=records_found, error_message=result.error or "", started_at=timestamp)
-        artifact = record_execution_artifact(db_path, run_id=resolved_run_id, execution_id=execution["execution_id"], version_id=version_id, provider=provider, breadth=normalized_breadth, exact_expression=expression, provider_query=provider_query, provider_filter=provider_filter, provider_status=result.status, records_returned=int(result.total_returned), total_found=int(result.total_found) if result.total_found is not None else None, snapshot_path=str(snapshot_path), snapshot_sha256=snapshot_sha256, checkpoint_path=result.checkpoint_path or "", metadata=dict(result.meta or {}), created_at=timestamp)
+        records_found = (
+            int(result.total_found)
+            if result.total_found is not None
+            else int(result.total_returned)
+        )
+        execution = record_search_execution(
+            db_path,
+            version_id=version_id,
+            provider=provider,
+            breadth=normalized_breadth,
+            expression=expression,
+            status=_registry_status(result.status),
+            records_found=records_found,
+            error_message=result.error or "",
+            started_at=timestamp,
+        )
+        artifact = record_execution_artifact(
+            db_path,
+            run_id=resolved_run_id,
+            execution_id=execution["execution_id"],
+            version_id=version_id,
+            provider=provider,
+            breadth=normalized_breadth,
+            exact_expression=expression,
+            provider_query=provider_query,
+            provider_filter=provider_filter,
+            provider_status=result.status,
+            records_returned=int(result.total_returned),
+            total_found=int(result.total_found) if result.total_found is not None else None,
+            snapshot_path=str(snapshot_path),
+            snapshot_sha256=snapshot_sha256,
+            checkpoint_path=result.checkpoint_path or "",
+            metadata=dict(result.meta or {}),
+            created_at=timestamp,
+        )
         provider_summaries.append(artifact)
 
     records_identified = sum(item["records_returned"] for item in provider_summaries)
-    provider_reported_total_found = sum(item["total_found"] if item["total_found"] is not None else item["records_returned"] for item in provider_summaries)
+    provider_reported_total_found = sum(
+        item["total_found"] if item["total_found"] is not None else item["records_returned"]
+        for item in provider_summaries
+    )
     prisma_records_identified = records_identified if version["prisma_eligible"] else 0
     terminal_status = _run_status(provider_statuses)
     manifest_path = run_dir / "run_manifest.json"
-    manifest = {"run_id": resolved_run_id, "strategy_id": version["strategy_id"], "version_id": version_id, "version": version["version"], "search_type": version["search_type"], "prisma_eligible": bool(version["prisma_eligible"]), "formal_authorization": authorization, "breadth": normalized_breadth, "provider_limit": safe_limit, "resume_enabled": bool(resume), "started_at": timestamp, "status": terminal_status, "records_identified_before_deduplication": records_identified, "provider_reported_total_found": provider_reported_total_found, "prisma_records_identified": prisma_records_identified, "providers": provider_summaries, "errors": errors}
+    manifest = {
+        "run_id": resolved_run_id,
+        "strategy_id": version["strategy_id"],
+        "version_id": version_id,
+        "version": version["version"],
+        "search_type": version["search_type"],
+        "prisma_eligible": bool(version["prisma_eligible"]),
+        "formal_authorization": authorization,
+        "breadth": normalized_breadth,
+        "provider_limit": safe_limit,
+        "resume_enabled": bool(resume),
+        "started_at": timestamp,
+        "status": terminal_status,
+        "records_identified_before_deduplication": records_identified,
+        "provider_reported_total_found": provider_reported_total_found,
+        "prisma_records_identified": prisma_records_identified,
+        "providers": provider_summaries,
+        "errors": errors,
+    }
     manifest_sha256 = _write_json_atomic(manifest_path, manifest)
-    finished = finish_search_run(db_path, run_id=resolved_run_id, status=terminal_status, records_identified=records_identified, provider_reported_total_found=provider_reported_total_found, prisma_records_identified=prisma_records_identified, manifest_path=str(manifest_path), error_message="; ".join(errors))
-    return {**finished, "strategy_id": version["strategy_id"], "version": version["version"], "search_type": version["search_type"], "prisma_eligible": bool(version["prisma_eligible"]), "formal_authorization": authorization, "records_identified_before_deduplication": records_identified, "provider_reported_total_found": provider_reported_total_found, "prisma_records_identified": prisma_records_identified, "providers": provider_summaries, "manifest_sha256": manifest_sha256}
+    finished = finish_search_run(
+        db_path,
+        run_id=resolved_run_id,
+        status=terminal_status,
+        records_identified=records_identified,
+        provider_reported_total_found=provider_reported_total_found,
+        prisma_records_identified=prisma_records_identified,
+        manifest_path=str(manifest_path),
+        error_message="; ".join(errors),
+    )
+    return {
+        **finished,
+        "strategy_id": version["strategy_id"],
+        "version": version["version"],
+        "search_type": version["search_type"],
+        "prisma_eligible": bool(version["prisma_eligible"]),
+        "formal_authorization": authorization,
+        "records_identified_before_deduplication": records_identified,
+        "provider_reported_total_found": provider_reported_total_found,
+        "prisma_records_identified": prisma_records_identified,
+        "providers": provider_summaries,
+        "manifest_sha256": manifest_sha256,
+    }

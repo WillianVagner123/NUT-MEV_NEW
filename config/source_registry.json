@@ -1,5 +1,5 @@
 {
-  "version": "1.1",
+  "version": "1.2",
   "scope": "search_and_evidence_sources",
   "authority": "Canonical search/evidence-source registry. LLM/local-model capabilities live in provider_registry.json and are intentionally excluded here.",
   "providers": {
@@ -38,39 +38,55 @@
       "default_enabled": true,
       "method_track": "official_institutional"
     },
+    "scielo_native": {
+      "provider_registry_id": "scielo_native",
+      "type": "native_official_export",
+      "priority": 6,
+      "default_enabled": false,
+      "method_track": "indexed_database",
+      "coverage_note": "Native SciELO route: exact platform query plus official CSV/RIS export and SHA-256. Enabled only when a versioned strategy explicitly includes it."
+    },
+    "lilacs_bvs": {
+      "provider_registry_id": "lilacs_bvs",
+      "type": "native_official_export",
+      "priority": 7,
+      "default_enabled": false,
+      "method_track": "indexed_database",
+      "coverage_note": "Native LILACS/BVS route: exact platform query plus official CSV/RIS export and SHA-256. Enabled only when a versioned strategy explicitly includes it."
+    },
     "doaj": {
       "provider_registry_id": "doaj",
       "type": "bibliographic_index",
-      "priority": 6,
+      "priority": 8,
       "default_enabled": false,
       "method_track": "supplementary_discovery"
     },
     "clinicaltrials": {
       "provider_registry_id": "clinicaltrials",
       "type": "trial_registry",
-      "priority": 7,
+      "priority": 9,
       "default_enabled": false,
       "method_track": "supplementary_discovery"
     },
     "scielo": {
       "provider_registry_id": "scielo",
       "type": "crossref_prefix_connector",
-      "priority": 8,
+      "priority": 10,
       "default_enabled": false,
       "method_track": "supplementary_discovery",
-      "coverage_note": "Crossref retrieval restricted to DOI prefix 10.1590; not a comprehensive native SciELO platform search."
+      "coverage_note": "Compatibility/proxy route: Crossref retrieval restricted to DOI prefix 10.1590; not a comprehensive native SciELO platform search."
     },
     "semantic_scholar": {
       "provider_registry_id": "semantic_scholar",
       "type": "scholarly_index",
-      "priority": 9,
+      "priority": 11,
       "default_enabled": false,
       "method_track": "supplementary_discovery"
     },
     "arxiv": {
       "provider_registry_id": "arxiv",
       "type": "preprint_index",
-      "priority": 10,
+      "priority": 12,
       "default_enabled": false,
       "method_track": "supplementary_discovery"
     },
@@ -99,6 +115,7 @@
   "compatibility": {
     "legacy_source_priority_supported": true,
     "fallback_to_default_priority": true,
-    "provider_registry_crosswalk_required": true
+    "provider_registry_crosswalk_required": true,
+    "proxy_never_counts_as_native_scielo": true
   }
 }

@@ -17,6 +17,7 @@ from nutev.search.crossref import search_crossref
 from nutev.search.doaj import search_doaj
 from nutev.search.europepmc import search_europepmc
 from nutev.search.google_pse import search_google_pse
+from nutev.search.native_export import search_native_export
 from nutev.search.official_sources import manifest_sources
 from nutev.search.openalex import search_openalex
 from nutev.search.pubmed import PubMedClient
@@ -91,6 +92,28 @@ def _search_crossref_with_context(query: str, limit: int, context: dict[str, Any
     return search_crossref(query, **kwargs)
 
 
+def _native_export_path(context: dict[str, Any]) -> Path:
+    value = str(context.get("provider_filter") or "").strip()
+    if value.startswith("export="):
+        value = value.removeprefix("export=").strip()
+    if not value:
+        raise ValueError("native export provider requires an exact export file path")
+    path = Path(value)
+    if not path.is_absolute():
+        root = Path(str(context.get("project_root") or "."))
+        path = root / path
+    return path.resolve()
+
+
+def _search_native_with_context(provider: str, query: str, limit: int, context: dict[str, Any]):
+    return search_native_export(
+        provider,
+        query,
+        export_path=_native_export_path(context),
+        limit=limit,
+    )
+
+
 def _registry() -> dict[str, Callable[[str, int, dict[str, Any]], ProviderResult | list[dict[str, Any]]]]:
     return {
         "europepmc": lambda q, limit, ctx: search_europepmc(q, page_size=limit),
@@ -99,6 +122,8 @@ def _registry() -> dict[str, Callable[[str, int, dict[str, Any]], ProviderResult
         "doaj": lambda q, limit, ctx: search_doaj(q, page_size=limit),
         "clinicaltrials": lambda q, limit, ctx: search_clinicaltrials(q, page_size=limit),
         "scielo": lambda q, limit, ctx: search_scielo(q, rows=limit),
+        "scielo_native": lambda q, limit, ctx: _search_native_with_context("scielo_native", q, limit, ctx),
+        "lilacs_bvs": lambda q, limit, ctx: _search_native_with_context("lilacs_bvs", q, limit, ctx),
         "semantic_scholar": lambda q, limit, ctx: search_semantic_scholar(q, page_size=limit),
         "arxiv": lambda q, limit, ctx: search_arxiv(q, page_size=limit),
         "google": lambda q, limit, ctx: search_google_pse(q, limit=limit, context=ctx),

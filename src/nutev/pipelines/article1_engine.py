@@ -13,6 +13,7 @@ from typing import Any, Callable
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from nutev.export.google_sheets_sync import sync_article1_export_bundle
 from nutev.pipelines.article1_final_outputs import build_article1_final_outputs
 from nutev.pipelines.article1_formal_pipeline import run_or_resume_formal_chain
 from nutev.pipelines.article1_postformal import prepare_formal_human_review
@@ -23,7 +24,7 @@ from nutev.search.article1_scientific_status import derive_article1_scientific_s
 from nutev.search.gf02_pubmed_pilot import run_gf02_pubmed_pilot
 
 LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
-ENGINE_SCHEMA_VERSION = 3
+ENGINE_SCHEMA_VERSION = 4
 ProgressFn = Callable[[str], None]
 
 
@@ -176,6 +177,18 @@ def _formal_summary(project_root: Path) -> dict[str, Any]:
     return summary
 
 
+def _sheet_sync_message(state: dict[str, Any]) -> str:
+    sync = (state.get("operational_artifacts") or {}).get("google_sheets_sync") or {}
+    status = str(sync.get("status") or "")
+    if status == "SUCCEEDED":
+        return " Google Sheets também foi sincronizado."
+    if status == "FAILED":
+        return " O sync com Google Sheets falhou, mas o erro e o payload ficaram auditados localmente."
+    if status == "SKIPPED_NOT_CONFIGURED":
+        return " Google Sheets não está configurado neste computador; o payload auditável foi preservado localmente."
+    return ""
+
+
 def run_or_resume_article1_engine(
     repo_root: Path,
     *,
@@ -220,7 +233,12 @@ def run_or_resume_article1_engine(
                     "completed_at": _now_iso(),
                     "run_id": manifest.get("run_id"),
                     "manifest": str(
-                        project / "07_logs" / "gf02" / "pubmed" / str(manifest.get("run_id")) / "run_manifest.json"
+                        project
+                        / "07_logs"
+                        / "gf02"
+                        / "pubmed"
+                        / str(manifest.get("run_id"))
+                        / "run_manifest.json"
                     ),
                 }
                 _write_state(project, state)
@@ -310,8 +328,14 @@ def run_or_resume_article1_engine(
                     "COMPLETE_WITH_WARNINGS",
                 }:
                     raise RuntimeError("A cadeia FORMAL não chegou a um estado terminal auditável.")
-                _emit(project, state, progress_fn, "Organizando o corpus FORMAL para revisão humana...")
+                _emit(
+                    project,
+                    state,
+                    progress_fn,
+                    "Organizando corpus, idiomas, traduções configuradas e fila humana...",
+                )
                 review_queue = prepare_formal_human_review(project, formal_summary)
+                multilingual = review_queue.get("multilingual") or {}
                 state["completed_stages"]["FORMAL_EXECUTION"] = {
                     "completed_at": _now_iso(),
                     "formal_chain_state": str(
@@ -319,10 +343,21 @@ def run_or_resume_article1_engine(
                     ),
                     "search_run_id": str((formal_summary.get("search") or {}).get("run_id") or ""),
                     "review_queue": str(review_queue.get("queue_path") or ""),
+                    "translation_status": (
+                        "CONFIGURED" if multilingual.get("configured") else "SKIPPED_NOT_CONFIGURED"
+                    ),
+                    "translation_summary": str(multilingual.get("summary_path") or ""),
                 }
                 state.setdefault("operational_artifacts", {})["formal_review_queue"] = str(
                     review_queue.get("queue_path") or ""
                 )
+                state.setdefault("operational_artifacts", {})["multilingual"] = {
+                    "configured": bool(multilingual.get("configured")),
+                    "summary_path": str(multilingual.get("summary_path") or ""),
+                    "target_language": multilingual.get("target_language"),
+                    "text_completed": multilingual.get("text_completed"),
+                    "metadata_completed": multilingual.get("metadata_completed"),
+                }
                 _write_state(project, state)
                 continue
 
@@ -370,14 +405,27 @@ def run_or_resume_article1_engine(
                     formal_summary=_formal_summary(project),
                     session_id=session_id,
                 )
+                export_bundle_path = Path(
+                    str((final.get("outputs") or {}).get("export_bundle_path") or "")
+                )
+                _emit(project, state, progress_fn, "Sincronizando Google Sheets quando configurado...")
+                sheet_sync = sync_article1_export_bundle(project, export_bundle_path)
                 state["completed_stages"]["SYNTHESIS_PRISMA"] = {
                     "completed_at": _now_iso(),
                     "manifest_path": final.get("manifest_path"),
                     "manifest_sha256": final.get("manifest_sha256"),
+                    "google_sheets_sync_status": sheet_sync.get("status"),
+                    "google_sheets_sync_audit": sheet_sync.get("audit_path"),
                 }
                 state.setdefault("operational_artifacts", {})["article1_final_manifest"] = str(
                     final.get("manifest_path") or ""
                 )
+                state.setdefault("operational_artifacts", {})["google_sheets_sync"] = {
+                    "status": sheet_sync.get("status"),
+                    "audit_path": sheet_sync.get("audit_path"),
+                    "spreadsheet_id": sheet_sync.get("spreadsheet_id"),
+                    "reason": sheet_sync.get("reason"),
+                }
                 _write_state(project, state)
                 continue
 
@@ -385,7 +433,10 @@ def run_or_resume_article1_engine(
                 state["status"] = "COMPLETE"
                 state["waiting_on"] = None
                 state["last_error"] = None
-                state["last_message"] = "Artigo 1 concluído: pacote FORMAL, síntese e PRISMA foram validados."
+                state["last_message"] = (
+                    "Artigo 1 concluído: pacote FORMAL, síntese e PRISMA foram validados."
+                    + _sheet_sync_message(state)
+                )
                 _refresh_operational_artifacts(repo, project, state, scientific=scientific)
                 _write_state(project, state)
                 return state
