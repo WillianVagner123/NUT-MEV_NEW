@@ -15,8 +15,7 @@ ALLOWED_CLASSIFICATIONS = ("RELEVANT", "IRRELEVANT", "DOUBT")
 _REQUIRED_COLUMNS = {"sample_id", "classification", "reviewer", "note"}
 
 
-def read_rescue_only_sample(path: Path) -> list[dict[str, str]]:
-    """Read the rescue-only review CSV without changing scientific content."""
+def _read_with_fields(path: Path) -> tuple[list[str], list[dict[str, str]]]:
     sample_path = Path(path)
     if not sample_path.is_file():
         raise FileNotFoundError(f"GF-02 rescue-only sample not found: {sample_path}")
@@ -37,6 +36,26 @@ def read_rescue_only_sample(path: Path) -> list[dict[str, str]]:
         raise ValueError("GF-02 rescue-only sample contains a blank sample_id")
     if len(set(sample_ids)) != len(sample_ids):
         raise ValueError("GF-02 rescue-only sample contains duplicate sample_id values")
+    return fieldnames, rows
+
+
+def _atomic_write(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
+    sample_path = Path(path)
+    tmp = sample_path.with_name(f".{sample_path.name}.{uuid4().hex}.tmp")
+    try:
+        with tmp.open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(rows)
+        tmp.replace(sample_path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
+def read_rescue_only_sample(path: Path) -> list[dict[str, str]]:
+    """Read the rescue-only review CSV without changing scientific content."""
+    _, rows = _read_with_fields(path)
     return rows
 
 
@@ -84,14 +103,7 @@ def save_rescue_only_classification(
             "classification must be one of: " + ", ".join(ALLOWED_CLASSIFICATIONS)
         )
 
-    with sample_path.open(encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        fieldnames = list(reader.fieldnames or [])
-        missing = sorted(_REQUIRED_COLUMNS - set(fieldnames))
-        if missing:
-            raise ValueError("GF-02 rescue-only sample is missing columns: " + ", ".join(missing))
-        rows = [dict(row) for row in reader]
-
+    fieldnames, rows = _read_with_fields(sample_path)
     matches = [row for row in rows if str(row.get("sample_id") or "").strip() == resolved_sample_id]
     if len(matches) != 1:
         raise ValueError(f"sample_id must identify exactly one row: {resolved_sample_id}")
@@ -99,17 +111,7 @@ def save_rescue_only_classification(
     target["classification"] = resolved_classification
     target["reviewer"] = resolved_reviewer
     target["note"] = str(note or "").strip()
-
-    tmp = sample_path.with_name(f".{sample_path.name}.{uuid4().hex}.tmp")
-    try:
-        with tmp.open("w", encoding="utf-8-sig", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(rows)
-        tmp.replace(sample_path)
-    finally:
-        if tmp.exists():
-            tmp.unlink()
+    _atomic_write(sample_path, fieldnames, rows)
 
     return {
         "sample_id": resolved_sample_id,
@@ -119,9 +121,73 @@ def save_rescue_only_classification(
     }
 
 
+def save_rescue_only_batch(
+    path: Path,
+    *,
+    reviewer: str,
+    decisions: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Persist the complete rescue-only human review in one atomic write.
+
+    Batch mode is intentionally all-or-nothing: every row in the current sample
+    must be present with an explicit classification before the CSV is replaced.
+    This supports an end-of-automation review table without silently converting
+    blanks into scientific decisions.
+    """
+    sample_path = Path(path)
+    resolved_reviewer = str(reviewer or "").strip()
+    if not resolved_reviewer:
+        raise ValueError("A real reviewer identity is required")
+    if not decisions:
+        raise ValueError("At least one human classification is required")
+
+    normalized: dict[str, dict[str, str]] = {}
+    for decision in decisions:
+        sample_id = str(decision.get("sample_id") or "").strip()
+        classification = str(decision.get("classification") or "").strip().upper()
+        if not sample_id:
+            raise ValueError("sample_id is required for every batch decision")
+        if sample_id in normalized:
+            raise ValueError(f"duplicate sample_id in batch review: {sample_id}")
+        if classification not in ALLOWED_CLASSIFICATIONS:
+            raise ValueError(
+                f"classification for {sample_id} must be one of: "
+                + ", ".join(ALLOWED_CLASSIFICATIONS)
+            )
+        normalized[sample_id] = {
+            "classification": classification,
+            "note": str(decision.get("note") or "").strip(),
+        }
+
+    fieldnames, rows = _read_with_fields(sample_path)
+    expected_ids = [str(row.get("sample_id") or "").strip() for row in rows]
+    missing_ids = [sample_id for sample_id in expected_ids if sample_id not in normalized]
+    extra_ids = [sample_id for sample_id in normalized if sample_id not in set(expected_ids)]
+    if missing_ids:
+        raise ValueError("batch review is incomplete; missing sample_id: " + ", ".join(missing_ids))
+    if extra_ids:
+        raise ValueError("batch review contains unknown sample_id: " + ", ".join(extra_ids))
+
+    for row in rows:
+        sample_id = str(row.get("sample_id") or "").strip()
+        decision = normalized[sample_id]
+        row["classification"] = decision["classification"]
+        row["reviewer"] = resolved_reviewer
+        row["note"] = decision["note"]
+
+    _atomic_write(sample_path, fieldnames, rows)
+    return {
+        "updated": len(rows),
+        "reviewer": resolved_reviewer,
+        "complete": True,
+        "precision_estimated": False,
+    }
+
+
 __all__ = [
     "ALLOWED_CLASSIFICATIONS",
     "read_rescue_only_sample",
     "review_progress",
+    "save_rescue_only_batch",
     "save_rescue_only_classification",
 ]
