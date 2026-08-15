@@ -14,6 +14,7 @@ from typing import Any, Callable
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from nutev.pipelines.article1_formal_pipeline import run_or_resume_formal_chain
 from nutev.pipelines.execution_coverage import write_search_coverage_ledger
 from nutev.pipelines.human_queue import write_human_queue
 from nutev.search.article1_scientific_status import derive_article1_scientific_status
@@ -125,7 +126,6 @@ def ensure_article1_engine_state(repo_root: Path, project_root: Path) -> dict[st
     if not state or str(state.get("candidate_version") or "") != _candidate_version(scientific):
         state = _new_state(scientific)
     else:
-        # Non-destructive migration of older one-button state files.
         state.setdefault("completed_stages", {})
         state.setdefault("operational_artifacts", {})
         state.setdefault("open_human_tasks", 0)
@@ -296,6 +296,44 @@ def run_or_resume_article1_engine(
                     message="PRECISO DE VOCÊ: autorize o GF-10/FREEZE imutável; depois use CONTINUAR.",
                 )
 
+            if phase == "FORMAL_EXECUTION":
+                _emit(project, state, progress_fn, "FREEZE válido: iniciando/retomando a cadeia FORMAL autorizada...")
+
+                def formal_relay(message: str) -> None:
+                    _emit(project, state, progress_fn, message)
+
+                formal_summary = run_or_resume_formal_chain(
+                    project,
+                    progress_fn=formal_relay,
+                )
+                if str((formal_summary.get("status") or {}).get("execution_status") or "") not in {
+                    "COMPLETE",
+                    "COMPLETE_WITH_WARNINGS",
+                }:
+                    raise RuntimeError("A cadeia FORMAL não chegou a um estado terminal auditável.")
+                state["completed_stages"]["FORMAL_EXECUTION"] = {
+                    "completed_at": _now_iso(),
+                    "summary": str(
+                        (formal_summary.get("artifacts") or {}).get("formal_chain_state_path") or ""
+                    ),
+                    "search_run_id": str((formal_summary.get("search") or {}).get("run_id") or ""),
+                }
+                _write_state(project, state)
+                continue
+
+            if phase in {"SCREENING_HUMAN_REVIEW", "FULLTEXT_HUMAN_REVIEW", "ABCD_HUMAN_REVIEW", "ADJUDICATION"}:
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
+                return _pause(
+                    project,
+                    state,
+                    status="WAITING_HUMAN",
+                    phase=phase,
+                    message=(
+                        "PRECISO DE VOCÊ: existem unidades humanas pendentes. O Engine preservou o corpus e a fila; "
+                        "complete somente as decisões abertas e depois use CONTINUAR."
+                    ),
+                )
+
             state["status"] = "COMPLETE"
             state["waiting_on"] = None
             state["last_message"] = "Todas as etapas atualmente automatizadas foram concluídas."
@@ -304,7 +342,6 @@ def run_or_resume_article1_engine(
             return state
 
     except BaseException as exc:
-        # KeyboardInterrupt/SystemExit must also preserve the one-button resume state.
         state["status"] = "FAILED"
         state["last_error"] = str(exc) or type(exc).__name__
         state["last_message"] = (
