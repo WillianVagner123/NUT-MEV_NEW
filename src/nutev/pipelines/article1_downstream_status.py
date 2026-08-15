@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from nutev.pipelines.article1_final_outputs import final_outputs_status
 from nutev.review.article1_runtime import article1_runtime_status
 from nutev.review.article1_screening_runtime import (
     ARTICLE1_FORMAL_PROTOCOL_VERSION,
@@ -71,6 +72,18 @@ def derive_postformal_status(project_root: Path, formal_summary: dict[str, Any])
 
     included = int(screening.get("included_documents") or 0)
     if included == 0:
+        final = final_outputs_status(project, session_id=session_id)
+        if final.get("complete"):
+            return {
+                "phase": "COMPLETE",
+                "next_action": "Article 1 FORMAL workflow complete.",
+                "session_id": session_id,
+                "build_id": build_id,
+                "screening": screening,
+                "runtime": {"included_documents": 0, "synthesis_ready": True, "documents": []},
+                "final_outputs": final,
+                "human_decision_inferred": False,
+            }
         return {
             "phase": "SYNTHESIS_PRISMA",
             "next_action": "Generate the final zero-inclusion synthesis/PRISMA package from the resolved FORMAL lineage.",
@@ -78,6 +91,7 @@ def derive_postformal_status(project_root: Path, formal_summary: dict[str, Any])
             "build_id": build_id,
             "screening": screening,
             "runtime": {"included_documents": 0, "synthesis_ready": True, "documents": []},
+            "final_outputs": final,
             "human_decision_inferred": False,
         }
 
@@ -90,6 +104,18 @@ def derive_postformal_status(project_root: Path, formal_summary: dict[str, Any])
         phase = "RELATIONS_HUMAN_REVIEW"
         action = "Complete explicit relation review for R1/R2 and adjudicate unresolved relation-set divergences."
     else:
+        final = final_outputs_status(project, session_id=session_id)
+        if final.get("complete"):
+            return {
+                "phase": "COMPLETE",
+                "next_action": "Article 1 FORMAL workflow complete.",
+                "session_id": session_id,
+                "build_id": build_id,
+                "screening": screening,
+                "runtime": runtime,
+                "final_outputs": final,
+                "human_decision_inferred": False,
+            }
         phase = "SYNTHESIS_PRISMA"
         action = "Generate synthesis, audit bundle and PRISMA-eligible final outputs."
 
@@ -100,6 +126,7 @@ def derive_postformal_status(project_root: Path, formal_summary: dict[str, Any])
         "build_id": build_id,
         "screening": screening,
         "runtime": runtime,
+        "final_outputs": final_outputs_status(project, session_id=session_id) if phase == "SYNTHESIS_PRISMA" else {},
         "human_decision_inferred": False,
     }
 
