@@ -58,8 +58,9 @@ def _render_workflow_map() -> None:
         "12. ABCD 34/34 → 13. relações explícitas → 14. adjudicação/síntese → 15. PRISMA/export."
     )
     st.caption(
-        "Compatibilidade do fluxo downstream: 10. Extração permanece disponível no "
-        "Evidence Matrix genérico; no Artigo 1, a extração canônica é o ABCD 34/34."
+        "Compatibilidade do Evidence Matrix: 10. Extração permanece disponível no "
+        "fluxo genérico e 12. Matriz final continua sendo o snapshot auditável; "
+        "no Artigo 1, a extração científica canônica é ABCD 34/34 + relações explícitas."
     )
     st.caption(
         "No Artigo 1, ABCD, relações e síntese operam no mesmo Evidence Engine. "
