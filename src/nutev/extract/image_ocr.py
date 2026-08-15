@@ -3,8 +3,8 @@
 When ``NUTEV_OCR_LANG`` is unset, NutEV inspects the Tesseract language packs
 actually installed and uses the supported multilingual set available on that
 machine. Users may still pin an exact language expression for reproducibility.
-The OCR text is never translated or overwritten here; language detection is
-recorded separately by downstream audit layers.
+The resolved default expression is exported as ``_DEFAULT_LANG`` so the existing
+OCR cache signature changes when installed language capability changes.
 """
 from __future__ import annotations
 
@@ -14,14 +14,40 @@ from typing import Any
 
 from nutev.language import detect_language
 
-# ``auto`` means: use the supported Tesseract packs actually installed.
-_DEFAULT_LANG = os.environ.get("NUTEV_OCR_LANG", "auto")
+_SUPPORTED_PACKS = ("por", "eng", "spa", "fra", "ita", "deu")
+_MIN_LONG_SIDE = 1800
 _DEFAULT_CONFIG = os.environ.get(
     "NUTEV_OCR_CONFIG",
     "--oem 1 --psm 3 -c preserve_interword_spaces=1",
 )
-_SUPPORTED_PACKS = ("por", "eng", "spa", "fra", "ita", "deu")
-_MIN_LONG_SIDE = 1800
+
+
+def installed_tesseract_languages() -> tuple[str, ...]:
+    """Return installed Tesseract languages without turning setup failure into evidence."""
+    try:
+        import pytesseract
+
+        return tuple(sorted(str(item) for item in pytesseract.get_languages(config="") if str(item).strip()))
+    except Exception:
+        return ()
+
+
+def _automatic_language_expression() -> str:
+    available = installed_tesseract_languages()
+    chosen = [code for code in _SUPPORTED_PACKS if code in available]
+    if not chosen:
+        if "eng" in available:
+            chosen = ["eng"]
+        elif available:
+            chosen = [available[0]]
+        else:
+            chosen = ["eng"]
+    return "+".join(chosen)
+
+
+# Keep this as the *resolved* expression because pdf_text.ocr_cache_signature()
+# includes it. Installing/removing a language pack therefore changes the cache key.
+_DEFAULT_LANG = os.environ.get("NUTEV_OCR_LANG") or _automatic_language_expression()
 
 
 def _preprocess(image):
@@ -41,32 +67,13 @@ def _preprocess(image):
     return img
 
 
-def installed_tesseract_languages() -> tuple[str, ...]:
-    """Return installed Tesseract languages without turning setup failure into evidence."""
-    try:
-        import pytesseract
-
-        return tuple(sorted(str(item) for item in pytesseract.get_languages(config="") if str(item).strip()))
-    except Exception:
-        return ()
-
-
 def resolve_ocr_language(lang: str | None = None) -> tuple[str, tuple[str, ...]]:
     """Resolve the requested Tesseract expression and preserve the available set."""
-    requested = (lang or _DEFAULT_LANG or "auto").strip()
     available = installed_tesseract_languages()
-    if requested.lower() != "auto":
-        return requested, available
-    chosen = [code for code in _SUPPORTED_PACKS if code in available]
-    if not chosen:
-        if "eng" in available:
-            chosen = ["eng"]
-        elif available:
-            chosen = [available[0]]
-        else:
-            # Let pytesseract raise the real setup error if Tesseract is absent.
-            chosen = ["eng"]
-    return "+".join(chosen), available
+    requested = str(lang or _DEFAULT_LANG or "eng").strip()
+    if requested.lower() == "auto":
+        requested = _automatic_language_expression()
+    return requested, available
 
 
 def _quality(text: str) -> dict[str, Any]:
