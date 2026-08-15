@@ -59,9 +59,15 @@ def _status_copy(state: dict, scientific: dict) -> tuple[str, str]:
     if status == "FAILED":
         return "Interrompido", "Seu progresso foi salvo. Clique CONTINUAR para retomar do último checkpoint."
     if status == "WAITING_HUMAN":
-        return "Aguardando você", str(state.get("last_message") or "Existe um gate humano pendente.")
+        return (
+            "Automação concluída",
+            "Tudo que estava computacionalmente autorizado foi executado. A revisão humana está no final desta tela.",
+        )
     if status == "WAITING_EXTERNAL":
-        return "Aguardando etapa externa", str(state.get("last_message") or "Existe um gate externo pendente.")
+        return (
+            "Automação concluída — etapa externa",
+            str(state.get("last_message") or "Existe um gate externo pendente ao final do fluxo disponível."),
+        )
     if state and status == "RUNNING":
         return "Pronto para continuar", "Uma execução anterior foi interrompida; o checkpoint está salvo."
     if phase == "GF02_PUBMED_PILOT":
@@ -69,11 +75,11 @@ def _status_copy(state: dict, scientific: dict) -> tuple[str, str]:
     return "Pronto para continuar", "O Engine detectou automaticamente o ponto atual e continua dali."
 
 
-def _render_human_task(project_root: Path) -> None:
+def _render_human_task(project_root: Path) -> bool:
     queue = _load_human_queue(project_root)
     tasks = list(queue.get("tasks") or [])
     if not tasks:
-        return
+        return False
     task = tasks[0]
     title = str(task.get("title") or "Ação humana necessária")
     instruction = str(task.get("instruction") or "Complete a ação pendente e depois use CONTINUAR.")
@@ -82,7 +88,7 @@ def _render_human_task(project_root: Path) -> None:
     st.markdown(
         f"""
         <div class="nutev-human-card">
-          <div class="nutev-human-kicker">PRECISO DE VOCÊ</div>
+          <div class="nutev-human-kicker">REVISÃO HUMANA · DEPOIS DA AUTOMAÇÃO</div>
           <div class="nutev-human-title">{title}</div>
           <div class="nutev-human-text">{instruction}</div>
         </div>
@@ -102,7 +108,22 @@ def _render_human_task(project_root: Path) -> None:
     if compact:
         st.caption(" · ".join(compact))
     if evidence_path:
-        st.caption(f"Arquivo de trabalho: {evidence_path}")
+        st.caption(f"Artefato auditável: {evidence_path}")
+    return True
+
+
+def _render_human_review_center(project_root: Path, scientific: dict) -> None:
+    queue = _load_human_queue(project_root)
+    if not list(queue.get("tasks") or []):
+        return
+    st.divider()
+    st.markdown("### Revisão humana")
+    st.caption(
+        "Esta área aparece somente depois que o Engine termina tudo que pode executar sem decisão humana. "
+        "Etapas científicas dependentes continuam bloqueadas até a decisão real ser registrada."
+    )
+    _render_human_task(project_root)
+    render_article1_human_workbench(project_root, scientific)
 
 
 def render_article1_play_panel(project_root: Path) -> None:
@@ -155,7 +176,7 @@ def render_article1_play_panel(project_root: Path) -> None:
             st.markdown('<div class="nutev-kicker">NUTEV EVIDENCE ENGINE</div>', unsafe_allow_html=True)
             st.markdown('<div class="nutev-title">Rodar tudo.</div>', unsafe_allow_html=True)
             st.markdown(
-                '<div class="nutev-sub">Um fluxo, um checkpoint, uma próxima ação.</div>',
+                '<div class="nutev-sub">Primeiro a automação. Depois, somente a revisão humana necessária.</div>',
                 unsafe_allow_html=True,
             )
             st.markdown(f'<div class="nutev-state">{title}</div>', unsafe_allow_html=True)
@@ -164,9 +185,6 @@ def render_article1_play_panel(project_root: Path) -> None:
                 f'<div class="nutev-phase">Etapa atual · {_phase_label(phase)}</div>',
                 unsafe_allow_html=True,
             )
-
-            _render_human_task(project_root)
-            render_article1_human_workbench(project_root, scientific)
 
             clicked = st.button(
                 button_label,
@@ -198,7 +216,7 @@ def render_article1_play_panel(project_root: Path) -> None:
                     result_status = str(result.get("status") or "")
                     if result_status in {"WAITING_HUMAN", "WAITING_EXTERNAL"}:
                         status_box.update(
-                            label="Automação concluída até a próxima ação",
+                            label="Automação concluída — revisão/etapa humana no final",
                             state="complete",
                             expanded=False,
                         )
@@ -219,8 +237,11 @@ def render_article1_play_panel(project_root: Path) -> None:
                 if state.get("last_error"):
                     st.caption(f"Último erro: {state['last_error']}")
 
+            _render_human_review_center(project_root, scientific)
+
         st.caption(
-            "O Engine automatiza tudo que é computacional. Decisões científicas humanas são preservadas como gates explícitos."
+            "O Engine executa primeiro tudo que é computacionalmente autorizado. "
+            "A revisão humana fica concentrada ao final do trecho executável e nunca é inferida pelo software."
         )
 
 

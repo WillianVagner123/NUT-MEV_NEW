@@ -1,8 +1,10 @@
-"""Inline human workbench for the one-button Article 1 product surface.
+"""Human-review workbench for the one-button Article 1 product surface.
 
 Only the human action required by the current persisted phase is rendered. The
 workbench never infers a scientific decision and writes to the same canonical
-ledgers/artifacts used by the engine controller.
+ledgers/artifacts used by the engine controller. The product surface renders
+this workbench after the automatic execution area, so human work is visually
+separated from the run itself.
 """
 from __future__ import annotations
 
@@ -26,7 +28,7 @@ from nutev.review.gf02_noise_review import (
     ALLOWED_CLASSIFICATIONS,
     read_rescue_only_sample,
     review_progress,
-    save_rescue_only_classification,
+    save_rescue_only_batch,
 )
 from nutev.review.screening import EXCLUSION_REASONS
 from nutev.search.strategy_registry import default_registry_path
@@ -61,10 +63,17 @@ def _gf02_sample_path(scientific: dict[str, Any]) -> Path | None:
     return sample if sample.is_file() else None
 
 
-def _gf02_row_label(row: dict[str, str]) -> str:
-    sample_id = str(row.get("sample_id") or "").strip()
-    title = str(row.get("title") or "Sem título").strip()
-    return f"{sample_id} · {title[:100]}"
+def _editor_records(value: Any) -> list[dict[str, str]]:
+    if hasattr(value, "to_dict"):
+        rows = value.to_dict(orient="records")
+    elif isinstance(value, list):
+        rows = value
+    else:
+        rows = list(value or [])
+    return [
+        {str(key): str(item or "") for key, item in dict(row).items()}
+        for row in rows
+    ]
 
 
 def _render_gf02_noise_review(scientific: dict[str, Any]) -> None:
@@ -79,47 +88,18 @@ def _render_gf02_noise_review(scientific: dict[str, Any]) -> None:
         st.error(str(exc))
         return
 
-    st.markdown("#### Revisão rescue-only")
+    st.markdown("#### Revisão rescue-only · em lote")
     st.caption(
-        "Faça a classificação humana aqui. O Engine apenas salva sua decisão no CSV auditável; "
-        "não estima precisão e não preenche decisões automaticamente."
+        "A automação desta etapa já terminou. Revise agora os registros juntos. "
+        "O Engine somente salva suas decisões humanas no CSV auditável; não estima precisão e não classifica sozinho."
     )
     st.caption(
-        f"Progresso: {progress['resolved']}/{progress['total']} classificados · "
+        f"Progresso persistido: {progress['resolved']}/{progress['total']} classificados · "
         f"{progress['pending']} pendentes"
     )
     if progress["complete"]:
-        st.success("A amostra está completa. Clique CONTINUAR para registrar a próxima decisão científica.")
+        st.success("A amostra está completa. Clique CONTINUAR para o Engine executar o próximo trecho autorizado.")
         return
-
-    pending = [
-        row
-        for row in rows
-        if not (
-            str(row.get("classification") or "").strip()
-            and str(row.get("reviewer") or "").strip()
-        )
-    ]
-    by_label = {_gf02_row_label(row): row for row in pending}
-    selected_label = st.selectbox(
-        "Registro pendente",
-        list(by_label),
-        key=f"gf02_noise_record_{sample_path}",
-    )
-    row = by_label[selected_label]
-    sample_id = str(row.get("sample_id") or "").strip()
-    title = str(row.get("title") or "Sem título").strip()
-    st.markdown(f"**{title}**")
-    metadata = []
-    pmid = str(row.get("pmid") or "").strip()
-    doi = str(row.get("doi") or "").strip()
-    if pmid:
-        metadata.append(f"PMID: {pmid}")
-    if doi:
-        metadata.append(f"DOI: {doi}")
-    if metadata:
-        st.caption(" · ".join(metadata))
-    st.caption(f"Amostra: {sample_id}")
 
     existing_reviewers = [
         str(item.get("reviewer") or "").strip()
@@ -127,28 +107,66 @@ def _render_gf02_noise_review(scientific: dict[str, Any]) -> None:
         if str(item.get("reviewer") or "").strip()
     ]
     default_reviewer = existing_reviewers[0] if existing_reviewers else ""
-    with st.form(f"gf02_noise_form_{sample_id}"):
-        reviewer = st.text_input("Revisor humano", value=default_reviewer)
-        classification = st.selectbox(
-            "Classificação",
-            [""] + list(ALLOWED_CLASSIFICATIONS),
-            format_func=lambda value: "Selecione..." if not value else value,
+    table_rows = [
+        {
+            "sample_id": str(row.get("sample_id") or ""),
+            "title": str(row.get("title") or ""),
+            "pmid": str(row.get("pmid") or ""),
+            "doi": str(row.get("doi") or ""),
+            "classification": str(row.get("classification") or ""),
+            "note": str(row.get("note") or ""),
+        }
+        for row in rows
+    ]
+
+    with st.form(f"gf02_noise_batch_{sample_path}"):
+        reviewer = st.text_input(
+            "Revisor humano",
+            value=default_reviewer,
+            help="Uma identidade humana real será gravada em todas as linhas desta revisão em lote.",
         )
-        note = st.text_area("Nota / justificativa", value=str(row.get("note") or ""))
-        save = st.form_submit_button("Salvar e próximo", use_container_width=True)
+        edited = st.data_editor(
+            table_rows,
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            disabled=["sample_id", "title", "pmid", "doi"],
+            column_config={
+                "sample_id": st.column_config.TextColumn("Amostra", width="small"),
+                "title": st.column_config.TextColumn("Título", width="large"),
+                "pmid": st.column_config.TextColumn("PMID", width="small"),
+                "doi": st.column_config.TextColumn("DOI", width="medium"),
+                "classification": st.column_config.SelectboxColumn(
+                    "Classificação",
+                    options=list(ALLOWED_CLASSIFICATIONS),
+                    required=True,
+                    width="medium",
+                ),
+                "note": st.column_config.TextColumn("Nota / justificativa", width="large"),
+            },
+            key=f"gf02_noise_batch_editor_{sample_path}",
+        )
+        save = st.form_submit_button("Salvar revisão humana completa", use_container_width=True)
+
     if save:
+        decisions = [
+            {
+                "sample_id": row.get("sample_id", ""),
+                "classification": row.get("classification", ""),
+                "note": row.get("note", ""),
+            }
+            for row in _editor_records(edited)
+        ]
         try:
-            save_rescue_only_classification(
+            save_rescue_only_batch(
                 sample_path,
-                sample_id=sample_id,
-                classification=classification,
                 reviewer=reviewer,
-                note=note,
+                decisions=decisions,
             )
         except (OSError, ValueError) as exc:
             st.error(str(exc))
         else:
-            st.success("Classificação humana salva no artefato GF-02.")
+            st.success("Revisão humana completa salva de uma vez no artefato GF-02.")
             st.rerun()
 
 
@@ -375,7 +393,7 @@ def render_article1_human_workbench(
     project_root: Path,
     scientific: dict[str, Any],
 ) -> None:
-    """Render the current human task inline; render nothing for automatic phases."""
+    """Render only the human work that is scientifically valid at this checkpoint."""
     phase = str(scientific.get("article1_current_phase") or "")
     if phase == "GF02_NOISE_REVIEW":
         _render_gf02_noise_review(scientific)
