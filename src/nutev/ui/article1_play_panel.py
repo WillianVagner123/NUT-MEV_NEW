@@ -13,6 +13,7 @@ from nutev.pipelines.article1_engine import (
 )
 from nutev.search.article1_scientific_status import derive_article1_scientific_status
 from nutev.ui.article1_human_workbench import render_article1_human_workbench
+from nutev.ui.gf02_review_workbench import render_gf02_easy_review
 
 
 def _repo_root() -> Path:
@@ -123,7 +124,11 @@ def _render_human_review_center(project_root: Path, scientific: dict) -> None:
         "Etapas científicas dependentes continuam bloqueadas até a decisão real ser registrada."
     )
     _render_human_task(project_root)
-    render_article1_human_workbench(project_root, scientific)
+    phase = str(scientific.get("article1_current_phase") or "")
+    if phase == "GF02_NOISE_REVIEW":
+        render_gf02_easy_review(scientific)
+    else:
+        render_article1_human_workbench(project_root, scientific)
 
 
 def render_article1_play_panel(project_root: Path) -> None:
