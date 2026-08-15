@@ -1,80 +1,77 @@
 # Methodology ↔ Software Gap Analysis
 
-Status: **SYSTEM CORE COMPLETE — software-only closure for the v0.3 development line**.
+Status: **SYSTEM CORE COMPLETE — software-only; Article 1 scientific execution remains pre-PRESS.**
 
-Declaration date: **2026-08-13**. Audited software baseline before this documentation-only record: `9e41aa895f716367ae394f429abc21e5bfee20a4`.
+Original software-core declaration: **2026-08-13**. Scientific-state reconciliation: **2026-08-15**.
 
-This declaration means the core software architecture, scientific-state guards and P0 closure controls are complete. It is **not** evidence that any scientific, licensed or human gate has been completed. The repository remains in **CLOSURE MODE**: no parallel search systems or open-ended vocabulary expansion without a versioned methodological amendment.
+`SYSTEM CORE COMPLETE` means architecture, guards and P0 software controls are complete. It does **not** mean GF-02, PRESS, licensed-provider validation, FREEZE, FORMAL execution or PRISMA are complete.
 
-The governing separation remains: generated ≠ validated ≠ frozen ≠ executed ≠ retrieved ≠ screened ≠ included ≠ extracted ≠ recommendation candidate ≠ clinical recommendation.
+The governing separation remains:
 
-## Gap matrix
+`generated ≠ validated ≠ frozen ≠ executed ≠ retrieved ≠ screened ≠ included ≠ extracted ≠ recommendation candidate ≠ clinical recommendation`
 
-| Requirement | Software status | Remaining scientific/external work | Priority |
-|---|---|---|---|
-| Scientific state separation | IMPLEMENTED | Preserve generated≠executed, PILOT≠FORMAL and human-decision boundaries | closed core |
-| Source Registry | IMPLEMENTED SOFTWARE / CANDIDATE DATA | Candidate institutional records still require verified search mechanism, stopping/version rules, reviewer and verification evidence before `FROZEN` | pre-formal |
-| Guideline Repository Registry | IMPLEMENTED SOFTWARE / CANDIDATE DATA | G-I-N, BIGG, AWMF, Dutch Richtlijnendatabase, Minds and Ukraine Registry remain `NOT_AUTHORIZED` until operational fields are verified | pre-formal |
-| Sentinel identity + recall | IMPLEMENTED SOFTWARE / PARTIAL DATA | Reconcile the full declared sentinel suite and run real provider/route evidence before global recall claims | GF-02 |
-| Noise analysis | IMPLEMENTED SOFTWARE / HUMAN | Classify the real deterministic noise sample and record reviewer evidence | GF-02 |
-| Strategy versioning | IMPLEMENTED | Bind only exact immutable versions to execution and freeze evidence | closed core |
-| Scientific gates GF-01…GF-10 | IMPLEMENTED SOFTWARE / HUMAN INPUTS | Actual evidence, owners, dates and decisions remain scientific/human records | pre-formal |
-| PRESS | IMPLEMENTED SOFTWARE / HUMAN | Real submission/reviewer/decision evidence remains pending; approval is never inferred | GF-03 |
-| Freeze | IMPLEMENTED SOFTWARE / HUMAN | Real GF-10 authorization and definitive frozen values remain pending | GF-10 |
-| Scopus / Web of Science | IMPLEMENTED SOFTWARE / LICENSED EXECUTION | Import real licensed/manual execution evidence; never simulate another database as a substitute | GF-02/formal |
-| FORMAL/PRISMA execution guard | IMPLEMENTED | Canonical strategy executor requires persisted gates plus exact freeze, strategy version, Git SHA and config digest; PLAY remains PILOT-only | closed core |
-| Global search input safety/UI | IMPLEMENTED | #1020 closed after validated normalization, unsafe-input rejection and controlled dashboard/provider-filter warnings | closed core |
-| Intellectual document unit | IMPLEMENTED/PARTIAL VALIDATION | Verify manifestations/co-publications/version behavior on the definitive multi-route corpus | P1 scientific validation |
-| R1/R2/adjudication | IMPLEMENTED WORKFLOW / HUMAN | Real reviewer identities, calibration and decisions remain pending | GF-07 |
-| Citation chasing | PARTIAL/VERIFY | Verify formal backward/forward round, stopping and ledger evidence before claiming scientific completion | P1 scientific execution |
-| Legacy workstream semantics | IMPLEMENTED | #1029 closed: new runtime outputs are semantic; historical `busca*`/article labels are ingest aliases only | closed core |
-| Normative documentation parity | IMPLEMENTED | #1044 merged with full CI/security/release validation | closed core |
-| Release / Zenodo | PARTIAL / HUMAN+EXTERNAL | #1014 provenance/license reconciliation plus final metadata and exact release SHA remain open | release |
+## Current Article 1 state
 
-## Implemented software controls that must not be confused with scientific completion
+- **Software core:** COMPLETE (software-only).
+- **Current B-NORM-PUBMED candidate:** **v0.5**, PILOT, non-PRISMA.
+- **v0.4:** superseded historical evidence of a PubMed Boolean-semantics bug; not executable.
+- **GF-02 pre-PRESS:** OPEN until real v0.5 PubMed evidence, sentinel assessment, human rescue-only noise review and explicit human `READY_FOR_PRESS`/`NOT_READY_FOR_PRESS` decision are persisted.
+- **GF-03 PRESS:** downstream of GF-02 READY_FOR_PRESS; never inferred.
+- **Scopus/Web of Science:** **post-PRESS under D-096**. Final translation/licensed PILOT validation is required later, but is not a blocker to entering PRESS.
+- **FREEZE / FORMAL / PRISMA:** downstream and not authorized.
 
-- `SourceRegistryRecord` and `GuidelineRepositoryRecord` validate candidate versus formal/frozen states and expose explicit registry blockers; candidate data cannot silently become formal.
-- `GateRecord`, `PressRecord` and immutable `FreezeRecord` persist scientific state without inferring human approval.
-- FORMAL/PRISMA execution is blocked before run creation unless persisted evidence authorizes the exact strategy version and matches the frozen Git SHA and configuration digest.
-- Global search input validation rejects unsafe Boolean/provider syntax, normalizes declared filters and exposes unsupported-provider filters without silently claiming they were applied.
-- PLAY remains a PILOT convenience/audit orchestrator; it is not the definitive multi-track FORMAL Article 1 runner.
+## Canonical sequence
 
-## SYSTEM CORE COMPLETE — declaration
+1. execute and audit the exact current **B-NORM-PUBMED v0.5 PILOT**;
+2. preserve provider totals, exact expressions, NCBI query translation/warnings, snapshots/hashes, truncation/capping and software SHA;
+3. audit the declared sentinel suite and the NORM-035/NORM-063 mechanism controls;
+4. complete human classification/reviewer evidence for the deterministic rescue-only sample;
+5. record the human GF-02 decision: `READY_FOR_PRESS` or `NOT_READY_FOR_PRESS`;
+6. if ready, proceed to **GF-03 PRESS**;
+7. incorporate material PRESS changes in a new version and retest affected PubMed behavior;
+8. **then** translate Scopus/WoS and run licensed/manual PILOT validation, per D-096;
+9. close remaining applicable scientific/human gates;
+10. authorize **GF-10 FREEZE** binding exact Git SHA, strategy versions, registries, PRESS evidence, filters/date rule, reviewers and configuration digest;
+11. execute FORMAL identification only from the authorized frozen state;
+12. only legitimate FORMAL/frozen runs can feed PRISMA accounting, followed by corpus, R1/R2, full text and extraction/codebook.
 
-**DECLARED: YES, software-only.**
+## Software controls
 
-The final P0 audit after #1044 and #1045 found no open architecture/software-core issue. The remaining open issues are deliberately outside the core-software-complete state:
+| Requirement | Software state | Scientific/external state |
+|---|---|---|
+| Scientific-state separation | IMPLEMENTED | Preserve PILOT ≠ FORMAL and software ≠ human decision |
+| Sentinel registry | IMPLEMENTED | Declared identity suite resolved; observed retrieval still requires current execution evidence |
+| GF-02 PubMed runner | IMPLEMENTED / CURRENT-CANDIDATE AWARE | v0.5 real PILOT + human noise review pending |
+| PubMed parser evidence | IMPLEMENTED | Query translation/warnings must be preserved; semantic Boolean warnings fail the PILOT package |
+| GF-02 pre-PRESS gate | IMPLEMENTED under D-096 | Human READY_FOR_PRESS decision required |
+| PRESS | IMPLEMENTED SOFTWARE / HUMAN | Submission/reviewer/decision pending |
+| Scopus/WoS evidence ledger | IMPLEMENTED SOFTWARE / LICENSED | Post-PRESS translation/licensed PILOT pending |
+| GF-01…GF-10 records | IMPLEMENTED SOFTWARE / HUMAN INPUTS | Actual evidence/owners/dates/decisions remain scientific records |
+| FREEZE | IMPLEMENTED SOFTWARE / HUMAN | Exact authorization pending |
+| FORMAL/PRISMA guard | IMPLEMENTED | Execution remains blocked until exact authorized freeze |
+| R1/R2/adjudication | IMPLEMENTED WORKFLOW / HUMAN | Real reviewer/calibration decisions remain human |
+| Release/Zenodo | PARTIAL / EXTERNAL | Separate release gate; never proof of scientific completion |
 
-- **#1010** — canonical scientific execution path;
-- **#1012** — current GF-02 scientific blocker requiring real PubMed/noise/Scopus/WoS evidence;
-- **#1011** — downstream extraction/codebook work;
-- **#1014** — provenance/license and next-release/Zenodo gate.
+## Single-source UI rule
 
-The declaration criteria are satisfied at the software level:
+The NutEV Engine must derive and display one current Article 1 phase from persisted evidence. The UI must distinguish, rather than combine ambiguously:
 
-1. every P0 software requirement is implemented or represented as external/human with software support complete;
-2. no parallel search engine or active legacy search-route output remains;
-3. registries are canonical/versioned and cannot silently become formal/frozen;
-4. GF-01…GF-10, PRESS and Freeze are explicit persisted objects without inferred approval;
-5. FORMAL/PRISMA cannot execute without the exact authorized freeze, Git SHA and configuration digest;
-6. failures remain failures and intellectual-document identity has explicit controls against denominator inflation;
-7. normative docs describe the active runtime and canonical regression/security/release checks are green;
-8. no open P0 architecture blocker remains.
+1. `SYSTEM CORE COMPLETE` (software-only);
+2. `GF02_PUBMED_PILOT`;
+3. `GF02_NOISE_REVIEW`;
+4. `GF02_HUMAN_DECISION`;
+5. `GF03_PRESS`;
+6. `POST_PRESS_PROVIDER_VALIDATION`;
+7. `FREEZE`;
+8. `FORMAL/PRISMA`.
 
-From this point, stop architectural expansion. Accept only bug fixes, real execution evidence, human/external gate records, reproducibility work and release preparation unless a versioned methodological amendment explicitly reopens architecture.
+A generic message such as “GF-02, PRESS, FREEZE and formal search are open” may be true but is insufficient as the primary state because it hides sequencing. The UI should state the **current** phase and mark later gates as downstream.
 
-## Distinct states
+## Invariants
 
-- **SYSTEM CORE COMPLETE: YES** — software architecture and guards complete.
-- **ARTICLE 1 READY FOR FORMAL EXECUTION: NO** — GF-02 is still open; PRESS/GF-06/GF-07/GF-10 real evidence is not authorized.
-- **READY FOR ZENODO: NO** — #1014 remains open and no new release/DOI is authorized by this declaration.
-
-Never infer one state from another.
-
-## Remaining sequence
-
-1. continue GF-02 with real evidence: exact PubMed v0.2/v0.3 execution, sentinel reconciliation/recall, classified noise sample and genuine Scopus/WoS licensed/manual evidence;
-2. only after GF-02 is ready, proceed to GF-03 PRESS → GF-06 → GF-07 → GF-10;
-3. execute the formal multi-route search only after the exact freeze is authorized;
-4. then build the master corpus → R1/R2 screening → full text → extraction/codebook;
-5. keep #1014/Zenodo as a later release gate, not as proof of scientific completion.
+- PILOT outputs are never FORMAL or PRISMA-eligible.
+- A successful software run does not infer scientific interpretation, READY_FOR_PRESS, PRESS approval or FREEZE authorization.
+- v0.4 historical evidence must not be rewritten; it documents the Boolean failure that justified v0.5.
+- Scopus/WoS must not be simulated through another provider.
+- Under D-096, Scopus/WoS do not block entry into PRESS; they are required in the post-PRESS provider-validation phase.
+- Scientifically meaningful strategy changes require explicit versioning and affected-gate re-evaluation.
