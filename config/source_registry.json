@@ -43,7 +43,7 @@
       "type": "native_official_export",
       "priority": 6,
       "default_enabled": false,
-      "method_track": "regional_index_native",
+      "method_track": "indexed_database",
       "coverage_note": "Native SciELO route: exact platform query plus official CSV/RIS export and SHA-256. Enabled only when a versioned strategy explicitly includes it."
     },
     "lilacs_bvs": {
@@ -51,7 +51,7 @@
       "type": "native_official_export",
       "priority": 7,
       "default_enabled": false,
-      "method_track": "regional_index_native",
+      "method_track": "indexed_database",
       "coverage_note": "Native LILACS/BVS route: exact platform query plus official CSV/RIS export and SHA-256. Enabled only when a versioned strategy explicitly includes it."
     },
     "doaj": {
@@ -74,7 +74,7 @@
       "priority": 10,
       "default_enabled": false,
       "method_track": "supplementary_discovery",
-      "coverage_note": "Compatibility/proxy route: Crossref retrieval restricted to DOI prefix 10.1590; never represented as a native comprehensive SciELO platform search."
+      "coverage_note": "Compatibility/proxy route: Crossref retrieval restricted to DOI prefix 10.1590; not a comprehensive native SciELO platform search."
     },
     "semantic_scholar": {
       "provider_registry_id": "semantic_scholar",
