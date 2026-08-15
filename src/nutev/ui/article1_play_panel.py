@@ -12,6 +12,7 @@ from nutev.pipelines.article1_engine import (
     run_or_resume_article1_engine,
 )
 from nutev.search.article1_scientific_status import derive_article1_scientific_status
+from nutev.ui.article1_human_workbench import render_article1_human_workbench
 
 
 def _repo_root() -> Path:
@@ -165,6 +166,7 @@ def render_article1_play_panel(project_root: Path) -> None:
             )
 
             _render_human_task(project_root)
+            render_article1_human_workbench(project_root, scientific)
 
             clicked = st.button(
                 button_label,
