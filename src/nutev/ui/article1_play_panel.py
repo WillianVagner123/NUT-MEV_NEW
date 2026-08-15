@@ -20,18 +20,24 @@ def _repo_root() -> Path:
 
 def _phase_label(phase: str) -> str:
     return {
-        "GF02_PUBMED_PILOT": "Busca PILOT PubMed",
-        "GF02_NOISE_REVIEW": "Revisão humana da amostra",
+        "GF02_PUBMED_PILOT": "PILOT PubMed",
+        "GF02_NOISE_REVIEW": "Revisão da amostra",
         "GF02_HUMAN_DECISION": "Decisão READY_FOR_PRESS",
         "GF03_PRESS": "PRESS",
-        "POST_PRESS_PROVIDER_VALIDATION": "Validação pós-PRESS",
-        "CLOSE_SCIENTIFIC_GATES": "Fechamento dos gates científicos",
+        "POST_PRESS_PROVIDER_VALIDATION": "Scopus / Web of Science",
+        "CLOSE_SCIENTIFIC_GATES": "Gates científicos",
         "FREEZE": "GF-10 / FREEZE",
         "FORMAL_EXECUTION": "Execução FORMAL",
-        "SCREENING_HUMAN_REVIEW": "Triagem humana",
-        "FULLTEXT_HUMAN_REVIEW": "Triagem de texto completo",
-        "ABCD_HUMAN_REVIEW": "Extração ABCD 34/34",
-        "ADJUDICATION": "Consenso / adjudicação",
+        "SCREENING_INITIALIZATION": "Preparando triagem",
+        "SCREENING_REVIEWER_ASSIGNMENT": "Revisores R1 / R2",
+        "TITLE_ABSTRACT_HUMAN_REVIEW": "Título e resumo",
+        "SCREENING_HUMAN_REVIEW": "Título e resumo",
+        "FULLTEXT_HUMAN_REVIEW": "Texto completo",
+        "ABCD_HUMAN_REVIEW": "ABCD-NutEV 34/34",
+        "RELATIONS_HUMAN_REVIEW": "Relações ABCD",
+        "ADJUDICATION": "Adjudicação",
+        "SYNTHESIS_PRISMA": "Síntese e PRISMA",
+        "COMPLETE": "Concluído",
     }.get(phase, phase or "Pronto")
 
 
@@ -47,19 +53,19 @@ def _load_human_queue(project_root: Path) -> dict:
 def _status_copy(state: dict, scientific: dict) -> tuple[str, str]:
     status = str(state.get("status") or "READY") if state else "READY"
     phase = str(scientific.get("article1_current_phase") or "")
+    if phase == "COMPLETE":
+        return "Concluído", "Fluxo FORMAL, síntese e pacote PRISMA validados."
     if status == "FAILED":
         return "Interrompido", "Seu progresso foi salvo. Clique CONTINUAR para retomar do último checkpoint."
     if status == "WAITING_HUMAN":
         return "Aguardando você", str(state.get("last_message") or "Existe um gate humano pendente.")
     if status == "WAITING_EXTERNAL":
         return "Aguardando etapa externa", str(state.get("last_message") or "Existe um gate externo pendente.")
-    if status == "COMPLETE":
-        return "Concluído", "Todas as etapas atualmente autorizadas foram concluídas."
     if state and status == "RUNNING":
         return "Pronto para continuar", "Uma execução anterior foi interrompida; o checkpoint está salvo."
     if phase == "GF02_PUBMED_PILOT":
-        return "Pronto", "O Engine vai executar automaticamente tudo que puder e salvar cada avanço."
-    return "Pronto para continuar", "O Engine detectou o ponto científico atual e continuará a partir dele."
+        return "Pronto", "Clique uma vez. O Engine executa tudo que estiver autorizado e salva cada avanço."
+    return "Pronto para continuar", "O Engine detectou automaticamente o ponto atual e continua dali."
 
 
 def _render_human_task(project_root: Path) -> None:
@@ -71,6 +77,7 @@ def _render_human_task(project_root: Path) -> None:
     title = str(task.get("title") or "Ação humana necessária")
     instruction = str(task.get("instruction") or "Complete a ação pendente e depois use CONTINUAR.")
     evidence_path = str(task.get("evidence_path") or "")
+    details = task.get("details") or {}
     st.markdown(
         f"""
         <div class="nutev-human-card">
@@ -81,6 +88,18 @@ def _render_human_task(project_root: Path) -> None:
         """,
         unsafe_allow_html=True,
     )
+    compact = []
+    for label, key in (
+        ("Total", "total"),
+        ("Resolvidos", "resolved"),
+        ("Pendentes", "pending"),
+        ("Adjudicação", "pending_adjudication"),
+        ("Incluídos", "included_documents"),
+    ):
+        if details.get(key) is not None:
+            compact.append(f"{label}: {details[key]}")
+    if compact:
+        st.caption(" · ".join(compact))
     if evidence_path:
         st.caption(f"Arquivo de trabalho: {evidence_path}")
 
@@ -97,62 +116,64 @@ def render_article1_play_panel(project_root: Path) -> None:
         """
         <style>
         div[data-testid="stButton"] > button {
-            min-height: 4.2rem;
-            border-radius: 18px;
+            min-height: 4.4rem;
+            border-radius: 20px;
             font-size: 1.18rem;
             font-weight: 760;
             letter-spacing: .01em;
         }
         div[data-testid="stVerticalBlockBorderWrapper"] {
             border-radius: 24px !important;
-            box-shadow: 0 16px 44px rgba(20, 35, 55, 0.07);
+            box-shadow: 0 18px 50px rgba(20, 35, 55, 0.07);
         }
-        .nutev-kicker {font-size: .76rem; letter-spacing: .13em; font-weight: 750; opacity: .56;}
-        .nutev-title {font-size: 2.05rem; line-height: 1.08; font-weight: 780; margin: .45rem 0 .5rem 0;}
-        .nutev-sub {font-size: 1rem; opacity: .70; margin-bottom: 1.5rem;}
-        .nutev-state {font-size: 1.05rem; font-weight: 720; margin-bottom: .25rem;}
-        .nutev-message {font-size: .94rem; opacity: .74; margin-bottom: .25rem;}
-        .nutev-phase {font-size: .82rem; opacity: .58; margin: .7rem 0 .9rem 0;}
+        .nutev-kicker {font-size: .72rem; letter-spacing: .15em; font-weight: 780; opacity: .52;}
+        .nutev-title {font-size: 2.15rem; line-height: 1.05; font-weight: 790; margin: .5rem 0 .55rem 0;}
+        .nutev-sub {font-size: 1rem; opacity: .66; margin-bottom: 1.6rem;}
+        .nutev-state {font-size: 1.08rem; font-weight: 740; margin-bottom: .25rem;}
+        .nutev-message {font-size: .94rem; opacity: .72; margin-bottom: .25rem;}
+        .nutev-phase {font-size: .82rem; opacity: .56; margin: .8rem 0 1rem 0;}
         .nutev-human-card {
-            margin: .6rem 0 1.1rem 0;
+            margin: .7rem 0 .7rem 0;
             padding: 1rem 1.05rem;
             border-radius: 16px;
             border: 1px solid rgba(120, 120, 120, .18);
-            background: rgba(120, 120, 120, .055);
+            background: rgba(120, 120, 120, .05);
         }
-        .nutev-human-kicker {font-size: .72rem; letter-spacing: .12em; font-weight: 800; opacity: .58;}
-        .nutev-human-title {font-size: 1.03rem; font-weight: 760; margin: .25rem 0 .3rem 0;}
+        .nutev-human-kicker {font-size: .70rem; letter-spacing: .13em; font-weight: 800; opacity: .56;}
+        .nutev-human-title {font-size: 1.04rem; font-weight: 760; margin: .25rem 0 .3rem 0;}
         .nutev-human-text {font-size: .91rem; line-height: 1.45; opacity: .76;}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    left, center, right = st.columns([1, 2.6, 1])
+    left, center, right = st.columns([1, 2.8, 1])
     del left, right
     with center:
         with st.container(border=True):
             st.markdown('<div class="nutev-kicker">NUTEV EVIDENCE ENGINE</div>', unsafe_allow_html=True)
-            st.markdown('<div class="nutev-title">Um botão. O Engine cuida do resto.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="nutev-title">Rodar tudo.</div>', unsafe_allow_html=True)
             st.markdown(
-                '<div class="nutev-sub">Executa o que está autorizado, salva checkpoints e retoma do ponto interrompido.</div>',
+                '<div class="nutev-sub">Um fluxo, um checkpoint, uma próxima ação.</div>',
                 unsafe_allow_html=True,
             )
             st.markdown(f'<div class="nutev-state">{title}</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="nutev-message">{message}</div>', unsafe_allow_html=True)
             st.markdown(
-                f'<div class="nutev-phase">Etapa atual: {_phase_label(phase)}</div>',
+                f'<div class="nutev-phase">Etapa atual · {_phase_label(phase)}</div>',
                 unsafe_allow_html=True,
             )
 
             _render_human_task(project_root)
 
-            if st.button(
+            clicked = st.button(
                 button_label,
                 type="primary",
                 use_container_width=True,
                 key="article1_engine_run_all",
-            ):
+                disabled=phase == "COMPLETE",
+            )
+            if clicked:
                 status_box = st.status("NutEV em execução...", expanded=True)
 
                 def progress(text: str) -> None:
@@ -173,15 +194,9 @@ def render_article1_play_panel(project_root: Path) -> None:
                     st.error(str(exc) or type(exc).__name__)
                 else:
                     result_status = str(result.get("status") or "")
-                    if result_status == "WAITING_HUMAN":
+                    if result_status in {"WAITING_HUMAN", "WAITING_EXTERNAL"}:
                         status_box.update(
-                            label="Automação concluída até a próxima ação humana",
-                            state="complete",
-                            expanded=False,
-                        )
-                    elif result_status == "WAITING_EXTERNAL":
-                        status_box.update(
-                            label="Automação concluída até a próxima etapa externa",
+                            label="Automação concluída até a próxima ação",
                             state="complete",
                             expanded=False,
                         )
@@ -203,7 +218,7 @@ def render_article1_play_panel(project_root: Path) -> None:
                     st.caption(f"Último erro: {state['last_error']}")
 
         st.caption(
-            "Tudo que é computacional roda automaticamente. Decisões científicas humanas aparecem como uma única tarefa pendente, sem serem inferidas pelo software."
+            "O Engine automatiza tudo que é computacional. Decisões científicas humanas são preservadas como gates explícitos."
         )
 
 
