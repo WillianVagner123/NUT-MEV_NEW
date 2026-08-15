@@ -56,94 +56,104 @@ def render_article1_play_panel(project_root: Path) -> None:
     st.markdown(
         """
         <style>
-        .nutev-engine-wrap {max-width: 760px; margin: 2.2rem auto 0 auto;}
-        .nutev-engine-card {
-            border: 1px solid rgba(49, 51, 63, 0.14);
-            border-radius: 24px;
-            padding: 2.2rem 2.3rem 1.7rem 2.3rem;
-            background: rgba(255,255,255,0.78);
-            box-shadow: 0 16px 44px rgba(20, 35, 55, 0.08);
-        }
-        .nutev-kicker {font-size: .78rem; letter-spacing: .12em; font-weight: 700; opacity: .58;}
-        .nutev-title {font-size: 2.15rem; line-height: 1.08; font-weight: 760; margin: .45rem 0 .45rem 0;}
-        .nutev-sub {font-size: 1rem; opacity: .72; margin-bottom: 1.55rem;}
-        .nutev-state {font-size: 1.05rem; font-weight: 700; margin-bottom: .22rem;}
-        .nutev-message {font-size: .94rem; opacity: .74; margin-bottom: .35rem;}
-        .nutev-phase {font-size: .82rem; opacity: .58; margin-top: .75rem;}
         div[data-testid="stButton"] > button {
-            min-height: 4rem;
+            min-height: 4.15rem;
             border-radius: 18px;
-            font-size: 1.15rem;
-            font-weight: 750;
+            font-size: 1.18rem;
+            font-weight: 760;
             letter-spacing: .01em;
         }
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            border-radius: 24px !important;
+            box-shadow: 0 16px 44px rgba(20, 35, 55, 0.07);
+        }
+        .nutev-kicker {font-size: .76rem; letter-spacing: .13em; font-weight: 750; opacity: .56;}
+        .nutev-title {font-size: 2.05rem; line-height: 1.08; font-weight: 780; margin: .45rem 0 .5rem 0;}
+        .nutev-sub {font-size: 1rem; opacity: .70; margin-bottom: 1.5rem;}
+        .nutev-state {font-size: 1.05rem; font-weight: 720; margin-bottom: .25rem;}
+        .nutev-message {font-size: .94rem; opacity: .74; margin-bottom: .25rem;}
+        .nutev-phase {font-size: .82rem; opacity: .58; margin: .7rem 0 .9rem 0;}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="nutev-engine-wrap"><div class="nutev-engine-card">', unsafe_allow_html=True)
-    st.markdown('<div class="nutev-kicker">NUTEV EVIDENCE ENGINE</div>', unsafe_allow_html=True)
-    st.markdown('<div class="nutev-title">Um botão. O Engine cuida do resto.</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="nutev-sub">Executa o fluxo automático, salva checkpoints e retoma exatamente do ponto interrompido.</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(f'<div class="nutev-state">{title}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="nutev-message">{message}</div>', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="nutev-phase">Etapa atual: {_phase_label(phase)}</div>',
-        unsafe_allow_html=True,
-    )
-
-    if st.button(
-        button_label,
-        type="primary",
-        use_container_width=True,
-        key="article1_engine_run_all",
-    ):
-        status_box = st.status("NutEV em execução...", expanded=True)
-
-        def progress(text: str) -> None:
-            status_box.write(text)
-
-        try:
-            result = run_or_resume_article1_engine(
-                repo,
-                project_root=project_root,
-                progress_fn=progress,
+    left, center, right = st.columns([1, 2.6, 1])
+    del left, right
+    with center:
+        with st.container(border=True):
+            st.markdown('<div class="nutev-kicker">NUTEV EVIDENCE ENGINE</div>', unsafe_allow_html=True)
+            st.markdown('<div class="nutev-title">Um botão. O Engine cuida do resto.</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="nutev-sub">Executa o fluxo automático, salva checkpoints e retoma exatamente do ponto interrompido.</div>',
+                unsafe_allow_html=True,
             )
-        except Exception as exc:
-            status_box.update(label="Execução interrompida — checkpoint salvo", state="error", expanded=True)
-            st.error(str(exc))
-        else:
-            result_status = str(result.get("status") or "")
-            if result_status == "WAITING_HUMAN":
-                status_box.update(label="Automação concluída até o gate humano", state="complete", expanded=False)
-            elif result_status == "WAITING_EXTERNAL":
-                status_box.update(label="Automação concluída até o gate externo", state="complete", expanded=False)
-            elif result_status == "COMPLETE":
-                status_box.update(label="Execução concluída", state="complete", expanded=False)
-            else:
-                status_box.update(label="Checkpoint salvo", state="complete", expanded=False)
-            st.rerun()
+            st.markdown(f'<div class="nutev-state">{title}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="nutev-message">{message}</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="nutev-phase">Etapa atual: {_phase_label(phase)}</div>',
+                unsafe_allow_html=True,
+            )
 
-    state = load_article1_engine_state(project_root)
-    if state:
-        last_message = str(state.get("last_message") or "")
-        updated_at = str(state.get("updated_at") or "")
-        if last_message:
-            st.caption(f"Último checkpoint: {last_message}")
-        if updated_at:
-            st.caption(f"Salvo em {updated_at}")
-        if state.get("last_error"):
-            st.caption(f"Último erro: {state['last_error']}")
+            if st.button(
+                button_label,
+                type="primary",
+                use_container_width=True,
+                key="article1_engine_run_all",
+            ):
+                status_box = st.status("NutEV em execução...", expanded=True)
 
-    st.markdown("</div></div>", unsafe_allow_html=True)
-    st.caption(
-        "O botão nunca atravessa gates humanos ou externos sozinho. Quando houver revisão/decisão pendente, "
-        "o Engine para, preserva o estado e continua depois pelo mesmo botão."
-    )
+                def progress(text: str) -> None:
+                    status_box.write(text)
+
+                try:
+                    result = run_or_resume_article1_engine(
+                        repo,
+                        project_root=project_root,
+                        progress_fn=progress,
+                    )
+                except Exception as exc:
+                    status_box.update(
+                        label="Execução interrompida — checkpoint salvo",
+                        state="error",
+                        expanded=True,
+                    )
+                    st.error(str(exc))
+                else:
+                    result_status = str(result.get("status") or "")
+                    if result_status == "WAITING_HUMAN":
+                        status_box.update(
+                            label="Automação concluída até o gate humano",
+                            state="complete",
+                            expanded=False,
+                        )
+                    elif result_status == "WAITING_EXTERNAL":
+                        status_box.update(
+                            label="Automação concluída até o gate externo",
+                            state="complete",
+                            expanded=False,
+                        )
+                    elif result_status == "COMPLETE":
+                        status_box.update(label="Execução concluída", state="complete", expanded=False)
+                    else:
+                        status_box.update(label="Checkpoint salvo", state="complete", expanded=False)
+                    st.rerun()
+
+            state = load_article1_engine_state(project_root)
+            if state:
+                last_message = str(state.get("last_message") or "")
+                updated_at = str(state.get("updated_at") or "")
+                if last_message:
+                    st.caption(f"Último checkpoint: {last_message}")
+                if updated_at:
+                    st.caption(f"Salvo em {updated_at}")
+                if state.get("last_error"):
+                    st.caption(f"Último erro: {state['last_error']}")
+
+        st.caption(
+            "O Engine nunca atravessa gates humanos ou externos sozinho. Ele para, salva o estado "
+            "e continua depois pelo mesmo botão."
+        )
 
 
 __all__ = ["render_article1_play_panel"]
