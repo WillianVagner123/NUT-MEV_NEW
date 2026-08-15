@@ -16,10 +16,45 @@ from nutev.review.evidence_matrix_core import (
 )
 
 
+def _canonical_article1_session(db_path: Path, session_id: str) -> bool:
+    """Return whether this session uses the canonical dual-review Article 1 path."""
+    try:
+        with _db(db_path) as con:
+            row = con.execute(
+                "SELECT protocol_version FROM screening_sessions WHERE session_id=?",
+                (session_id,),
+            ).fetchone()
+    except Exception:
+        return False
+    return bool(row and str(row["protocol_version"]) == "article1-formal-v1")
+
+
+def _canonical_article1_included(db_path: Path, session_id: str) -> list[dict[str, Any]]:
+    # Lazy import avoids a module cycle: article1_screening_runtime reuses the
+    # existing Article 1 runtime, which itself imports this extraction module.
+    from nutev.review.article1_screening_runtime import (
+        canonical_article1_included,
+        formal_screening_status,
+    )
+
+    project_root = Path(db_path).parent.parent
+    status = formal_screening_status(
+        db_path,
+        session_id=session_id,
+        project_root=project_root,
+    )
+    if status["phase"] != "SCREENING_COMPLETE":
+        return []
+    return canonical_article1_included(db_path, session_id)
+
+
 def _included(db_path: Path, session_id: str, article_id: str | None = None) -> list[dict[str, Any]]:
     articles = [article_id] if article_id else list(ARTICLE_IDS)
     out: list[dict[str, Any]] = []
     for article in articles:
+        if article == "article_1" and _canonical_article1_session(db_path, session_id):
+            out.extend(_canonical_article1_included(db_path, session_id))
+            continue
         for row in full_text_assessment_queue(db_path, session_id=session_id, article_id=article, status_filter="INCLUDE"):
             if row.get("artifact_integrity") in {"MISSING", "MISMATCH"}:
                 raise ValueError(f"full-text artifact integrity is {str(row['artifact_integrity']).lower()}")
