@@ -11,6 +11,14 @@ import json
 from pathlib import Path
 from typing import Any
 
+from nutev.search.licensed_provider_evidence import licensed_pilot_status
+from nutev.search.scientific_gates import (
+    global_freeze_status,
+    load_freeze_record,
+    load_gate_records,
+    pre_freeze_blockers,
+)
+
 CANONICAL_SEQUENCE = (
     "PUBMED_PILOT",
     "PRESS",
@@ -20,6 +28,9 @@ CANONICAL_SEQUENCE = (
     "CLOSE_SCIENTIFIC_GATES",
     "FREEZE",
     "FORMAL_EXECUTION",
+    "SCREENING",
+    "ABCD_EXTRACTION",
+    "SYNTHESIS_PRISMA",
 )
 
 
@@ -66,6 +77,75 @@ def _sample_review_complete(path_value: object) -> bool:
     )
 
 
+def _generic_gate_status(project_root: Path) -> dict[str, Any]:
+    gate_path = Path(project_root) / "00_config" / "scientific_gates.json"
+    if not gate_path.is_file():
+        return {
+            "path": str(gate_path),
+            "present": False,
+            "valid": False,
+            "pre_freeze_complete": False,
+            "blockers": ["scientific_gates_record_missing"],
+            "gf10_authorized": False,
+        }
+    try:
+        records = load_gate_records(gate_path)
+        blockers = pre_freeze_blockers(records)
+        freeze_status = global_freeze_status(records)
+    except Exception as exc:
+        return {
+            "path": str(gate_path),
+            "present": True,
+            "valid": False,
+            "pre_freeze_complete": False,
+            "blockers": [f"scientific_gates_invalid:{exc}"],
+            "gf10_authorized": False,
+        }
+    return {
+        "path": str(gate_path),
+        "present": True,
+        "valid": True,
+        "pre_freeze_complete": not blockers,
+        "blockers": blockers,
+        "gf10_authorized": bool(freeze_status.get("authorized")),
+        "global_freeze_status": freeze_status,
+    }
+
+
+def _freeze_record_status(project_root: Path) -> dict[str, Any]:
+    path = Path(project_root) / "00_config" / "search_freeze.json"
+    if not path.is_file():
+        return {"path": str(path), "present": False, "valid": False, "freeze_id": None}
+    try:
+        record = load_freeze_record(path)
+    except Exception as exc:
+        return {"path": str(path), "present": True, "valid": False, "freeze_id": None, "error": str(exc)}
+    return {"path": str(path), "present": True, "valid": True, "freeze_id": record.freeze_id}
+
+
+def _formal_play_status(project_root: Path) -> dict[str, Any]:
+    summary_path = Path(project_root) / "12_play" / "latest_summary.json"
+    summary = _load_json(summary_path)
+    scientific = summary.get("scientific_state") or {}
+    status = summary.get("status") or {}
+    is_formal = str(scientific.get("search_type") or "").upper() == "FORMAL"
+    authorized = bool(scientific.get("formal_freeze_authorized"))
+    execution_status = str(status.get("execution_status") or "")
+    complete = bool(
+        summary
+        and is_formal
+        and authorized
+        and bool(scientific.get("prisma_eligible"))
+        and execution_status in {"COMPLETE", "COMPLETE_WITH_WARNINGS"}
+    )
+    return {
+        "complete": complete,
+        "summary_path": str(summary_path) if summary else None,
+        "execution_status": execution_status or None,
+        "formal_freeze_authorized": authorized,
+    }
+
+
 def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> dict[str, Any]:
     repo = Path(repo_root)
     project = Path(project_root)
@@ -89,6 +169,26 @@ def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> di
     press_status = str(press_record.get("review_status") or "NOT_SUBMITTED").upper()
     press_approved = press_status == "APPROVED"
 
+    licensed = licensed_pilot_status(project) if press_approved else {
+        "complete": False,
+        "providers": {},
+        "blockers": ["PRESS_NOT_APPROVED"],
+        "provider_substitution_allowed": False,
+    }
+    gates = _generic_gate_status(project) if licensed.get("complete") else {
+        "present": False,
+        "valid": False,
+        "pre_freeze_complete": False,
+        "blockers": ["LICENSED_PILOT_NOT_COMPLETE"],
+        "gf10_authorized": False,
+    }
+    freeze_record = _freeze_record_status(project) if gates.get("pre_freeze_complete") else {
+        "present": False,
+        "valid": False,
+        "freeze_id": None,
+    }
+    formal_play = _formal_play_status(project)
+
     if not pubmed_pilot_complete:
         current_phase = "GF02_PUBMED_PILOT"
         next_action = f"Execute and audit B-NORM-PUBMED {candidate_version}."
@@ -101,9 +201,21 @@ def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> di
     elif not press_approved:
         current_phase = "GF03_PRESS"
         next_action = "Submit/complete PRESS review before translating final Scopus/WoS strategies."
-    else:
+    elif not bool(licensed.get("complete")):
         current_phase = "POST_PRESS_PROVIDER_VALIDATION"
-        next_action = "Incorporate PRESS, translate Scopus/WoS, and run licensed PILOT validation."
+        next_action = "Incorporate PRESS and register real licensed Scopus/Web of Science PILOT evidence."
+    elif not bool(gates.get("pre_freeze_complete")):
+        current_phase = "CLOSE_SCIENTIFIC_GATES"
+        next_action = "Close the remaining pre-freeze scientific gates with real evidence."
+    elif not bool(gates.get("gf10_authorized")) or not bool(freeze_record.get("valid")):
+        current_phase = "FREEZE"
+        next_action = "Authorize GF-10 and persist the exact immutable search freeze."
+    elif not bool(formal_play.get("complete")):
+        current_phase = "FORMAL_EXECUTION"
+        next_action = "Execute the frozen FORMAL computational chain from zero."
+    else:
+        current_phase = "SCREENING_HUMAN_REVIEW"
+        next_action = "Complete blinded R1/R2 screening and adjudication from the formal corpus."
 
     blockers_to_press: list[str] = []
     if not pubmed_pilot_complete:
@@ -113,8 +225,21 @@ def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> di
     if pubmed_pilot_complete and noise_review_complete and not ready_for_press:
         blockers_to_press.append("gf02_human_ready_for_press_decision_missing")
 
+    phase_order = {
+        "GF02_PUBMED_PILOT": 0,
+        "GF02_NOISE_REVIEW": 1,
+        "GF02_HUMAN_DECISION": 2,
+        "GF03_PRESS": 3,
+        "POST_PRESS_PROVIDER_VALIDATION": 4,
+        "CLOSE_SCIENTIFIC_GATES": 5,
+        "FREEZE": 6,
+        "FORMAL_EXECUTION": 7,
+        "SCREENING_HUMAN_REVIEW": 8,
+    }
+    phase_index = phase_order.get(current_phase, 0)
+
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "system_core_complete": True,
         "software_only": True,
         "article1_current_phase": current_phase,
@@ -131,11 +256,35 @@ def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> di
             "ready_for_press": ready_for_press,
             "latest_manifest": manifest.get("_manifest_path"),
         },
-        "press": {"status": press_status, "approved": press_approved, "is_next_gate": ready_for_press and not press_approved},
-        "scopus_wos": {"sequence": "POST_PRESS", "pre_press_blocker": False, "methodology_decision": "D-096"},
-        "freeze": {"authorized": False, "downstream": True},
-        "formal_execution": {"authorized": False, "downstream": True},
-        "prisma": {"formal_count_allowed": False, "downstream": True},
+        "press": {
+            "status": press_status,
+            "approved": press_approved,
+            "is_next_gate": ready_for_press and not press_approved,
+        },
+        "scopus_wos": {
+            "sequence": "POST_PRESS",
+            "pre_press_blocker": False,
+            "methodology_decision": "D-096",
+            "licensed_pilot_complete": bool(licensed.get("complete")),
+            "providers": licensed.get("providers") or {},
+            "blockers": licensed.get("blockers") or [],
+            "provider_substitution_allowed": False,
+        },
+        "scientific_gates": gates,
+        "freeze": {
+            "authorized": bool(gates.get("gf10_authorized")) and bool(freeze_record.get("valid")),
+            "downstream": phase_index < phase_order["FREEZE"],
+            **freeze_record,
+        },
+        "formal_execution": {
+            "authorized": bool(gates.get("gf10_authorized")) and bool(freeze_record.get("valid")),
+            "downstream": phase_index < phase_order["FORMAL_EXECUTION"],
+            **formal_play,
+        },
+        "prisma": {
+            "formal_count_allowed": bool(formal_play.get("complete")),
+            "downstream": phase_index < phase_order["SCREENING_HUMAN_REVIEW"],
+        },
         "blockers_to_press": blockers_to_press,
         "canonical_sequence": list(CANONICAL_SEQUENCE),
         "human_approval_inferred": False,
@@ -163,8 +312,16 @@ def scientific_execution_card(status: dict[str, Any]) -> dict[str, str]:
         )
     elif phase == "GF03_PRESS":
         body = "GF-02 pré-PRESS está pronto. O gate atual é GF-03 PRESS. Após o parecer, incorporar mudanças e então traduzir/validar Scopus e WoS."
+    elif phase == "POST_PRESS_PROVIDER_VALIDATION":
+        body = "PRESS concluído: registrar execuções PILOT licenciadas reais de Scopus/Web of Science. Nenhum provedor substituto fecha este gate."
+    elif phase == "CLOSE_SCIENTIFIC_GATES":
+        body = "PILOTs de provedores concluídos: fechar os gates científicos pré-FREEZE ainda pendentes com evidência real."
+    elif phase == "FREEZE":
+        body = "Gates pré-FREEZE completos: falta autorização GF-10 e o registro imutável que vincula estratégia, Git SHA e configuração."
+    elif phase == "FORMAL_EXECUTION":
+        body = "FREEZE válido detectado: o próximo passo é a execução FORMAL do fluxo computacional congelado."
     else:
-        body = "PRESS concluído: fase pós-PRESS de tradução/validação licenciada de Scopus/WoS. FREEZE e execução FORMAL permanecem downstream."
+        body = "Execução FORMAL detectada: o próximo trabalho é a revisão humana do corpus, preservando R1/R2 e adjudicação."
     return {"title": "EXECUÇÃO CIENTÍFICA", "body": body}
 
 
