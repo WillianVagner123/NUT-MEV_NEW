@@ -1,142 +1,149 @@
-"""Direct, canonical execution surface for Article 1 GF-02."""
+"""Minimal one-button execution surface for the canonical Article 1 engine."""
 from __future__ import annotations
 
-import json
-import os
 from pathlib import Path
-from typing import Any
 
 import streamlit as st
 
-from nutev.search.gf02_pubmed_pilot import (
-    load_candidate_config,
-    resolved_line_expressions,
-    run_gf02_pubmed_pilot,
+from nutev.pipelines.article1_engine import (
+    engine_button_label,
+    load_article1_engine_state,
+    run_or_resume_article1_engine,
 )
-from nutev.ui.article1_status_panel import render_article1_scientific_status
+from nutev.search.article1_scientific_status import derive_article1_scientific_status
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def _latest_manifest(project_root: Path) -> dict[str, Any] | None:
-    root = project_root / "07_logs" / "gf02" / "pubmed"
-    if not root.exists():
-        return None
-    manifests = sorted(root.glob("*/run_manifest.json"), key=lambda path: path.stat().st_mtime, reverse=True)
-    if not manifests:
-        return None
-    try:
-        return json.loads(manifests[0].read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
+def _phase_label(phase: str) -> str:
+    return {
+        "GF02_PUBMED_PILOT": "Busca PILOT PubMed",
+        "GF02_NOISE_REVIEW": "Revisão humana da amostra",
+        "GF02_HUMAN_DECISION": "Decisão READY_FOR_PRESS",
+        "GF03_PRESS": "PRESS",
+        "POST_PRESS_PROVIDER_VALIDATION": "Validação pós-PRESS",
+    }.get(phase, phase or "Pronto")
+
+
+def _status_copy(state: dict, scientific: dict) -> tuple[str, str]:
+    status = str(state.get("status") or "READY") if state else "READY"
+    phase = str(scientific.get("article1_current_phase") or "")
+    if status == "FAILED":
+        return "Interrompido", "Seu progresso foi salvo. Clique CONTINUAR para retomar do último checkpoint."
+    if status == "WAITING_HUMAN":
+        return "Aguardando você", str(state.get("last_message") or "Existe um gate humano pendente.")
+    if status == "WAITING_EXTERNAL":
+        return "Aguardando etapa externa", str(state.get("last_message") or "Existe um gate externo pendente.")
+    if status == "COMPLETE":
+        return "Concluído", "Todas as etapas atualmente automatizadas foram concluídas."
+    if state and status == "RUNNING":
+        return "Pronto para continuar", "Uma execução anterior foi interrompida; o checkpoint está salvo."
+    if phase == "GF02_PUBMED_PILOT":
+        return "Pronto", "O Engine vai executar automaticamente tudo que puder e salvar cada avanço."
+    return "Pronto para continuar", "O Engine detectou o ponto científico atual e continuará a partir dele."
 
 
 def render_article1_play_panel(project_root: Path) -> None:
     repo = _repo_root()
-    config_path = repo / "config" / "gf02_pubmed_candidates.json"
-    config = load_candidate_config(config_path)
-    expressions = resolved_line_expressions(config)
-    candidate = str(config["current_candidate"])
+    state = load_article1_engine_state(project_root)
+    scientific = derive_article1_scientific_status(repo, project_root)
+    phase = str(scientific.get("article1_current_phase") or "")
+    title, message = _status_copy(state, scientific)
+    button_label = engine_button_label(repo, project_root)
 
-    render_article1_scientific_status(project_root)
-
-    st.markdown("### Execução atual")
-    col_candidate, col_type, col_prisma, col_action = st.columns([1.2, 1, 1, 1.6])
-    col_candidate.metric("Estratégia", f"B-NORM-PUBMED {candidate}")
-    col_type.metric("Tipo", "PILOT")
-    col_prisma.metric("PRISMA", "Não")
-    col_action.metric("Próximo passo", "Rodar e revisar ruído")
-
-    st.info(
-        "A estratégia já está definida e versionada. Não há campo livre de busca nesta fase. "
-        "O PLAY conta as linhas canônicas no PubMed, testa as sentinelas e baixa somente "
-        "a amostra rescue-only necessária para revisão humana."
+    st.markdown(
+        """
+        <style>
+        .nutev-engine-wrap {max-width: 760px; margin: 2.2rem auto 0 auto;}
+        .nutev-engine-card {
+            border: 1px solid rgba(49, 51, 63, 0.14);
+            border-radius: 24px;
+            padding: 2.2rem 2.3rem 1.7rem 2.3rem;
+            background: rgba(255,255,255,0.78);
+            box-shadow: 0 16px 44px rgba(20, 35, 55, 0.08);
+        }
+        .nutev-kicker {font-size: .78rem; letter-spacing: .12em; font-weight: 700; opacity: .58;}
+        .nutev-title {font-size: 2.15rem; line-height: 1.08; font-weight: 760; margin: .45rem 0 .45rem 0;}
+        .nutev-sub {font-size: 1rem; opacity: .72; margin-bottom: 1.55rem;}
+        .nutev-state {font-size: 1.05rem; font-weight: 700; margin-bottom: .22rem;}
+        .nutev-message {font-size: .94rem; opacity: .74; margin-bottom: .35rem;}
+        .nutev-phase {font-size: .82rem; opacity: .58; margin-top: .75rem;}
+        div[data-testid="stButton"] > button {
+            min-height: 4rem;
+            border-radius: 18px;
+            font-size: 1.15rem;
+            font-weight: 750;
+            letter-spacing: .01em;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
 
-    if not (os.environ.get("NCBI_EMAIL") or os.environ.get("ENTREZ_EMAIL")):
-        st.caption(
-            "NCBI_EMAIL não configurado: o Engine usa o limite conservador do PubMed. "
-            "Isso não impede o PILOT."
-        )
+    st.markdown('<div class="nutev-engine-wrap"><div class="nutev-engine-card">', unsafe_allow_html=True)
+    st.markdown('<div class="nutev-kicker">NUTEV EVIDENCE ENGINE</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nutev-title">Um botão. O Engine cuida do resto.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="nutev-sub">Executa o fluxo automático, salva checkpoints e retoma exatamente do ponto interrompido.</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(f'<div class="nutev-state">{title}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="nutev-message">{message}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="nutev-phase">Etapa atual: {_phase_label(phase)}</div>',
+        unsafe_allow_html=True,
+    )
 
     if st.button(
-        f"▶ RODAR PILOT GF-02 · {candidate}",
+        button_label,
         type="primary",
         use_container_width=True,
-        key="article1_gf02_play",
+        key="article1_engine_run_all",
     ):
-        status_box = st.status("Executando GF-02 no PubMed...", expanded=True)
+        status_box = st.status("NutEV em execução...", expanded=True)
 
-        def progress(message: str) -> None:
-            status_box.write(message)
+        def progress(text: str) -> None:
+            status_box.write(text)
 
         try:
-            manifest = run_gf02_pubmed_pilot(
+            result = run_or_resume_article1_engine(
                 repo,
                 project_root=project_root,
-                noise_sample_size=int((config.get("rescue_sample") or {}).get("default") or 20),
                 progress_fn=progress,
             )
         except Exception as exc:
-            status_box.update(label="GF-02 interrompido", state="error", expanded=True)
-            st.error(f"Falha na execução: {exc}")
+            status_box.update(label="Execução interrompida — checkpoint salvo", state="error", expanded=True)
+            st.error(str(exc))
         else:
-            st.session_state["article1_last_gf02_manifest"] = manifest
-            if manifest.get("status") == "SUCCEEDED":
-                status_box.update(label="PILOT GF-02 concluído", state="complete", expanded=False)
-                st.success("Execução concluída. A revisão humana do rescue-only é o próximo gate.")
+            result_status = str(result.get("status") or "")
+            if result_status == "WAITING_HUMAN":
+                status_box.update(label="Automação concluída até o gate humano", state="complete", expanded=False)
+            elif result_status == "WAITING_EXTERNAL":
+                status_box.update(label="Automação concluída até o gate externo", state="complete", expanded=False)
+            elif result_status == "COMPLETE":
+                status_box.update(label="Execução concluída", state="complete", expanded=False)
             else:
-                status_box.update(label="PILOT GF-02 terminou com bloqueios", state="error", expanded=True)
-                st.error("O Engine registrou erros de auditoria. Veja os detalhes abaixo antes de qualquer decisão humana.")
-            st.json(
-                {
-                    "run_id": manifest.get("run_id"),
-                    "status": manifest.get("status"),
-                    "candidate_version": manifest.get("candidate_version"),
-                    "execution_plan": manifest.get("execution_plan"),
-                    "line_counts": manifest.get("line_counts"),
-                    "rescue_only_total_found": (manifest.get("rescue_only") or {}).get("total_found"),
-                    "rescue_only_sample": manifest.get("rescue_only_sample"),
-                    "priority_sentinel_mechanism": manifest.get("priority_sentinel_mechanism"),
-                    "errors": manifest.get("errors"),
-                }
-            )
+                status_box.update(label="Checkpoint salvo", state="complete", expanded=False)
+            st.rerun()
 
-    latest = st.session_state.get("article1_last_gf02_manifest") or _latest_manifest(project_root)
-    if latest:
-        with st.expander("Última execução GF-02", expanded=False):
-            st.json(
-                {
-                    "run_id": latest.get("run_id"),
-                    "status": latest.get("status"),
-                    "candidate_version": latest.get("candidate_version"),
-                    "execution_plan": latest.get("execution_plan"),
-                    "line_counts": latest.get("line_counts"),
-                    "rescue_only_sample": latest.get("rescue_only_sample"),
-                    "errors": latest.get("errors"),
-                }
-            )
+    state = load_article1_engine_state(project_root)
+    if state:
+        last_message = str(state.get("last_message") or "")
+        updated_at = str(state.get("updated_at") or "")
+        if last_message:
+            st.caption(f"Último checkpoint: {last_message}")
+        if updated_at:
+            st.caption(f"Salvo em {updated_at}")
+        if state.get("last_error"):
+            st.caption(f"Último erro: {state['last_error']}")
 
-    with st.expander("Ver estratégia canônica · somente leitura", expanded=False):
-        st.caption(
-            "Estas expressões vêm de config/gf02_pubmed_candidates.json. "
-            "O operador não reconstrói a busca no dashboard."
-        )
-        for line_id in config["required_count_lines"]:
-            label = str((config.get("lines") or {}).get(line_id, {}).get("label") or "")
-            st.markdown(f"**{line_id} · {label}**")
-            st.code(expressions[line_id], language="text")
-
-    with st.expander("Fluxo científico downstream", expanded=False):
-        st.markdown(
-            "**PILOT PubMed → decisão GF-02 → PRESS → incorporar parecer → "
-            "Scopus/WoS → PILOT licenciado → fechar gates → FREEZE → FORMAL.**"
-        )
-        st.caption(
-            "O PLAY desta tela não autoriza PRESS, FREEZE ou execução FORMAL/PRISMA."
-        )
+    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.caption(
+        "O botão nunca atravessa gates humanos ou externos sozinho. Quando houver revisão/decisão pendente, "
+        "o Engine para, preserva o estado e continua depois pelo mesmo botão."
+    )
 
 
 __all__ = ["render_article1_play_panel"]
