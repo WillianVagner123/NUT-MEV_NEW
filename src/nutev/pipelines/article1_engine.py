@@ -15,6 +15,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from nutev.pipelines.article1_formal_pipeline import run_or_resume_formal_chain
+from nutev.pipelines.article1_postformal import prepare_formal_human_review
 from nutev.pipelines.execution_coverage import write_search_coverage_ledger
 from nutev.pipelines.human_queue import write_human_queue
 from nutev.search.article1_scientific_status import derive_article1_scientific_status
@@ -104,7 +105,7 @@ def _refresh_operational_artifacts(
             "json_path": coverage["json_path"],
             "csv_path": coverage["csv_path"],
         }
-    except Exception as exc:  # audit helper failure must remain visible, not abort science execution
+    except Exception as exc:
         state.setdefault("operational_artifacts", {})["search_coverage_error"] = str(exc)
 
     try:
@@ -170,12 +171,7 @@ def run_or_resume_article1_engine(
     project_root: Path,
     progress_fn: ProgressFn | None = None,
 ) -> dict[str, Any]:
-    """Run every currently authorized automatic Article 1 step and resume safely.
-
-    Scientific transitions remain evidence-driven. Automatic work is checkpointed;
-    human/external requirements are written to ``human_queue.json`` instead of
-    being inferred or silently skipped.
-    """
+    """Run every currently authorized automatic Article 1 step and resume safely."""
     repo = Path(repo_root)
     project = Path(project_root)
     state = ensure_article1_engine_state(repo, project)
@@ -213,12 +209,7 @@ def run_or_resume_article1_engine(
                     "completed_at": _now_iso(),
                     "run_id": manifest.get("run_id"),
                     "manifest": str(
-                        project
-                        / "07_logs"
-                        / "gf02"
-                        / "pubmed"
-                        / str(manifest.get("run_id"))
-                        / "run_manifest.json"
+                        project / "07_logs" / "gf02" / "pubmed" / str(manifest.get("run_id")) / "run_manifest.json"
                     ),
                 }
                 _write_state(project, state)
@@ -302,22 +293,25 @@ def run_or_resume_article1_engine(
                 def formal_relay(message: str) -> None:
                     _emit(project, state, progress_fn, message)
 
-                formal_summary = run_or_resume_formal_chain(
-                    project,
-                    progress_fn=formal_relay,
-                )
+                formal_summary = run_or_resume_formal_chain(project, progress_fn=formal_relay)
                 if str((formal_summary.get("status") or {}).get("execution_status") or "") not in {
                     "COMPLETE",
                     "COMPLETE_WITH_WARNINGS",
                 }:
                     raise RuntimeError("A cadeia FORMAL não chegou a um estado terminal auditável.")
+                _emit(project, state, progress_fn, "Organizando a fila humana do corpus FORMAL...")
+                review_queue = prepare_formal_human_review(project, formal_summary)
                 state["completed_stages"]["FORMAL_EXECUTION"] = {
                     "completed_at": _now_iso(),
-                    "summary": str(
+                    "formal_chain_state": str(
                         (formal_summary.get("artifacts") or {}).get("formal_chain_state_path") or ""
                     ),
                     "search_run_id": str((formal_summary.get("search") or {}).get("run_id") or ""),
+                    "review_queue": str(review_queue.get("queue_path") or ""),
                 }
+                state.setdefault("operational_artifacts", {})["formal_review_queue"] = str(
+                    review_queue.get("queue_path") or ""
+                )
                 _write_state(project, state)
                 continue
 
