@@ -5,8 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 from nutev.search.gf02_pubmed_pilot import run_gf02_pubmed_pilot
+
+
+def _progress(message: str) -> None:
+    print(f"[GF-02] {message}", file=sys.stderr, flush=True)
 
 
 def main() -> int:
@@ -15,7 +20,12 @@ def main() -> int:
     )
     parser.add_argument("--project-root", default="project_output_scientific")
     parser.add_argument("--repo-root", default=".")
-    parser.add_argument("--limit", type=int, default=10000)
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=10000,
+        help="Compatibility ceiling for GF-02. Count-first execution does not download this many rows.",
+    )
     parser.add_argument(
         "--noise-sample-size",
         type=int,
@@ -31,6 +41,7 @@ def main() -> int:
         limit=args.limit,
         noise_sample_size=args.noise_sample_size,
         noise_seed=args.noise_seed,
+        progress_fn=_progress,
     )
     print(
         json.dumps(
@@ -40,6 +51,7 @@ def main() -> int:
                 "search_type": manifest["search_type"],
                 "prisma_eligible": manifest["prisma_eligible"],
                 "candidate_version": manifest["candidate_version"],
+                "execution_plan": manifest.get("execution_plan"),
                 "line_counts": manifest["line_counts"],
                 "final_total_found": manifest["final_total_found"],
                 "final_records_returned": manifest["final_records_returned"],
