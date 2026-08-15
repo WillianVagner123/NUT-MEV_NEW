@@ -131,7 +131,9 @@ _DATA_DICTIONARY = """# Dicionário de dados — saídas do Artigo 1
 
 As saídas amplas A/B/C/D baseadas em heurística lexical permanecem apenas para
 reprodutibilidade de execuções antigas. Elas não são o resultado científico
-canônico atual do Artigo 1.
+canônico atual do Artigo 1. O arquivo histórico
+`NUTEV_GUIDES_ABCD_MATRIX.csv` é mantido como alias de compatibilidade; o mesmo
+conteúdo também é gravado com sufixo `_LEGACY` para tornar sua natureza explícita.
 
 ## PRISMA
 
@@ -165,8 +167,10 @@ def write_article1_exports(rows: list[dict], registries: dict, queue: list[dict]
     docs = settings.output_dirs.get("08_docs", curated)
 
     legacy_matrix = legacy_abcd_matrix_rows(rows)
-    legacy_path = tables / "NUTEV_GUIDES_ABCD_MATRIX_LEGACY.csv"
-    write_simple_csv(legacy_matrix, legacy_path)
+    legacy_compat_path = tables / "NUTEV_GUIDES_ABCD_MATRIX.csv"
+    legacy_explicit_path = tables / "NUTEV_GUIDES_ABCD_MATRIX_LEGACY.csv"
+    write_simple_csv(legacy_matrix, legacy_compat_path)
+    write_simple_csv(legacy_matrix, legacy_explicit_path)
 
     counts = prisma_counts(registries, queue)
     (logs / "prisma_counts.json").write_text(json.dumps(counts, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -176,8 +180,12 @@ def write_article1_exports(rows: list[dict], registries: dict, queue: list[dict]
     (docs / "DATA_DICTIONARY.md").write_text(_DATA_DICTIONARY, encoding="utf-8")
 
     return {
+        # Historical API aliases retained so existing guide-pipeline callers do
+        # not break. They refer only to the legacy broad-domain artifact.
+        "abcd_matrix_rows": len(legacy_matrix),
+        "abcd_matrix_csv": str(legacy_compat_path),
         "legacy_four_domain_matrix_rows": len(legacy_matrix),
-        "legacy_four_domain_matrix_csv": str(legacy_path),
+        "legacy_four_domain_matrix_csv": str(legacy_explicit_path),
         "canonical_abcd_status": "awaiting final human 34/34 extraction",
         "prisma_counts": counts,
         "prisma_counts_json": str(logs / "prisma_counts.json"),
