@@ -60,6 +60,9 @@ jobs:
           python -m pip install --no-deps -e .
       - name: CLI help
         run: nutev --help
+      - name: Validate main ruleset bootstrap
+        shell: pwsh
+        run: .\scripts\configure_main_ruleset.ps1 -ValidateOnly
       - name: Zero-key demo smoke
         shell: pwsh
         run: |
