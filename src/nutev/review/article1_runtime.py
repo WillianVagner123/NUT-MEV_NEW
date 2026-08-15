@@ -4,8 +4,9 @@ P2: persistent ABCD-NutEV 34/34 double extraction and adjudication.
 P3: explicit relation ledger, evidence instances, review completion, calibration.
 P4: family-preserving synthesis, Sheet export payload and audit manifest.
 
-Software capability never implies PRESS/GF closure, formal execution, PRISMA
-completion or scientific validity. Final scientific decisions remain human.
+STAGING, CALIBRATION and FORMAL are isolated execution states. Software
+capability never implies PRESS/GF closure, formal execution, PRISMA completion
+or scientific validity. Final scientific decisions remain human.
 """
 from __future__ import annotations
 
@@ -121,14 +122,16 @@ def initialize_article1_runtime(db_path: Path) -> None:
               revision INTEGER NOT NULL,
               submitted_at TEXT NOT NULL,
               FOREIGN KEY(session_id) REFERENCES screening_sessions(session_id),
-              UNIQUE(session_id,document_id,reviewer_slot,code,revision));
+              UNIQUE(session_id,document_id,execution_mode,reviewer_slot,code,revision));
             CREATE INDEX IF NOT EXISTS idx_article1_abcd_latest
-              ON article1_abcd_submissions(session_id,document_id,reviewer_slot,code,revision DESC);
+              ON article1_abcd_submissions(
+                session_id,document_id,execution_mode,reviewer_slot,code,revision DESC);
 
             CREATE TABLE IF NOT EXISTS article1_abcd_adjudications(
               id TEXT PRIMARY KEY,
               session_id TEXT NOT NULL,
               document_id TEXT NOT NULL,
+              execution_mode TEXT NOT NULL CHECK(execution_mode IN ('STAGING','CALIBRATION','FORMAL')),
               code TEXT NOT NULL,
               reviewer_1_json TEXT NOT NULL,
               reviewer_2_json TEXT NOT NULL,
@@ -140,7 +143,7 @@ def initialize_article1_runtime(db_path: Path) -> None:
               revision INTEGER NOT NULL,
               decided_at TEXT NOT NULL,
               FOREIGN KEY(session_id) REFERENCES screening_sessions(session_id),
-              UNIQUE(session_id,document_id,code,revision));
+              UNIQUE(session_id,document_id,execution_mode,code,revision));
 
             CREATE TABLE IF NOT EXISTS article1_relation_submissions(
               id TEXT PRIMARY KEY,
@@ -162,9 +165,10 @@ def initialize_article1_runtime(db_path: Path) -> None:
               revision INTEGER NOT NULL,
               submitted_at TEXT NOT NULL,
               FOREIGN KEY(session_id) REFERENCES screening_sessions(session_id),
-              UNIQUE(session_id,document_id,reviewer_slot,relation_key,revision));
+              UNIQUE(session_id,document_id,execution_mode,reviewer_slot,relation_key,revision));
             CREATE INDEX IF NOT EXISTS idx_article1_relation_latest
-              ON article1_relation_submissions(session_id,document_id,reviewer_slot,relation_key,revision DESC);
+              ON article1_relation_submissions(
+                session_id,document_id,execution_mode,reviewer_slot,relation_key,revision DESC);
 
             CREATE TABLE IF NOT EXISTS article1_relation_evidence_instances(
               id TEXT PRIMARY KEY,
@@ -179,6 +183,7 @@ def initialize_article1_runtime(db_path: Path) -> None:
               id TEXT PRIMARY KEY,
               session_id TEXT NOT NULL,
               document_id TEXT NOT NULL,
+              execution_mode TEXT NOT NULL CHECK(execution_mode IN ('STAGING','CALIBRATION','FORMAL')),
               reviewer_slot TEXT NOT NULL CHECK(reviewer_slot IN ('REVIEWER_1','REVIEWER_2')),
               reviewer_name TEXT NOT NULL,
               reviewer_role TEXT NOT NULL,
@@ -186,12 +191,13 @@ def initialize_article1_runtime(db_path: Path) -> None:
               revision INTEGER NOT NULL,
               recorded_at TEXT NOT NULL,
               FOREIGN KEY(session_id) REFERENCES screening_sessions(session_id),
-              UNIQUE(session_id,document_id,reviewer_slot,revision));
+              UNIQUE(session_id,document_id,execution_mode,reviewer_slot,revision));
 
             CREATE TABLE IF NOT EXISTS article1_relation_adjudications(
               id TEXT PRIMARY KEY,
               session_id TEXT NOT NULL,
               document_id TEXT NOT NULL,
+              execution_mode TEXT NOT NULL CHECK(execution_mode IN ('STAGING','CALIBRATION','FORMAL')),
               relation_key TEXT NOT NULL,
               reviewer_1_json TEXT NOT NULL,
               reviewer_2_json TEXT NOT NULL,
@@ -203,12 +209,13 @@ def initialize_article1_runtime(db_path: Path) -> None:
               revision INTEGER NOT NULL,
               decided_at TEXT NOT NULL,
               FOREIGN KEY(session_id) REFERENCES screening_sessions(session_id),
-              UNIQUE(session_id,document_id,relation_key,revision));
+              UNIQUE(session_id,document_id,execution_mode,relation_key,revision));
 
             CREATE TABLE IF NOT EXISTS article1_method_characterization(
               id TEXT PRIMARY KEY,
               session_id TEXT NOT NULL,
               document_id TEXT NOT NULL,
+              execution_mode TEXT NOT NULL CHECK(execution_mode IN ('STAGING','CALIBRATION','FORMAL')),
               family TEXT NOT NULL DEFAULT '',
               fields_json TEXT NOT NULL,
               reviewer_name TEXT NOT NULL,
@@ -216,7 +223,7 @@ def initialize_article1_runtime(db_path: Path) -> None:
               revision INTEGER NOT NULL,
               recorded_at TEXT NOT NULL,
               FOREIGN KEY(session_id) REFERENCES screening_sessions(session_id),
-              UNIQUE(session_id,document_id,revision));
+              UNIQUE(session_id,document_id,execution_mode,revision));
 
             CREATE TABLE IF NOT EXISTS article1_synthesis_snapshots(
               id TEXT PRIMARY KEY,
@@ -246,13 +253,16 @@ def set_article1_reviewer_assignment(
     initialize_article1_runtime(db_path)
     _open_session(db_path, session_id)
     with _db(db_path) as con:
-        old = con.execute(
+        previous = con.execute(
             "SELECT revision FROM article1_reviewer_assignments WHERE session_id=?",
             (session_id,),
         ).fetchone()
-        revision = int(old[0]) + 1 if old else 1
+        revision = int(previous[0]) + 1 if previous else 1
         con.execute(
-            """INSERT INTO article1_reviewer_assignments VALUES(?,?,?,?,1,?,?,?)
+            """INSERT INTO article1_reviewer_assignments(
+                 session_id,reviewer_1_name,reviewer_2_name,adjudicator_name,
+                 gf07_resolved,notes,revision,recorded_at)
+               VALUES(?,?,?,?,1,?,?,?)
                ON CONFLICT(session_id) DO UPDATE SET
                  reviewer_1_name=excluded.reviewer_1_name,
                  reviewer_2_name=excluded.reviewer_2_name,
@@ -325,6 +335,7 @@ def _require_formal_included(
 
 
 def instantiate_article1_abcd_grid(document_id: str) -> list[dict[str, Any]]:
+    """Return exactly 34 expected rows; blank means unassessed, never absence."""
     return [
         {
             "document_id": document_id,
@@ -380,13 +391,18 @@ def submit_article1_abcd(
             con.execute(
                 """SELECT COALESCE(MAX(revision),0)+1
                    FROM article1_abcd_submissions
-                   WHERE session_id=? AND document_id=? AND reviewer_slot=? AND code=?""",
-                (session_id, document_id, slot, normalized_code),
+                   WHERE session_id=? AND document_id=? AND execution_mode=?
+                   AND reviewer_slot=? AND code=?""",
+                (session_id, document_id, mode, slot, normalized_code),
             ).fetchone()[0]
         )
         row_id = f"article1_abcd_{uuid4().hex}"
         con.execute(
-            "INSERT INTO article1_abcd_submissions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            """INSERT INTO article1_abcd_submissions(
+                 id,session_id,document_id,article_id,execution_mode,reviewer_slot,
+                 reviewer_name,reviewer_role,code,presence,depth,details_json,
+                 codebook_version,revision,submitted_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 row_id,
                 session_id,
@@ -419,6 +435,7 @@ def _latest_abcd(
     session_id: str,
     document_id: str | None = None,
     reviewer_slot: str | None = None,
+    execution_mode: str | None = None,
 ) -> list[dict[str, Any]]:
     initialize_article1_runtime(db_path)
     clauses = ["a.session_id=?"]
@@ -429,13 +446,18 @@ def _latest_abcd(
     if reviewer_slot:
         clauses.append("a.reviewer_slot=?")
         params.append(_normalize_slot(reviewer_slot))
+    if execution_mode:
+        clauses.append("a.execution_mode=?")
+        params.append(_normalize_mode(execution_mode))
     with _db(db_path) as con:
         rows = con.execute(
             f"""SELECT a.* FROM article1_abcd_submissions a JOIN(
-                  SELECT session_id,document_id,reviewer_slot,code,MAX(revision) revision
+                  SELECT session_id,document_id,execution_mode,reviewer_slot,code,
+                         MAX(revision) revision
                   FROM article1_abcd_submissions
-                  GROUP BY session_id,document_id,reviewer_slot,code) x
+                  GROUP BY session_id,document_id,execution_mode,reviewer_slot,code) x
                 ON x.session_id=a.session_id AND x.document_id=a.document_id
+                AND x.execution_mode=a.execution_mode
                 AND x.reviewer_slot=a.reviewer_slot AND x.code=a.code
                 AND x.revision=a.revision
                 WHERE {' AND '.join(clauses)}""",
@@ -450,17 +472,22 @@ def _latest_abcd(
 
 
 def _latest_abcd_adjudications(
-    db_path: Path, session_id: str, document_id: str
+    db_path: Path,
+    session_id: str,
+    document_id: str,
+    execution_mode: str,
 ) -> dict[str, dict[str, Any]]:
+    mode = _normalize_mode(execution_mode)
     initialize_article1_runtime(db_path)
     with _db(db_path) as con:
         rows = con.execute(
             """SELECT a.* FROM article1_abcd_adjudications a JOIN(
                  SELECT code,MAX(revision) revision FROM article1_abcd_adjudications
-                 WHERE session_id=? AND document_id=? GROUP BY code) x
+                 WHERE session_id=? AND document_id=? AND execution_mode=?
+                 GROUP BY code) x
                ON x.code=a.code AND x.revision=a.revision
-               WHERE a.session_id=? AND a.document_id=?""",
-            (session_id, document_id, session_id, document_id),
+               WHERE a.session_id=? AND a.document_id=? AND a.execution_mode=?""",
+            (session_id, document_id, mode, session_id, document_id, mode),
         ).fetchall()
     output = {}
     for raw in rows:
@@ -485,15 +512,25 @@ def _compact_abcd(row: Mapping[str, Any] | None) -> dict[str, Any] | None:
 
 
 def compare_article1_abcd(
-    db_path: Path, *, session_id: str, document_id: str
+    db_path: Path,
+    *,
+    session_id: str,
+    document_id: str,
+    execution_mode: str = "FORMAL",
 ) -> list[dict[str, Any]]:
+    mode = _normalize_mode(execution_mode)
     latest = _latest_abcd(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=mode,
     )
     by_slot: dict[str, dict[str, dict[str, Any]]] = {slot: {} for slot in SLOTS}
     for row in latest:
         by_slot[row["reviewer_slot"]][row["code"]] = row
-    adjudications = _latest_abcd_adjudications(db_path, session_id, document_id)
+    adjudications = _latest_abcd_adjudications(
+        db_path, session_id, document_id, mode
+    )
     output = []
     for code in ABCD_CODES:
         r1 = by_slot["REVIEWER_1"].get(code)
@@ -515,6 +552,7 @@ def compare_article1_abcd(
         final = c1 if status == "AGREED" else adjudication.get("final") if adjudication else None
         output.append(
             {
+                "execution_mode": mode,
                 "code": code,
                 "label": ABCD_COMPONENTS[code].label,
                 "reviewer_1": c1,
@@ -544,23 +582,30 @@ def adjudicate_article1_abcd(
     adjudicator_name: str,
     adjudicator_role: str,
     notes: str = "",
+    execution_mode: str = "FORMAL",
     **details: str,
 ) -> dict[str, Any]:
     initialize_article1_runtime(db_path)
     _open_session(db_path, session_id)
+    mode = _normalize_mode(execution_mode)
+    _require_formal_included(db_path, session_id, document_id, mode)
     name, role = _reviewer(adjudicator_name, adjudicator_role)
     assignment = article1_reviewer_assignment(db_path, session_id)
-    if assignment and _clean(name).casefold() != _clean(
-        assignment["adjudicator_name"]
-    ).casefold():
-        raise ValueError("adjudicator identity does not match the GF-07 assignment")
+    if mode == "FORMAL":
+        if not assignment or not bool(assignment["gf07_resolved"]):
+            raise ValueError("FORMAL adjudication is blocked until GF-07 is resolved")
+        if _clean(name).casefold() != _clean(assignment["adjudicator_name"]).casefold():
+            raise ValueError("adjudicator identity does not match the GF-07 assignment")
     normalized_code, presence, depth = validate_component_decision(
         code=code, presence=final_presence, depth=final_depth, final=True
     )
     comparison = {
         row["code"]: row
         for row in compare_article1_abcd(
-            db_path, session_id=session_id, document_id=document_id
+            db_path,
+            session_id=session_id,
+            document_id=document_id,
+            execution_mode=mode,
         )
     }[normalized_code]
     if comparison["status"] not in {"DIVERGENT", "UNRESOLVED_DOUBT"}:
@@ -582,17 +627,22 @@ def adjudicate_article1_abcd(
             con.execute(
                 """SELECT COALESCE(MAX(revision),0)+1
                    FROM article1_abcd_adjudications
-                   WHERE session_id=? AND document_id=? AND code=?""",
-                (session_id, document_id, normalized_code),
+                   WHERE session_id=? AND document_id=? AND execution_mode=? AND code=?""",
+                (session_id, document_id, mode, normalized_code),
             ).fetchone()[0]
         )
         row_id = f"article1_abcd_adj_{uuid4().hex}"
         con.execute(
-            "INSERT INTO article1_abcd_adjudications VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            """INSERT INTO article1_abcd_adjudications(
+                 id,session_id,document_id,execution_mode,code,reviewer_1_json,
+                 reviewer_2_json,final_json,adjudicator_name,adjudicator_role,
+                 notes,codebook_version,revision,decided_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 row_id,
                 session_id,
                 document_id,
+                mode,
                 normalized_code,
                 _j(comparison["reviewer_1"]),
                 _j(comparison["reviewer_2"]),
@@ -612,16 +662,23 @@ def adjudicate_article1_abcd(
 
 
 def final_article1_abcd(
-    db_path: Path, *, session_id: str, document_id: str
+    db_path: Path,
+    *,
+    session_id: str,
+    document_id: str,
+    execution_mode: str = "FORMAL",
 ) -> list[dict[str, Any]]:
+    mode = _normalize_mode(execution_mode)
     comparison = compare_article1_abcd(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=mode,
     )
     pending = [row["code"] for row in comparison if row["final_status"] == "PENDING"]
     if pending:
         raise ValueError(
-            "ABCD extraction is not closed; pending components: "
-            + ", ".join(pending)
+            "ABCD extraction is not closed; pending components: " + ", ".join(pending)
         )
     rows = [dict(row["final"] or {}) for row in comparison]
     assert_document_can_close(rows)
@@ -629,16 +686,25 @@ def final_article1_abcd(
 
 
 def article1_abcd_document_status(
-    db_path: Path, *, session_id: str, document_id: str
+    db_path: Path,
+    *,
+    session_id: str,
+    document_id: str,
+    execution_mode: str = "FORMAL",
 ) -> dict[str, Any]:
+    mode = _normalize_mode(execution_mode)
     comparison = compare_article1_abcd(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=mode,
     )
     finals = [row["final"] for row in comparison if row["final"]]
     raw_status = document_completion(finals)
     pending = [row["code"] for row in comparison if row["final_status"] == "PENDING"]
     return {
         **raw_status,
+        "execution_mode": mode,
         "pending_codes": pending,
         "agreed_components": sum(
             row["final_status"] == "AGREED" for row in comparison
@@ -662,7 +728,10 @@ def article1_abcd_calibration_report(
     pairs = []
     for document_id in document_ids:
         for row in compare_article1_abcd(
-            db_path, session_id=session_id, document_id=document_id
+            db_path,
+            session_id=session_id,
+            document_id=document_id,
+            execution_mode="CALIBRATION",
         ):
             r1, r2 = row["reviewer_1"] or {}, row["reviewer_2"] or {}
             pairs.append(
@@ -674,11 +743,13 @@ def article1_abcd_calibration_report(
                     "r2_depth": r2.get("depth"),
                 }
             )
-    return calibration_metrics(
+    report = calibration_metrics(
         pairs,
         expected_units=34 * len(document_ids),
         recurrent_critical_divergence=recurrent_critical_divergence,
     )
+    report["execution_mode"] = "CALIBRATION"
+    return report
 
 
 def normalize_relation(
@@ -754,14 +825,19 @@ def submit_article1_relation(
             con.execute(
                 """SELECT COALESCE(MAX(revision),0)+1
                    FROM article1_relation_submissions
-                   WHERE session_id=? AND document_id=? AND reviewer_slot=?
-                   AND relation_key=?""",
-                (session_id, document_id, slot, relation_key),
+                   WHERE session_id=? AND document_id=? AND execution_mode=?
+                   AND reviewer_slot=? AND relation_key=?""",
+                (session_id, document_id, mode, slot, relation_key),
             ).fetchone()[0]
         )
         row_id = f"article1_relation_{uuid4().hex}"
         con.execute(
-            "INSERT INTO article1_relation_submissions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            """INSERT INTO article1_relation_submissions(
+                 id,session_id,document_id,article_id,execution_mode,reviewer_slot,
+                 reviewer_name,reviewer_role,relation_key,source_code,target_code,
+                 direction,relation_type,family,active,relation_codebook_version,
+                 revision,submitted_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 row_id,
                 session_id,
@@ -786,7 +862,9 @@ def submit_article1_relation(
         if active:
             for order, item in enumerate(cleaned_evidence, 1):
                 con.execute(
-                    "INSERT INTO article1_relation_evidence_instances VALUES(?,?,?,?,?,?)",
+                    """INSERT INTO article1_relation_evidence_instances(
+                         id,relation_submission_id,locator,evidence,evidence_order,created_at)
+                       VALUES(?,?,?,?,?,?)""",
                     (
                         f"article1_relation_ev_{uuid4().hex}",
                         row_id,
@@ -821,27 +899,42 @@ def complete_article1_relation_review(
     reviewer_name: str,
     reviewer_role: str,
     complete: bool = True,
+    execution_mode: str = "STAGING",
 ) -> dict[str, Any]:
     initialize_article1_runtime(db_path)
     _open_session(db_path, session_id)
     slot = _normalize_slot(reviewer_slot)
     name, role = _reviewer(reviewer_name, reviewer_role)
+    mode = _normalize_mode(execution_mode)
+    _formal_guard(
+        db_path,
+        session_id=session_id,
+        execution_mode=mode,
+        reviewer_slot=slot,
+        reviewer_name=name,
+    )
+    _require_formal_included(db_path, session_id, document_id, mode)
     with _db(db_path) as con:
         revision = int(
             con.execute(
                 """SELECT COALESCE(MAX(revision),0)+1
                    FROM article1_relation_review_status
-                   WHERE session_id=? AND document_id=? AND reviewer_slot=?""",
-                (session_id, document_id, slot),
+                   WHERE session_id=? AND document_id=? AND execution_mode=?
+                   AND reviewer_slot=?""",
+                (session_id, document_id, mode, slot),
             ).fetchone()[0]
         )
         row_id = f"article1_relation_review_{uuid4().hex}"
         con.execute(
-            "INSERT INTO article1_relation_review_status VALUES(?,?,?,?,?,?,?,?,?)",
+            """INSERT INTO article1_relation_review_status(
+                 id,session_id,document_id,execution_mode,reviewer_slot,
+                 reviewer_name,reviewer_role,complete,revision,recorded_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?)""",
             (
                 row_id,
                 session_id,
                 document_id,
+                mode,
                 slot,
                 name,
                 role,
@@ -859,18 +952,24 @@ def complete_article1_relation_review(
 
 
 def _latest_relation_review_status(
-    db_path: Path, *, session_id: str, document_id: str
+    db_path: Path,
+    *,
+    session_id: str,
+    document_id: str,
+    execution_mode: str = "FORMAL",
 ) -> dict[str, bool]:
+    mode = _normalize_mode(execution_mode)
     initialize_article1_runtime(db_path)
     with _db(db_path) as con:
         rows = con.execute(
             """SELECT s.* FROM article1_relation_review_status s JOIN(
                  SELECT reviewer_slot,MAX(revision) revision
                  FROM article1_relation_review_status
-                 WHERE session_id=? AND document_id=? GROUP BY reviewer_slot) x
+                 WHERE session_id=? AND document_id=? AND execution_mode=?
+                 GROUP BY reviewer_slot) x
                ON x.reviewer_slot=s.reviewer_slot AND x.revision=s.revision
-               WHERE s.session_id=? AND s.document_id=?""",
-            (session_id, document_id, session_id, document_id),
+               WHERE s.session_id=? AND s.document_id=? AND s.execution_mode=?""",
+            (session_id, document_id, mode, session_id, document_id, mode),
         ).fetchall()
     return {row["reviewer_slot"]: bool(row["complete"]) for row in rows}
 
@@ -881,6 +980,7 @@ def _latest_relations(
     session_id: str,
     document_id: str | None = None,
     reviewer_slot: str | None = None,
+    execution_mode: str | None = None,
 ) -> list[dict[str, Any]]:
     initialize_article1_runtime(db_path)
     clauses = ["r.session_id=?", "r.active=1"]
@@ -891,13 +991,18 @@ def _latest_relations(
     if reviewer_slot:
         clauses.append("r.reviewer_slot=?")
         params.append(_normalize_slot(reviewer_slot))
+    if execution_mode:
+        clauses.append("r.execution_mode=?")
+        params.append(_normalize_mode(execution_mode))
     with _db(db_path) as con:
         rows = con.execute(
             f"""SELECT r.* FROM article1_relation_submissions r JOIN(
-                  SELECT session_id,document_id,reviewer_slot,relation_key,MAX(revision) revision
+                  SELECT session_id,document_id,execution_mode,reviewer_slot,
+                         relation_key,MAX(revision) revision
                   FROM article1_relation_submissions
-                  GROUP BY session_id,document_id,reviewer_slot,relation_key) x
+                  GROUP BY session_id,document_id,execution_mode,reviewer_slot,relation_key) x
                 ON x.session_id=r.session_id AND x.document_id=r.document_id
+                AND x.execution_mode=r.execution_mode
                 AND x.reviewer_slot=r.reviewer_slot
                 AND x.relation_key=r.relation_key AND x.revision=r.revision
                 WHERE {' AND '.join(clauses)}""",
@@ -919,18 +1024,23 @@ def _latest_relations(
 
 
 def _latest_relation_adjudications(
-    db_path: Path, session_id: str, document_id: str
+    db_path: Path,
+    session_id: str,
+    document_id: str,
+    execution_mode: str,
 ) -> dict[str, dict[str, Any]]:
+    mode = _normalize_mode(execution_mode)
     initialize_article1_runtime(db_path)
     with _db(db_path) as con:
         rows = con.execute(
             """SELECT a.* FROM article1_relation_adjudications a JOIN(
                  SELECT relation_key,MAX(revision) revision
                  FROM article1_relation_adjudications
-                 WHERE session_id=? AND document_id=? GROUP BY relation_key) x
+                 WHERE session_id=? AND document_id=? AND execution_mode=?
+                 GROUP BY relation_key) x
                ON x.relation_key=a.relation_key AND x.revision=a.revision
-               WHERE a.session_id=? AND a.document_id=?""",
-            (session_id, document_id, session_id, document_id),
+               WHERE a.session_id=? AND a.document_id=? AND a.execution_mode=?""",
+            (session_id, document_id, mode, session_id, document_id, mode),
         ).fetchall()
     output = {}
     for raw in rows:
@@ -941,15 +1051,25 @@ def _latest_relation_adjudications(
 
 
 def compare_article1_relations(
-    db_path: Path, *, session_id: str, document_id: str
+    db_path: Path,
+    *,
+    session_id: str,
+    document_id: str,
+    execution_mode: str = "FORMAL",
 ) -> list[dict[str, Any]]:
+    mode = _normalize_mode(execution_mode)
     latest = _latest_relations(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=mode,
     )
     by_slot: dict[str, dict[str, dict[str, Any]]] = {slot: {} for slot in SLOTS}
     for row in latest:
         by_slot[row["reviewer_slot"]][row["relation_key"]] = row
-    adjudicated = _latest_relation_adjudications(db_path, session_id, document_id)
+    adjudicated = _latest_relation_adjudications(
+        db_path, session_id, document_id, mode
+    )
     keys = sorted(set(by_slot["REVIEWER_1"]) | set(by_slot["REVIEWER_2"]))
     output = []
     for key in keys:
@@ -972,15 +1092,19 @@ def compare_article1_relations(
             final_status = "AGREED"
         else:
             status = "REVIEWER_SET_DIVERGENCE"
-            adj = adjudicated.get(key)
-            if adj and adj["final_decision"] == "INCLUDE":
-                final, final_status = adj.get("final"), "ADJUDICATED_INCLUDE"
-            elif adj:
-                final, final_status = None, "ADJUDICATED_EXCLUDE"
+            adjudication = adjudicated.get(key)
+            if adjudication and adjudication["final_decision"] == "INCLUDE":
+                final = adjudication.get("final")
+                final_status = "ADJUDICATED_INCLUDE"
+            elif adjudication:
+                final = None
+                final_status = "ADJUDICATED_EXCLUDE"
             else:
-                final, final_status = None, "PENDING"
+                final = None
+                final_status = "PENDING"
         output.append(
             {
+                "execution_mode": mode,
                 "relation_key": key,
                 "reviewer_1": r1,
                 "reviewer_2": r2,
@@ -1002,22 +1126,29 @@ def adjudicate_article1_relation(
     adjudicator_name: str,
     adjudicator_role: str,
     notes: str = "",
+    execution_mode: str = "FORMAL",
 ) -> dict[str, Any]:
     initialize_article1_runtime(db_path)
     _open_session(db_path, session_id)
+    mode = _normalize_mode(execution_mode)
+    _require_formal_included(db_path, session_id, document_id, mode)
     name, role = _reviewer(adjudicator_name, adjudicator_role)
     assignment = article1_reviewer_assignment(db_path, session_id)
-    if assignment and _clean(name).casefold() != _clean(
-        assignment["adjudicator_name"]
-    ).casefold():
-        raise ValueError("adjudicator identity does not match the GF-07 assignment")
+    if mode == "FORMAL":
+        if not assignment or not bool(assignment["gf07_resolved"]):
+            raise ValueError("FORMAL adjudication is blocked until GF-07 is resolved")
+        if _clean(name).casefold() != _clean(assignment["adjudicator_name"]).casefold():
+            raise ValueError("adjudicator identity does not match the GF-07 assignment")
     decision = _clean(final_decision).upper()
     if decision not in RELATION_FINAL_DECISIONS:
         raise ValueError(f"final_decision must be one of {RELATION_FINAL_DECISIONS}")
     comparison = {
         row["relation_key"]: row
         for row in compare_article1_relations(
-            db_path, session_id=session_id, document_id=document_id
+            db_path,
+            session_id=session_id,
+            document_id=document_id,
+            execution_mode=mode,
         )
     }.get(relation_key)
     if not comparison or comparison["status"] != "REVIEWER_SET_DIVERGENCE":
@@ -1043,17 +1174,23 @@ def adjudicate_article1_relation(
             con.execute(
                 """SELECT COALESCE(MAX(revision),0)+1
                    FROM article1_relation_adjudications
-                   WHERE session_id=? AND document_id=? AND relation_key=?""",
-                (session_id, document_id, relation_key),
+                   WHERE session_id=? AND document_id=? AND execution_mode=?
+                   AND relation_key=?""",
+                (session_id, document_id, mode, relation_key),
             ).fetchone()[0]
         )
         row_id = f"article1_relation_adj_{uuid4().hex}"
         con.execute(
-            "INSERT INTO article1_relation_adjudications VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            """INSERT INTO article1_relation_adjudications(
+                 id,session_id,document_id,execution_mode,relation_key,
+                 reviewer_1_json,reviewer_2_json,final_decision,final_json,
+                 adjudicator_name,adjudicator_role,notes,revision,decided_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 row_id,
                 session_id,
                 document_id,
+                mode,
                 relation_key,
                 _j(comparison["reviewer_1"]),
                 _j(comparison["reviewer_2"]),
@@ -1073,17 +1210,28 @@ def adjudicate_article1_relation(
 
 
 def final_article1_relations(
-    db_path: Path, *, session_id: str, document_id: str
+    db_path: Path,
+    *,
+    session_id: str,
+    document_id: str,
+    execution_mode: str = "FORMAL",
 ) -> list[dict[str, Any]]:
+    mode = _normalize_mode(execution_mode)
     review_status = _latest_relation_review_status(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=mode,
     )
     if not all(review_status.get(slot, False) for slot in SLOTS):
         raise ValueError(
             "relation extraction is not closed; both reviewers must explicitly complete relation review"
         )
     comparison = compare_article1_relations(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=mode,
     )
     if any(row["final_status"] == "PENDING" for row in comparison):
         raise ValueError(
@@ -1106,18 +1254,25 @@ def article1_relation_calibration_report(
     completed_pairs = 0
     for document_id in document_ids:
         status = _latest_relation_review_status(
-            db_path, session_id=session_id, document_id=document_id
+            db_path,
+            session_id=session_id,
+            document_id=document_id,
+            execution_mode="CALIBRATION",
         )
         if all(status.get(slot, False) for slot in SLOTS):
             completed_pairs += 1
         for row in _latest_relations(
-            db_path, session_id=session_id, document_id=document_id
+            db_path,
+            session_id=session_id,
+            document_id=document_id,
+            execution_mode="CALIBRATION",
         ):
             item = (document_id, row["relation_key"])
             (r1 if row["reviewer_slot"] == "REVIEWER_1" else r2).add(item)
     intersection, union = r1 & r2, r1 | r2
     flags = [_clean(item) for item in (conceptual_error_flags or []) if _clean(item)]
     return {
+        "execution_mode": "CALIBRATION",
         "documents_expected": len(document_ids),
         "documents_with_both_relation_reviews_complete": completed_pairs,
         "review_completeness": completed_pairs / len(document_ids),
@@ -1144,26 +1299,33 @@ def save_article1_method_characterization(
     reviewer_name: str,
     reviewer_role: str,
     family: str = "",
+    execution_mode: str = "FORMAL",
 ) -> dict[str, Any]:
     initialize_article1_runtime(db_path)
     _open_session(db_path, session_id)
+    mode = _normalize_mode(execution_mode)
+    _require_formal_included(db_path, session_id, document_id, mode)
     name, role = _reviewer(reviewer_name, reviewer_role)
     with _db(db_path) as con:
         revision = int(
             con.execute(
                 """SELECT COALESCE(MAX(revision),0)+1
                    FROM article1_method_characterization
-                   WHERE session_id=? AND document_id=?""",
-                (session_id, document_id),
+                   WHERE session_id=? AND document_id=? AND execution_mode=?""",
+                (session_id, document_id, mode),
             ).fetchone()[0]
         )
         row_id = f"article1_method_{uuid4().hex}"
         con.execute(
-            "INSERT INTO article1_method_characterization VALUES(?,?,?,?,?,?,?,?,?)",
+            """INSERT INTO article1_method_characterization(
+                 id,session_id,document_id,execution_mode,family,fields_json,
+                 reviewer_name,reviewer_role,revision,recorded_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?)""",
             (
                 row_id,
                 session_id,
                 document_id,
+                mode,
                 family.strip(),
                 _j(dict(fields)),
                 name,
@@ -1179,18 +1341,21 @@ def save_article1_method_characterization(
 
 
 def _latest_method_characterization(
-    db_path: Path, session_id: str
+    db_path: Path,
+    session_id: str,
+    execution_mode: str = "FORMAL",
 ) -> list[dict[str, Any]]:
+    mode = _normalize_mode(execution_mode)
     initialize_article1_runtime(db_path)
     with _db(db_path) as con:
         rows = con.execute(
             """SELECT m.* FROM article1_method_characterization m JOIN(
                  SELECT document_id,MAX(revision) revision
                  FROM article1_method_characterization
-                 WHERE session_id=? GROUP BY document_id) x
+                 WHERE session_id=? AND execution_mode=? GROUP BY document_id) x
                ON x.document_id=m.document_id AND x.revision=m.revision
-               WHERE m.session_id=?""",
-            (session_id, session_id),
+               WHERE m.session_id=? AND m.execution_mode=?""",
+            (session_id, mode, session_id, mode),
         ).fetchall()
     output = []
     for raw in rows:
@@ -1209,18 +1374,28 @@ def _article1_included_documents(
 def article1_runtime_status(
     db_path: Path, *, session_id: str
 ) -> dict[str, Any]:
+    """Return FORMAL downstream readiness only."""
     documents = _article1_included_documents(db_path, session_id)
     per_document = []
     for source in documents:
         document_id = source["document_id"]
         abcd = article1_abcd_document_status(
-            db_path, session_id=session_id, document_id=document_id
+            db_path,
+            session_id=session_id,
+            document_id=document_id,
+            execution_mode="FORMAL",
         )
         review_status = _latest_relation_review_status(
-            db_path, session_id=session_id, document_id=document_id
+            db_path,
+            session_id=session_id,
+            document_id=document_id,
+            execution_mode="FORMAL",
         )
         relation_comparison = compare_article1_relations(
-            db_path, session_id=session_id, document_id=document_id
+            db_path,
+            session_id=session_id,
+            document_id=document_id,
+            execution_mode="FORMAL",
         )
         relation_pending = sum(
             item["final_status"] == "PENDING" for item in relation_comparison
@@ -1245,6 +1420,7 @@ def article1_runtime_status(
     )
     return {
         "session_id": session_id,
+        "execution_mode": "FORMAL",
         "included_documents": len(documents),
         "documents": per_document,
         "synthesis_ready": ready,
@@ -1255,6 +1431,7 @@ def article1_runtime_status(
 def article1_synthesis(
     db_path: Path, *, session_id: str, strict: bool = True
 ) -> dict[str, Any]:
+    """Synthesize FORMAL included documents only."""
     documents = _article1_included_documents(db_path, session_id)
     status = article1_runtime_status(db_path, session_id=session_id)
     if strict and not status["synthesis_ready"]:
@@ -1273,7 +1450,10 @@ def article1_synthesis(
         ) or "UNSPECIFIED"
         try:
             abcd = final_article1_abcd(
-                db_path, session_id=session_id, document_id=document_id
+                db_path,
+                session_id=session_id,
+                document_id=document_id,
+                execution_mode="FORMAL",
             )
         except ValueError:
             if strict:
@@ -1293,7 +1473,10 @@ def article1_synthesis(
                 cooccurrence_family[(family, source_code, target_code)] += 1
         try:
             relations = final_article1_relations(
-                db_path, session_id=session_id, document_id=document_id
+                db_path,
+                session_id=session_id,
+                document_id=document_id,
+                execution_mode="FORMAL",
             )
         except ValueError:
             if strict:
@@ -1342,6 +1525,7 @@ def article1_synthesis(
         )
     return {
         "session_id": session_id,
+        "execution_mode": "FORMAL",
         "codebook_version": ABCD_VERSION,
         "included_documents": len(documents),
         "closed_documents": closed_documents,
@@ -1350,7 +1534,7 @@ def article1_synthesis(
         "cooccurrence": cooccurrence,
         "explicit_relations": explicit_relations,
         "method_characterization": _latest_method_characterization(
-            db_path, session_id
+            db_path, session_id, "FORMAL"
         ),
         "guardrails": {
             "global_abcd_score": False,
@@ -1373,7 +1557,9 @@ def create_article1_synthesis_snapshot(
     snapshot_id = f"article1_synthesis_{uuid4().hex}"
     with _db(db_path) as con:
         con.execute(
-            "INSERT INTO article1_synthesis_snapshots VALUES(?,?,?,?,?,?,?)",
+            """INSERT INTO article1_synthesis_snapshots(
+                 id,session_id,created_at,codebook_version,payload_json,payload_sha256,ready)
+               VALUES(?,?,?,?,?,?,?)""",
             (
                 snapshot_id,
                 session_id,
@@ -1419,6 +1605,7 @@ def assert_article1_prisma_eligible(
 def article1_sheet_payload(
     db_path: Path, *, session_id: str, strict: bool = False
 ) -> dict[str, Any]:
+    """Build one-way FORMAL Engine -> Sheet audit payload."""
     status = article1_runtime_status(db_path, session_id=session_id)
     comparisons = []
     relation_comparisons = []
@@ -1429,27 +1616,39 @@ def article1_sheet_payload(
         comparisons.extend(
             {"document_id": document_id, **row}
             for row in compare_article1_abcd(
-                db_path, session_id=session_id, document_id=document_id
+                db_path,
+                session_id=session_id,
+                document_id=document_id,
+                execution_mode="FORMAL",
             )
         )
         relation_comparisons.extend(
             {"document_id": document_id, **row}
             for row in compare_article1_relations(
-                db_path, session_id=session_id, document_id=document_id
+                db_path,
+                session_id=session_id,
+                document_id=document_id,
+                execution_mode="FORMAL",
             )
         )
         if document["abcd_closed"]:
             final_abcd.extend(
                 {"document_id": document_id, **row}
                 for row in final_article1_abcd(
-                    db_path, session_id=session_id, document_id=document_id
+                    db_path,
+                    session_id=session_id,
+                    document_id=document_id,
+                    execution_mode="FORMAL",
                 )
             )
         if document["relations_closed"]:
             final_relations.extend(
                 {"document_id": document_id, **row}
                 for row in final_article1_relations(
-                    db_path, session_id=session_id, document_id=document_id
+                    db_path,
+                    session_id=session_id,
+                    document_id=document_id,
+                    execution_mode="FORMAL",
                 )
             )
     synthesis = article1_synthesis(
@@ -1458,6 +1657,7 @@ def article1_sheet_payload(
     return {
         "sync_direction": "ENGINE_TO_SHEET",
         "runtime_is_authoritative": True,
+        "execution_mode": "FORMAL",
         "tabs": {
             "08_CODEBOOK_ABCD": codebook_rows(),
             "10_EXTRACAO_ABCD": final_abcd,
@@ -1476,11 +1676,15 @@ def article1_sheet_payload(
             "codebook_version": ABCD_VERSION,
             "session_id": session_id,
             "status": status,
-            "raw_abcd_submissions": len(
-                _latest_abcd(db_path, session_id=session_id)
+            "raw_formal_abcd_submissions": len(
+                _latest_abcd(
+                    db_path, session_id=session_id, execution_mode="FORMAL"
+                )
             ),
-            "raw_relation_submissions": len(
-                _latest_relations(db_path, session_id=session_id)
+            "raw_formal_relation_submissions": len(
+                _latest_relations(
+                    db_path, session_id=session_id, execution_mode="FORMAL"
+                )
             ),
             "generated_at": _now(),
         },
@@ -1500,6 +1704,7 @@ def article1_manifest(
         "article_id": ARTICLE1_ID,
         "session_id": session_id,
         "generated_at": _now(),
+        "execution_mode": "FORMAL",
         "codebook_version": ABCD_VERSION,
         "git_sha": _clean(git_sha) or _clean(os.environ.get("GITHUB_SHA")),
         "config_digest": _clean(config_digest),
@@ -1532,6 +1737,7 @@ def article1_manifest(
 def article1_export_bundle(
     db_path: Path, *, session_id: str
 ) -> dict[str, Any]:
+    """Return manuscript-facing FORMAL datasets; calibration remains separate."""
     status = article1_runtime_status(db_path, session_id=session_id)
     abcd_comparison = []
     relation_comparison = []
@@ -1542,40 +1748,56 @@ def article1_export_bundle(
         abcd_comparison.extend(
             {"document_id": document_id, **row}
             for row in compare_article1_abcd(
-                db_path, session_id=session_id, document_id=document_id
+                db_path,
+                session_id=session_id,
+                document_id=document_id,
+                execution_mode="FORMAL",
             )
         )
         relation_comparison.extend(
             {"document_id": document_id, **row}
             for row in compare_article1_relations(
-                db_path, session_id=session_id, document_id=document_id
+                db_path,
+                session_id=session_id,
+                document_id=document_id,
+                execution_mode="FORMAL",
             )
         )
         if document["abcd_closed"]:
             final_abcd.extend(
                 {"document_id": document_id, **row}
                 for row in final_article1_abcd(
-                    db_path, session_id=session_id, document_id=document_id
+                    db_path,
+                    session_id=session_id,
+                    document_id=document_id,
+                    execution_mode="FORMAL",
                 )
             )
         if document["relations_closed"]:
             final_relations.extend(
                 {"document_id": document_id, **row}
                 for row in final_article1_relations(
-                    db_path, session_id=session_id, document_id=document_id
+                    db_path,
+                    session_id=session_id,
+                    document_id=document_id,
+                    execution_mode="FORMAL",
                 )
             )
     return {
         "status": status,
         "codebook": codebook_rows(),
-        "abcd_submissions": _latest_abcd(db_path, session_id=session_id),
+        "abcd_submissions": _latest_abcd(
+            db_path, session_id=session_id, execution_mode="FORMAL"
+        ),
         "abcd_comparison": abcd_comparison,
         "final_abcd": final_abcd,
-        "relation_submissions": _latest_relations(db_path, session_id=session_id),
+        "relation_submissions": _latest_relations(
+            db_path, session_id=session_id, execution_mode="FORMAL"
+        ),
         "relation_comparison": relation_comparison,
         "final_relations": final_relations,
         "method_characterization": _latest_method_characterization(
-            db_path, session_id
+            db_path, session_id, "FORMAL"
         ),
         "synthesis": article1_synthesis(
             db_path, session_id=session_id, strict=False
