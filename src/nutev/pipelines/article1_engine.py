@@ -1,9 +1,8 @@
 """Persistent one-button controller for the canonical Article 1 workflow.
 
-The controller is intentionally gate-aware. It runs every currently automatic
-step, persists state after each transition, and stops at human/external gates
-without inferring scientific approval. Re-running the same command/button
-continues from the persisted state instead of creating a new workflow.
+The controller is gate-aware. It runs every automatic step, persists state after
+each transition, and stops only at real human/external gates without inferring
+scientific approval. Re-running the same button continues from persisted state.
 """
 from __future__ import annotations
 
@@ -14,15 +13,17 @@ from typing import Any, Callable
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from nutev.pipelines.article1_final_outputs import build_article1_final_outputs
 from nutev.pipelines.article1_formal_pipeline import run_or_resume_formal_chain
 from nutev.pipelines.article1_postformal import prepare_formal_human_review
 from nutev.pipelines.execution_coverage import write_search_coverage_ledger
 from nutev.pipelines.human_queue import write_human_queue
+from nutev.review.article1_screening_runtime import ensure_formal_screening_context
 from nutev.search.article1_scientific_status import derive_article1_scientific_status
 from nutev.search.gf02_pubmed_pilot import run_gf02_pubmed_pilot
 
 LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
-ENGINE_SCHEMA_VERSION = 2
+ENGINE_SCHEMA_VERSION = 3
 ProgressFn = Callable[[str], None]
 
 
@@ -165,6 +166,16 @@ def _pause(
     return state
 
 
+def _formal_summary(project_root: Path) -> dict[str, Any]:
+    summary = _load_json(Path(project_root) / "12_play" / "latest_summary.json")
+    scientific = summary.get("scientific_state") or {}
+    if str(scientific.get("search_type") or "").upper() != "FORMAL":
+        raise ValueError("latest summary is not a FORMAL execution")
+    if not bool(scientific.get("formal_freeze_authorized")):
+        raise ValueError("latest FORMAL summary is not linked to an authorized FREEZE")
+    return summary
+
+
 def run_or_resume_article1_engine(
     repo_root: Path,
     *,
@@ -299,7 +310,7 @@ def run_or_resume_article1_engine(
                     "COMPLETE_WITH_WARNINGS",
                 }:
                     raise RuntimeError("A cadeia FORMAL não chegou a um estado terminal auditável.")
-                _emit(project, state, progress_fn, "Organizando a fila humana do corpus FORMAL...")
+                _emit(project, state, progress_fn, "Organizando o corpus FORMAL para revisão humana...")
                 review_queue = prepare_formal_human_review(project, formal_summary)
                 state["completed_stages"]["FORMAL_EXECUTION"] = {
                     "completed_at": _now_iso(),
@@ -315,7 +326,27 @@ def run_or_resume_article1_engine(
                 _write_state(project, state)
                 continue
 
-            if phase in {"SCREENING_HUMAN_REVIEW", "FULLTEXT_HUMAN_REVIEW", "ABCD_HUMAN_REVIEW", "ADJUDICATION"}:
+            if phase == "SCREENING_INITIALIZATION":
+                _emit(project, state, progress_fn, "Inicializando a triagem FORMAL R1/R2 no corpus congelado...")
+                context = ensure_formal_screening_context(project)
+                state["completed_stages"]["SCREENING_INITIALIZATION"] = {
+                    "completed_at": _now_iso(),
+                    "session_id": context.get("session_id"),
+                    "build_id": context.get("build_id"),
+                    "reviewer_assignment_present": context.get("reviewer_assignment_present"),
+                }
+                _write_state(project, state)
+                continue
+
+            if phase in {
+                "SCREENING_REVIEWER_ASSIGNMENT",
+                "TITLE_ABSTRACT_HUMAN_REVIEW",
+                "SCREENING_HUMAN_REVIEW",
+                "FULLTEXT_HUMAN_REVIEW",
+                "ABCD_HUMAN_REVIEW",
+                "RELATIONS_HUMAN_REVIEW",
+                "ADJUDICATION",
+            }:
                 _refresh_operational_artifacts(repo, project, state, scientific=scientific)
                 return _pause(
                     project,
@@ -323,17 +354,43 @@ def run_or_resume_article1_engine(
                     status="WAITING_HUMAN",
                     phase=phase,
                     message=(
-                        "PRECISO DE VOCÊ: existem unidades humanas pendentes. O Engine preservou o corpus e a fila; "
-                        "complete somente as decisões abertas e depois use CONTINUAR."
+                        "PRECISO DE VOCÊ: existe uma decisão humana científica pendente. "
+                        "O Engine preservou tudo que já foi concluído; finalize somente a tarefa aberta e use CONTINUAR."
                     ),
                 )
 
-            state["status"] = "COMPLETE"
-            state["waiting_on"] = None
-            state["last_message"] = "Todas as etapas atualmente automatizadas foram concluídas."
-            _refresh_operational_artifacts(repo, project, state, scientific=scientific)
-            _write_state(project, state)
-            return state
+            if phase == "SYNTHESIS_PRISMA":
+                downstream = scientific.get("downstream") or {}
+                session_id = str(downstream.get("session_id") or "").strip()
+                if not session_id:
+                    raise RuntimeError("post-FORMAL status does not expose a screening session_id")
+                _emit(project, state, progress_fn, "Gerando síntese, PRISMA e pacote final auditável...")
+                final = build_article1_final_outputs(
+                    project,
+                    formal_summary=_formal_summary(project),
+                    session_id=session_id,
+                )
+                state["completed_stages"]["SYNTHESIS_PRISMA"] = {
+                    "completed_at": _now_iso(),
+                    "manifest_path": final.get("manifest_path"),
+                    "manifest_sha256": final.get("manifest_sha256"),
+                }
+                state.setdefault("operational_artifacts", {})["article1_final_manifest"] = str(
+                    final.get("manifest_path") or ""
+                )
+                _write_state(project, state)
+                continue
+
+            if phase == "COMPLETE":
+                state["status"] = "COMPLETE"
+                state["waiting_on"] = None
+                state["last_error"] = None
+                state["last_message"] = "Artigo 1 concluído: pacote FORMAL, síntese e PRISMA foram validados."
+                _refresh_operational_artifacts(repo, project, state, scientific=scientific)
+                _write_state(project, state)
+                return state
+
+            raise RuntimeError(f"unsupported Article 1 engine phase: {phase}")
 
     except BaseException as exc:
         state["status"] = "FAILED"
@@ -353,6 +410,8 @@ def engine_button_label(repo_root: Path, project_root: Path) -> str:
     scientific = derive_article1_scientific_status(Path(repo_root), Path(project_root))
     state = load_article1_engine_state(project_root)
     phase = str(scientific.get("article1_current_phase") or "")
+    if phase == "COMPLETE":
+        return "✓ CONCLUÍDO"
     if not state and phase == "GF02_PUBMED_PILOT":
         return "▶ RODAR TUDO"
     return "▶ CONTINUAR"
