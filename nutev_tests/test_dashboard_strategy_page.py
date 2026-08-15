@@ -1,4 +1,4 @@
-"""Smoke tests for the canonical Article 1 execution page."""
+"""Smoke tests for the one-button canonical Article 1 execution page."""
 from __future__ import annotations
 
 import pytest
@@ -16,18 +16,19 @@ def _execution_app() -> AppTest:
     return at
 
 
-def test_execution_page_has_no_legacy_free_search_layout():
+def test_execution_page_has_only_one_operational_button_and_no_legacy_search():
     at = _execution_app()
     assert not at.exception
     assert len(at.text_area) == 0
     assert all("O que você deseja pesquisar?" not in item.value for item in at.markdown)
-    assert any("RODAR PILOT GF-02" in button.label for button in at.button)
+    operational = [button for button in at.button if button.label in {"▶ RODAR TUDO", "▶ CONTINUAR"}]
+    assert len(operational) == 1
 
 
-def test_execution_page_surfaces_canonical_strategy_read_only():
+def test_execution_page_explains_checkpoint_resume_without_strategy_metrics():
     at = _execution_app()
     assert not at.exception
-    metric_values = [metric.value for metric in at.metric]
-    assert any("v0.5" in str(value) for value in metric_values)
-    assert "PILOT" in metric_values
-    assert "Não" in metric_values
+    rendered = "\n".join(item.value for item in at.markdown)
+    assert "Um botão. O Engine cuida do resto." in rendered
+    assert "checkpoints" in rendered.lower()
+    assert len(at.metric) == 0
