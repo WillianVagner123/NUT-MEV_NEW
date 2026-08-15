@@ -1,4 +1,4 @@
-"""Article 1 ABCD/relations workspace inside the existing Streamlit Engine."""
+"""Article 1 FORMAL ABCD/relations workspace inside the Streamlit Engine."""
 from __future__ import annotations
 
 import os
@@ -11,7 +11,6 @@ import streamlit as st
 from nutev.analysis.article1_abcd import ABCD_CODES, ABCD_COMPONENTS, ABCD_VERSION
 from nutev.review.article_screening_ledger import list_screening_sessions
 from nutev.review.evidence_matrix import (
-    EXECUTION_MODES,
     RELATION_DIRECTIONS,
     RELATION_TYPES,
     adjudicate_article1_abcd,
@@ -30,6 +29,8 @@ from nutev.review.evidence_matrix import (
     submit_article1_relation,
 )
 from nutev.review.human_review import REVIEWER_ROLES
+
+FORMAL = "FORMAL"
 
 
 def _session_label(row: dict[str, Any]) -> str:
@@ -52,7 +53,7 @@ def _render_gf07(db_path: Path, session_id: str, active_name: str) -> None:
     with st.expander("GF-07 · revisores humanos", expanded=False):
         st.caption(
             "Use somente identidades humanas reais. Sem R1, R2 e adjudicador "
-            "distintos, o runtime bloqueia execução FORMAL."
+            "distintos, o runtime bloqueia qualquer registro FORMAL."
         )
         with st.form(f"a1_gf07_{session_id}"):
             r1 = st.text_input(
@@ -96,19 +97,25 @@ def _render_abcd(
 ) -> None:
     document_id = str(document["document_id"])
     status = article1_abcd_document_status(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=FORMAL,
     )
     c1, c2, c3 = st.columns(3)
     c1.metric("ABCD esperado", "34/34")
     c2.metric("Pendentes", len(status["pending_codes"]))
     c3.metric("Fechado", "sim" if status["closed"] else "não")
     st.caption(
-        f"Codebook `{ABCD_VERSION}`. Missing = não avaliado. YES→1–3 + evidência; "
-        "NO→0; DÚVIDA→profundidade vazia e não fecha."
+        f"Modo FORMAL · codebook `{ABCD_VERSION}`. Missing = não avaliado. "
+        "YES→1–3 + evidência; NO→0; DÚVIDA→profundidade vazia e não fecha."
     )
 
     comparison = compare_article1_abcd(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=FORMAL,
     )
     st.dataframe(
         pd.DataFrame(
@@ -130,19 +137,14 @@ def _render_abcd(
         hide_index=True,
     )
 
-    col1, col2, col3 = st.columns([1, 1, 2])
+    col1, col2 = st.columns([1, 3])
     slot = col1.selectbox(
         "Posição",
         ["REVIEWER_1", "REVIEWER_2"],
         format_func=_slot_label,
         key=f"a1_abcd_slot_{session_id}_{document_id}",
     )
-    mode = col2.selectbox(
-        "Modo",
-        EXECUTION_MODES,
-        key=f"a1_abcd_mode_{session_id}_{document_id}",
-    )
-    code = col3.selectbox(
+    code = col2.selectbox(
         "Componente",
         ABCD_CODES,
         format_func=lambda value: f"{value} · {ABCD_COMPONENTS[value].label}",
@@ -155,14 +157,16 @@ def _render_abcd(
 
     with st.form(f"a1_abcd_{session_id}_{document_id}_{slot}_{code}"):
         presence = st.selectbox(
-            "Presença", ["YES", "NO", "DOUBT"],
+            "Presença",
+            ["YES", "NO", "DOUBT"],
             index={"YES": 0, "NO": 1, "DOUBT": 2}.get(
                 str(current.get("presence") or "DOUBT"), 2
             ),
         )
         if presence == "YES":
             depth = st.selectbox(
-                "Profundidade", [1, 2, 3],
+                "Profundidade",
+                [1, 2, 3],
                 index=[1, 2, 3].index(current.get("depth"))
                 if current.get("depth") in [1, 2, 3]
                 else 0,
@@ -193,7 +197,7 @@ def _render_abcd(
         context = st.text_input(
             "Contexto/condição", value=str(current.get("context_condition") or "")
         )
-        save = st.form_submit_button("Registrar decisão ABCD")
+        save = st.form_submit_button("Registrar decisão ABCD FORMAL")
     if save:
         try:
             saved = submit_article1_abcd(
@@ -206,7 +210,7 @@ def _render_abcd(
                 code=code,
                 presence=presence,
                 depth=depth,
-                execution_mode=mode,
+                execution_mode=FORMAL,
                 family=family,
                 locator=locator,
                 evidence=evidence,
@@ -250,7 +254,7 @@ def _render_abcd(
                 ),
             )
             notes = st.text_area("Justificativa")
-            adjudicate = st.form_submit_button("Registrar adjudicação")
+            adjudicate = st.form_submit_button("Registrar adjudicação FORMAL")
         if adjudicate:
             try:
                 saved = adjudicate_article1_abcd(
@@ -263,6 +267,7 @@ def _render_abcd(
                     adjudicator_name=reviewer_name,
                     adjudicator_role=reviewer_role,
                     notes=notes,
+                    execution_mode=FORMAL,
                     evidence=final_evidence,
                 )
             except (TypeError, ValueError, RuntimeError) as exc:
@@ -280,11 +285,14 @@ def _render_relations(
 ) -> None:
     document_id = str(document["document_id"])
     st.caption(
-        "Somente relação explicitamente sustentada pela fonte. Coocorrência ≠ relação; "
-        "não inferir causalidade, função ou direção."
+        "Modo FORMAL · somente relação explicitamente sustentada pela fonte. "
+        "Coocorrência ≠ relação; não inferir causalidade, função ou direção."
     )
     comparison = compare_article1_relations(
-        db_path, session_id=session_id, document_id=document_id
+        db_path,
+        session_id=session_id,
+        document_id=document_id,
+        execution_mode=FORMAL,
     )
     if comparison:
         st.dataframe(
@@ -309,17 +317,11 @@ def _render_relations(
             "marcar explicitamente a revisão de relações como concluída."
         )
 
-    col1, col2 = st.columns(2)
-    slot = col1.selectbox(
+    slot = st.selectbox(
         "Posição",
         ["REVIEWER_1", "REVIEWER_2"],
         format_func=_slot_label,
         key=f"a1_rel_slot_{session_id}_{document_id}",
-    )
-    mode = col2.selectbox(
-        "Modo",
-        EXECUTION_MODES,
-        key=f"a1_rel_mode_{session_id}_{document_id}",
     )
     with st.form(f"a1_rel_{session_id}_{document_id}_{slot}"):
         source = st.selectbox("Origem", ABCD_CODES)
@@ -333,7 +335,7 @@ def _render_relations(
         )
         locator = st.text_input("Página/seção")
         evidence = st.text_area("Evidência explícita")
-        save = st.form_submit_button("Registrar relação")
+        save = st.form_submit_button("Registrar relação FORMAL")
     if save:
         try:
             saved = submit_article1_relation(
@@ -348,7 +350,7 @@ def _render_relations(
                 direction=direction,
                 relation_type=relation_type,
                 evidence_instances=[{"locator": locator, "evidence": evidence}],
-                execution_mode=mode,
+                execution_mode=FORMAL,
                 family=family,
             )
         except (TypeError, ValueError, RuntimeError) as exc:
@@ -357,7 +359,7 @@ def _render_relations(
             st.success(f"Relação registrada · revisão {saved['revision']}.")
 
     if st.button(
-        f"Concluir revisão de relações · {_slot_label(slot)}",
+        f"Concluir revisão FORMAL de relações · {_slot_label(slot)}",
         key=f"a1_rel_complete_{session_id}_{document_id}_{slot}",
     ):
         try:
@@ -368,11 +370,12 @@ def _render_relations(
                 reviewer_slot=slot,
                 reviewer_name=reviewer_name,
                 reviewer_role=reviewer_role,
+                execution_mode=FORMAL,
             )
         except (TypeError, ValueError, RuntimeError) as exc:
             st.error(str(exc))
         else:
-            st.success("Revisão de relações concluída para este revisor.")
+            st.success("Revisão FORMAL de relações concluída para este revisor.")
 
     pending = [row for row in comparison if row["final_status"] == "PENDING"]
     if pending:
@@ -384,7 +387,7 @@ def _render_relations(
         with st.form(f"a1_rel_adj_{session_id}_{document_id}_{relation_key}"):
             final_decision = st.selectbox("Decisão final", ["INCLUDE", "EXCLUDE"])
             notes = st.text_area("Justificativa")
-            adjudicate = st.form_submit_button("Registrar adjudicação da relação")
+            adjudicate = st.form_submit_button("Registrar adjudicação FORMAL")
         if adjudicate:
             try:
                 saved = adjudicate_article1_relation(
@@ -396,6 +399,7 @@ def _render_relations(
                     adjudicator_name=reviewer_name,
                     adjudicator_role=reviewer_role,
                     notes=notes,
+                    execution_mode=FORMAL,
                 )
             except (TypeError, ValueError, RuntimeError) as exc:
                 st.error(str(exc))
@@ -407,7 +411,7 @@ def _render_synthesis(db_path: Path, session_id: str) -> None:
     status = article1_runtime_status(db_path, session_id=session_id)
     c1, c2 = st.columns(2)
     c1.metric("Incluídos", status["included_documents"])
-    c2.metric("Síntese liberada", "sim" if status["synthesis_ready"] else "não")
+    c2.metric("Síntese FORMAL liberada", "sim" if status["synthesis_ready"] else "não")
     if status["documents"]:
         st.dataframe(
             pd.DataFrame(status["documents"]), use_container_width=True, hide_index=True
@@ -434,7 +438,7 @@ def render_article1_runtime_panel(
     *,
     registry_path: Path,
 ) -> None:
-    """Render Article 1 workflow using the same registry/Evidence Matrix database."""
+    """Render FORMAL Article 1 workflow using the same Evidence Matrix DB."""
     del project_root
     initialize_article1_runtime(registry_path)
     sessions = list_screening_sessions(registry_path, limit=200)
@@ -442,8 +446,9 @@ def render_article1_runtime_panel(
         "Artigo 1 · ABCD-NutEV 34/34, relações e síntese", expanded=False
     ):
         st.caption(
-            "Runtime canônico dentro do NutEV Evidence Engine. A planilha é audit/export; "
-            "decisões científicas permanecem humanas."
+            "Workspace downstream FORMAL do NutEV Evidence Engine. "
+            "CALIBRATION/STAGING permanecem isolados no runtime e não entram nesta "
+            "visão de manuscrito/PRISMA. A planilha é audit/export; decisões são humanas."
         )
         if not sessions:
             st.info("Crie uma sessão de triagem antes de usar o runtime do Artigo 1.")
@@ -469,8 +474,8 @@ def render_article1_runtime_panel(
         if not documents:
             st.info(
                 "Nenhum documento formalmente incluído no Artigo 1 nesta sessão. "
-                "CALIBRATION/STAGING continuam disponíveis pela camada runtime sem "
-                "ser convertidos em inclusão formal ou PRISMA."
+                "CALIBRATION/STAGING podem existir no runtime, mas não são mostrados "
+                "como inclusão formal ou resultado."
             )
             return
         document_labels = [_document_label(row) for row in documents]
