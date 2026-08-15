@@ -1,10 +1,4 @@
-"""Smoke test for the dashboard Search Strategy page (C4 surfaced in the UI).
-
-Uses Streamlit's AppTest to render the page headlessly and assert the PICOS
-inputs produce the per-provider expression grid without raising. Skips cleanly
-when Streamlit (the optional `dashboard` extra) is not installed, so core-only
-CI is unaffected.
-"""
+"""Smoke tests for the canonical Article 1 execution page."""
 from __future__ import annotations
 
 import pytest
@@ -15,25 +9,25 @@ from streamlit.testing.v1 import AppTest  # noqa: E402
 _DASHBOARD = "src/nutev/ui/dashboard.py"
 
 
-def _strategy_app() -> AppTest:
+def _execution_app() -> AppTest:
     at = AppTest.from_file(_DASHBOARD, default_timeout=30)
     at.run()
-    at.sidebar.radio[0].set_value("Search Strategy").run()
+    at.sidebar.radio[0].set_value("Execução científica").run()
     return at
 
 
-def test_strategy_page_renders_without_concepts():
-    at = _strategy_app()
+def test_execution_page_has_no_legacy_free_search_layout():
+    at = _execution_app()
     assert not at.exception
-    # No concepts entered yet -> the grid is not built (empty-state instead).
-    assert all("tiab" not in c.value for c in at.code)
+    assert len(at.text_area) == 0
+    assert all("O que você deseja pesquisar?" not in item.value for item in at.markdown)
+    assert any("RODAR PILOT GF-02" in button.label for button in at.button)
 
 
-def test_strategy_page_builds_grid_from_picos_inputs():
-    at = _strategy_app()
-    at.text_area[0].set_value("adults\nobesity").run()   # Population block
+def test_execution_page_surfaces_canonical_strategy_read_only():
+    at = _execution_app()
     assert not at.exception
-    codes = [c.value for c in at.code]
-    # 4 providers x 3 breadths = 12 expression blocks.
-    assert len(codes) == 12
-    assert any("(adults[tiab] OR obesity[tiab])" in c for c in codes)
+    metric_values = [metric.value for metric in at.metric]
+    assert any("v0.5" in str(value) for value in metric_values)
+    assert "PILOT" in metric_values
+    assert "Não" in metric_values
