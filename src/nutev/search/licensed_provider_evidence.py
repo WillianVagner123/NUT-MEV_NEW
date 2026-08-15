@@ -22,6 +22,14 @@ def _clean(value: object) -> str:
     return " ".join(str(value or "").strip().split())
 
 
+def _sha256_file(path: Path) -> str:
+    digest = sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 @dataclass(frozen=True)
 class LicensedProviderExecution:
     provider: str
@@ -64,10 +72,16 @@ def validate_licensed_execution(record: LicensedProviderExecution) -> LicensedPr
     if int(record.records_retrieved) < 0:
         raise ValueError("records_retrieved cannot be negative")
     if status in {"SUCCEEDED", "PARTIAL"}:
+        export_path = Path(record.export_path)
         if not _clean(record.export_path):
             raise ValueError(f"{status} licensed execution requires export_path")
+        if not export_path.is_file():
+            raise ValueError(f"{status} licensed execution export does not exist: {export_path}")
         if not _SHA256.fullmatch(record.export_sha256.strip()):
             raise ValueError(f"{status} licensed execution requires a 64-character export_sha256")
+        actual = _sha256_file(export_path)
+        if actual.casefold() != record.export_sha256.strip().casefold():
+            raise ValueError("licensed execution export_sha256 mismatch")
     return record
 
 
@@ -150,6 +164,8 @@ def licensed_pilot_status(project_root: Path) -> dict[str, Any]:
             "search_type": record.search_type.strip().upper(),
             "strategy_version": record.strategy_version,
             "path": str(path),
+            "export_path": record.export_path,
+            "export_sha256": record.export_sha256,
         }
         if record.search_type.strip().upper() != "PILOT" or status != "SUCCEEDED":
             blockers.append(f"{provider}:{record.search_type.strip().upper()}:{status}")
