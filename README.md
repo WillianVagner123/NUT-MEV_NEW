@@ -50,6 +50,8 @@ revisão humana
 
 A associação com Artigos 1–5 acontece **depois da recuperação**. Um mesmo documento pode ser relevante para mais de um artigo sem ser pesquisado ou armazenado novamente.
 
+A especificação canônica do que o Engine deve fazer, o que já está implementado, o que ainda depende de software e o que depende de execução humana/externa está em [`docs/ENGINE_MASTER_SCOPE_AND_DEFINITION_OF_DONE.md`](docs/ENGINE_MASTER_SCOPE_AND_DEFINITION_OF_DONE.md). Esse documento também define a regra de parada para evitar expansão indefinida do software antes da redação dos Artigos 1 e 2.
+
 ## Caminho científico do Artigo 1
 
 A ordem metodológica atual é:
@@ -195,7 +197,7 @@ Esse comando **gera** expressões; não é evidência de execução.
 - decisões `INCLUDE`, `EXCLUDE`, PRESS, adjudicação e FREEZE permanecem humanas quando exigidas;
 - `RecommendationCandidate` não é recomendação clínica final.
 
-Normas: [`AGENTS.md`](AGENTS.md), [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md) e [`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md).
+Normas: [`AGENTS.md`](AGENTS.md), [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md), [`docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md) e [`docs/ENGINE_MASTER_SCOPE_AND_DEFINITION_OF_DONE.md`](docs/ENGINE_MASTER_SCOPE_AND_DEFINITION_OF_DONE.md).
 
 ## Testes e gates
 
@@ -225,6 +227,7 @@ Nenhum DOI novo deve ser inventado ou escrito no projeto antes de existir regist
 
 ## Documentação principal
 
+- [`docs/ENGINE_MASTER_SCOPE_AND_DEFINITION_OF_DONE.md`](docs/ENGINE_MASTER_SCOPE_AND_DEFINITION_OF_DONE.md)
 - [`docs/PLAY.md`](docs/PLAY.md)
 - [`docs/RUN_LOCAL.md`](docs/RUN_LOCAL.md)
 - [`docs/SCIENTIFIC_GOVERNANCE.md`](docs/SCIENTIFIC_GOVERNANCE.md)
