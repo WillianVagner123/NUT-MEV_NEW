@@ -17,6 +17,13 @@ def test_runtime_initializes_additive_tables(tmp_path: Path):
             row[0]
             for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'")
         }
+        abcd_columns = {
+            row[1] for row in con.execute("PRAGMA table_info(article1_abcd_submissions)")
+        }
+        relation_columns = {
+            row[1]
+            for row in con.execute("PRAGMA table_info(article1_relation_review_status)")
+        }
     assert {
         "article1_reviewer_assignments",
         "article1_abcd_submissions",
@@ -28,6 +35,8 @@ def test_runtime_initializes_additive_tables(tmp_path: Path):
         "article1_method_characterization",
         "article1_synthesis_snapshots",
     } <= tables
+    assert "execution_mode" in abcd_columns
+    assert "execution_mode" in relation_columns
 
 
 def test_grid_is_exactly_34_and_unassessed():
@@ -36,6 +45,14 @@ def test_grid_is_exactly_34_and_unassessed():
     assert [row["code"] for row in rows] == list(ABCD_CODES)
     assert all(row["presence"] is None and row["depth"] is None for row in rows)
     assert all(row["status"] == "UNASSESSED" for row in rows)
+
+
+def test_execution_modes_are_explicit():
+    assert runtime._normalize_mode("staging") == "STAGING"
+    assert runtime._normalize_mode("calibration") == "CALIBRATION"
+    assert runtime._normalize_mode("formal") == "FORMAL"
+    with pytest.raises(ValueError):
+        runtime._normalize_mode("mixed")
 
 
 def test_relation_contract_rejects_cooccurrence_as_relation():
@@ -115,7 +132,15 @@ def test_staging_does_not_require_gf07_or_formal_inclusion(tmp_path: Path):
 
 
 def test_relation_calibration_is_descriptive(monkeypatch, tmp_path: Path):
-    def fake_latest(_db_path, *, session_id, document_id=None, reviewer_slot=None):
+    def fake_latest(
+        _db_path,
+        *,
+        session_id,
+        document_id=None,
+        reviewer_slot=None,
+        execution_mode=None,
+    ):
+        assert execution_mode == "CALIBRATION"
         return [
             {
                 "reviewer_slot": "REVIEWER_1",
@@ -142,6 +167,7 @@ def test_relation_calibration_is_descriptive(monkeypatch, tmp_path: Path):
         session_id="s",
         document_ids=["d1"],
     )
+    assert report["execution_mode"] == "CALIBRATION"
     assert report["reviewer_1_relations"] == 2
     assert report["reviewer_2_relations"] == 1
     assert report["intersection"] == 1
