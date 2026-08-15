@@ -34,12 +34,12 @@ from nutev.review.article1_runtime import (
     article1_abcd_document_status,
     article1_export_bundle,
     article1_manifest,
-    article1_prisma_eligible as _unused_article1_prisma_eligible_alias,
     article1_relation_calibration_report,
     article1_reviewer_assignment,
     article1_runtime_status,
     article1_sheet_payload,
     article1_synthesis,
+    assert_article1_prisma_eligible,
     compare_article1_abcd,
     compare_article1_relations,
     create_article1_synthesis_snapshot,
@@ -52,7 +52,6 @@ from nutev.review.article1_runtime import (
     set_article1_reviewer_assignment,
     submit_article1_abcd,
     submit_article1_relation,
-    assert_article1_prisma_eligible,
 )
 
 __all__ = [
