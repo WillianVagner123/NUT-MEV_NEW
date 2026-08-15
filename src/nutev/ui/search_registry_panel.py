@@ -14,6 +14,7 @@ from nutev.search.strategy_registry import (
     list_strategy_versions,
     save_strategy_version,
 )
+from nutev.ui.article1_runtime_panel import render_article1_runtime_panel
 from nutev.ui.article1_status_panel import render_article1_scientific_status
 from nutev.ui.article_screening_panel import render_article_screening_panel
 from nutev.ui.data_extraction_quality_panel import (
@@ -53,11 +54,17 @@ def _render_workflow_map() -> None:
     st.caption(
         "1. PILOT PubMed → 2. decisão GF-02 → 3. PRESS → 4. incorporar parecer → "
         "5. traduzir Scopus/WoS → 6. PILOT licenciado → 7. fechar gates → "
-        "8. FREEZE → 9. execução FORMAL → 10. corpus/triagem → 11. extração → 12. PRISMA."
+        "8. FREEZE → 9. execução FORMAL → 10. corpus/triagem → 11. texto completo → "
+        "12. ABCD 34/34 → 13. relações explícitas → 14. adjudicação/síntese → 15. PRISMA/export."
     )
     st.caption(
-        "Fluxo downstream preservado: 7. Triagem → 8. Texto completo → "
-        "9. Elegibilidade → 10. Extração → 11. Qualidade → 12. Matriz final e PRISMA."
+        "Compatibilidade do Evidence Matrix: 10. Extração permanece disponível no "
+        "fluxo genérico e 12. Matriz final continua sendo o snapshot auditável; "
+        "no Artigo 1, a extração científica canônica é ABCD 34/34 + relações explícitas."
+    )
+    st.caption(
+        "No Artigo 1, ABCD, relações e síntese operam no mesmo Evidence Engine. "
+        "Coocorrência permanece separada de relação explícita e a planilha é apenas superfície de auditoria/exportação."
     )
     st.caption(
         "A ordem metodológica é sequencial: Scopus/WoS não bloqueiam a ida ao PRESS "
@@ -189,6 +196,7 @@ def render_search_registry_panel(
     render_search_execution_panel(project_root, registry_path=registry_path)
     render_article_screening_panel(project_root, registry_path=registry_path)
     render_full_text_assessment_panel(project_root, registry_path=registry_path)
+    render_article1_runtime_panel(project_root, registry_path=registry_path)
     render_data_extraction_quality_panel(
         project_root,
         registry_path=registry_path,
