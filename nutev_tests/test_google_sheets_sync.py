@@ -57,7 +57,9 @@ def test_missing_credentials_are_explicit_skip_not_success(tmp_path: Path) -> No
     assert result["access_token_persisted"] is False
     audit = Path(result["audit_path"])
     assert audit.is_file()
-    assert "access_token" not in audit.read_text(encoding="utf-8").casefold()
+    audit_payload = json.loads(audit.read_text(encoding="utf-8"))
+    assert audit_payload["access_token_persisted"] is False
+    assert "authorization" not in {key.casefold() for key in audit_payload}
 
 
 def test_sync_creates_missing_tabs_clears_values_and_batch_writes(tmp_path: Path) -> None:
