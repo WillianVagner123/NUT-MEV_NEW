@@ -1,0 +1,61 @@
+name: GF-02 PubMed current PILOT
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Maximum records returned for final/rescue snapshots
+        required: false
+        default: '10000'
+      noise_sample_size:
+        description: Human rescue-only sample size (10-20)
+        required: false
+        default: '20'
+
+permissions:
+  contents: read
+
+jobs:
+  pubmed-pilot:
+    name: current PubMed PILOT (non-PRISMA)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/nutev-ci.txt
+          python -m pip install --no-deps -e .
+      - name: Execute current GF-02 PubMed PILOT
+        env:
+          NCBI_EMAIL: ${{ secrets.NCBI_EMAIL }}
+          NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+          NCBI_TOOL: nutev_gf02_pilot
+        run: |
+          PYTHONPATH=src python scripts/run_gf02_pubmed_pilot.py \
+            --project-root ./project_output_scientific \
+            --limit "${{ inputs.limit }}" \
+            --noise-sample-size "${{ inputs.noise_sample_size }}" \
+            --noise-seed 20260812 | tee gf02_pubmed_pilot.stdout.json
+      - name: Build evidence artifact
+        if: always()
+        run: |
+          mkdir -p artifact_gf02_pubmed
+          cp gf02_pubmed_pilot.stdout.json artifact_gf02_pubmed/ 2>/dev/null || true
+          if [ -d project_output_scientific/07_logs/gf02/pubmed ]; then
+            find project_output_scientific/07_logs/gf02/pubmed -type f \
+              ! -path '*/checkpoints/*' \
+              -exec cp --parents {} artifact_gf02_pubmed/ \;
+          fi
+      - name: Upload GF-02 PubMed evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gf02-pubmed-current-pilot-evidence
+          path: artifact_gf02_pubmed
+          retention-days: 14
+          if-no-files-found: error

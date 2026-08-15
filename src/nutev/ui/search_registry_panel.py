@@ -14,6 +14,7 @@ from nutev.search.strategy_registry import (
     list_strategy_versions,
     save_strategy_version,
 )
+from nutev.ui.article1_status_panel import render_article1_scientific_status
 from nutev.ui.article_screening_panel import render_article_screening_panel
 from nutev.ui.data_extraction_quality_panel import (
     render_data_extraction_quality_panel,
@@ -50,12 +51,18 @@ def _version_table(rows: list[dict]) -> pd.DataFrame:
 def _render_workflow_map() -> None:
     st.markdown("**Fluxo científico desta pesquisa**")
     st.caption(
-        "1. Pesquisa global → 2. Expressões por base → 3. Versão imutável → "
-        "4. Execução → 5. Corpus mestre → 6. Duplicatas → 7. Triagem → "
-        "8. Texto completo → 9. Elegibilidade → 10. Extração → "
-        "11. Qualidade → 12. Matriz final e PRISMA."
+        "1. PILOT PubMed → 2. decisão GF-02 → 3. PRESS → 4. incorporar parecer → "
+        "5. traduzir Scopus/WoS → 6. PILOT licenciado → 7. fechar gates → "
+        "8. FREEZE → 9. execução FORMAL → 10. corpus/triagem → 11. extração → 12. PRISMA."
     )
-    st.progress(1.0, text="O painel oferece todas as 12 etapas no mesmo fluxo.")
+    st.caption(
+        "Fluxo downstream preservado: 7. Triagem → 8. Texto completo → "
+        "9. Elegibilidade → 10. Extração → 11. Qualidade → 12. Matriz final e PRISMA."
+    )
+    st.caption(
+        "A ordem metodológica é sequencial: Scopus/WoS não bloqueiam a ida ao PRESS "
+        "antes da etapa pós-PRESS definida em D-096."
+    )
 
 
 def render_search_registry_panel(
@@ -72,13 +79,14 @@ def render_search_registry_panel(
     ]
     by_label = {_strategy_option_label(item): item for item in strategies}
 
+    render_article1_scientific_status(project_root)
     _render_workflow_map()
 
     with st.expander("3 · Registro e versionamento", expanded=True):
         st.caption(
             "Cada salvamento cria uma versão imutável. Buscas piloto não entram "
             "automaticamente no PRISMA; buscas formais e suplementares entram "
-            "por padrão."
+            "somente quando os gates científicos e o FREEZE autorizarem."
         )
 
         selected_label = st.selectbox(

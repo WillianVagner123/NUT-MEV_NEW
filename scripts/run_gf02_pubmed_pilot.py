@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Run the current GF-02 B-NORM-PUBMED v0.4 PILOT package."""
+"""Run the current GF-02 B-NORM-PUBMED PILOT package."""
 from __future__ import annotations
 
 import argparse
@@ -11,7 +11,7 @@ from nutev.search.gf02_pubmed_pilot import run_gf02_pubmed_pilot
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Execute GF-02 PubMed v0.4 PILOT evidence; never writes FORMAL/PRISMA counts."
+        description="Execute the current GF-02 PubMed PILOT candidate; never writes FORMAL/PRISMA counts."
     )
     parser.add_argument("--project-root", default="project_output_scientific")
     parser.add_argument("--repo-root", default=".")
@@ -20,7 +20,7 @@ def main() -> int:
         "--noise-sample-size",
         type=int,
         default=20,
-        help="Compatibility option: size of the v0.4 rescue-only human sample (10-20).",
+        help="Size of the current rescue-only human sample (10-20).",
     )
     parser.add_argument("--noise-seed", type=int, default=20260812)
     args = parser.parse_args()
@@ -44,6 +44,7 @@ def main() -> int:
                 "final_total_found": manifest["final_total_found"],
                 "final_records_returned": manifest["final_records_returned"],
                 "final_rows_capped": manifest["final_rows_capped"],
+                "final_ncbi_query_translation": manifest["final_ncbi_query_translation"],
                 "priority_sentinel_mechanism": manifest["priority_sentinel_mechanism"],
                 "rescue_only_total_found": manifest["rescue_only"]["total_found"],
                 "rescue_only_records_returned": manifest["rescue_only"]["records_returned"],
