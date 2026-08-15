@@ -1,61 +1,75 @@
 # Roadmap
 
-High-level direction. Scientific correctness, reproducibility and human oversight take precedence over speed.
+Scientific correctness, reproducibility and human oversight take precedence over speed.
 
 ## Historical v0.1.x line
 
-The repository contains historical tags `v0.1.0` through `v0.1.8`. They record earlier development states and are preserved unchanged. Historical package/tag version alignment was not consistently synchronized, so those tags are not reused as the citation-grade release line.
+Historical tags `v0.1.0` through `v0.1.8` are preserved unchanged. They record earlier development states and are not rewritten to match the current citation-grade line.
 
 ## v0.2.0 — citation-grade reconciled Evidence Engine
 
-- [x] Public release audit and provenance reconciliation.
-- [x] Canonical package identity/version under `src/nutev/`.
-- [x] Inherited Local Deep Research runtime removed from the current source tree while MIT attribution is preserved.
-- [x] Core vs optional dependency architecture.
-- [x] Canonical test location `nutev_tests/`.
-- [x] CI on Python 3.12 and 3.13.
-- [x] Security scan, gitleaks/repository hygiene, dependency review and CodeQL.
-- [x] Zero-key synthetic demonstration.
-- [x] Search-strategy registry/execution traceability.
-- [x] Auditable normalization/deduplication and document identity/version/family handling.
-- [x] Full-text recoverability and OCR failure visibility.
-- [x] Article 1 A/B/C/D assistive coding with traceable evidence snippets.
-- [x] Two-reviewer screening/adjudication workflow and export gate.
-- [x] PRISMA-oriented exports without automatic declaration of a final included corpus.
-- [x] Config provenance and `config_digest`.
-- [x] Article 1 software traceability matrix.
-- [x] Zenodo/CFF metadata reconciliation.
-- [x] Dedicated release-validation workflow: version/tag collision, tests, build, twine, clean wheel demo, link check and environment snapshot.
-- [x] Gated publisher that can create `v0.2.0` only after successful release validation of the exact `main` SHA.
-- [ ] Verify the actual Zenodo record and insert the real Version DOI after GitHub Release ingestion.
-- [ ] Add ORCID/affiliation only when exact values are confirmed.
+Completed baseline capabilities include repository provenance, CI/security/release controls, search-strategy registry and execution traceability, auditable normalization/deduplication, full-text recoverability, human screening/adjudication infrastructure, PRISMA-oriented exports, config provenance and release metadata.
 
-## Next release — scientific usability and corpus execution
+Historical broad A/B/C/D coding remains reproducible but is no longer the canonical Article 1 scientific object.
 
-- Complete and document the definitive Article 1 search execution used in the manuscript.
-- Freeze protocol/search-strategy versions and record retrieval dates.
-- Complete dual-reviewer screening and adjudication records.
-- Complete human validation of A/B/C/D domain coding.
-- Produce manuscript-facing matrices/tables from the frozen scientific run.
-- Reconcile manuscript method claims with `docs/ARTICLE1_SOFTWARE_TRACEABILITY.md`.
-- Improve reviewer UX without weakening human-decision gates.
+## Current Article 1 integration line
 
-## Later
+The Evidence Engine itself is the execution layer. Do not create a parallel review pipeline outside this repository.
 
-- Strengthen evidence-quality appraisal where required by each study design.
-- Expand implementation/adherence corpus work for Article 2.
-- Maintain the behavioral framework as a downstream scientific product rather than silently mixing it into the Article 1 evidence object.
-- Publish subsequent software versions as new immutable tags/Zenodo versions.
+### P0 — methodology parity
 
-### Architectural rule
+- [x] Add canonical ABCD-NutEV v1.1-candidate registry with 34 components (A1-A5, B1-B9, C1-C10, D1-D10).
+- [x] Enforce presence/depth invariants: YES→1-3, NO→0, DOUBT→blank/unresolved, missing≠absence.
+- [x] Enforce 34/34 closure before canonical ABCD export.
+- [x] Block global ABCD score, mean depth, maturity/ranking fields from the canonical path.
+- [x] Reclassify the historical four-domain heuristic as compatibility/assistive only.
+- [x] Add D-102 calibration metrics with DOUBT retained in the presence denominator.
 
-Large refactors that can alter scientific outputs must remain parity-gated and methodologically reviewed. Query generation, provider behavior, deduplication, coding rules, screening/export gates and configuration semantics must never change silently.
+### P1 — reviewer-pair screening convergence
 
-## Permanently out of scope for the Evidence Engine
+- [x] Integrate D-105/D-106/D-107 semantics into the existing `review/screening.py` module.
+- [x] Title/abstract: preserve DOUBT and map it operationally to ADVANCE.
+- [x] Full text: DOUBT blocks closure until consensus/adjudication.
+- [x] Add formal R1/R2/adjudicator distinct-identity guard.
+- [x] Add reviewer-blindness service-layer invariant and calibration metrics.
+- [ ] Wire the same reviewer-slot/blinding rules through all persistent article/full-text ledgers and UI routes.
 
-- Git history rewrite merely to make old tags look cleaner.
-- Moving or overwriting an already published tag.
-- Presenting automated output as a final clinical recommendation.
-- Embedding the separate Clinical Decision Engine in this repository without an explicit project-level architecture decision.
+### P2 — ABCD extraction persistence
 
-Track changes via GitHub Issues/PRs and record scientific-method changes in `docs/CHANGELOG_METODOLOGICO.md`.
+- [ ] Bind the 34-component codebook to the existing evidence-matrix/reviewer-slot persistence layer.
+- [ ] Persist document × component × reviewer-slot × codebook-version decisions.
+- [ ] Preserve evidence locator, passage, human/machine source and adjudication state.
+- [ ] Block final synthesis until every included document is 34/34 resolved.
+
+### P3 — explicit ABCD relations
+
+- [ ] Add a first-class relation ledger separate from co-occurrence.
+- [ ] Count unique relation tuples by document × source × target × direction × type.
+- [ ] Preserve multiple evidence instances without multiplying relation counts.
+- [ ] Add descriptive R1/R2 relation calibration (intersection/union/Jaccard) without arbitrary pass threshold.
+
+### P4 — synthesis, synchronization and manuscript package
+
+- [ ] Synthesize presence, depth, co-occurrence and explicit relations as separate outputs with denominators by documentary family.
+- [ ] Synchronize controlled audit views to the canonical Google Sheet without creating a second execution engine.
+- [ ] Generate PRISMA only from PRISMA-eligible FORMAL lineage.
+- [ ] Tie manuscript exports to codebook version, Git SHA, config digest, corpus build and reviewer ledgers.
+
+## Scientific/external work still required
+
+Software implementation does not close human/scientific gates. Real PILOT evidence, PRESS, licensed Scopus/Web of Science execution, GF-07 reviewer identities/calibration, GF-10 freeze authorization and the formal search from zero remain separate scientific records.
+
+## Release / Zenodo
+
+Release publication and Zenodo remain later gates. A software implementation branch is not evidence that the scientific review has been executed or validated.
+
+## Architectural rule
+
+Large refactors that may alter scientific outputs require parity tests and versioned methodological review. Query generation, provider behavior, deduplication, coding rules, screening/export gates and configuration semantics must not change silently.
+
+## Permanently out of scope
+
+- rewriting Git history to make old tags look cleaner;
+- presenting automated output as final clinical recommendation;
+- allowing a legacy heuristic to silently become the current scientific object;
+- building a second Article 1 execution pipeline outside NutEV Evidence Engine.

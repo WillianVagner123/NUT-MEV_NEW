@@ -1,60 +1,35 @@
-# Codificação dos domínios analíticos A/B/C/D (Artigo 1)
+# Article 1 coding — compatibility note for the historical four-domain heuristic
 
-A classificação de cada documento nos quatro domínios analíticos **é o achado
-central** do Artigo 1. Este documento define a regra de codificação, que é
-implementada em `nutev.analysis.article1_coding` e reportada na **Matriz de
-Integração** (`06_tables/NUTEV_DOMAIN_INTEGRATION_MATRIX.csv`).
+The functions in `nutev.analysis.article1_coding` and `nutev.analysis.domain_states` are retained for reproducibility of historical runs and for assistive broad lexical inspection. They are **not** the canonical Article 1 ABCD scientific object.
 
-## Os quatro domínios
+## Current canonical model
 
-| Domínio | Definição |
-|--------|-----------|
-| **A** | Composição e qualidade da dieta (nutrientes, grupos alimentares, padrões alimentares, ultraprocessados…) |
-| **B** | Literacia alimentar, competências culinárias, planejamento (habilidade de cozinhar, leitura de rótulo, planejamento de refeições…) |
-| **C** | Comensalidade, cultura, contexto das refeições (refeição em família, cultura alimentar, ambiente da refeição…) |
-| **D** | Adesão, viabilidade, barreiras, facilitadores, implementação |
+The active methodological object is **ABCD-NutEV v1.1-candidate**, implemented in `nutev.analysis.article1_abcd`:
 
-## A regra substantiva (o ponto crítico)
+- A1-A5;
+- B1-B9;
+- C1-C10;
+- D1-D10.
 
-Um domínio só é marcado como `True` quando é contemplado de forma
-**substantiva** — o documento traz **recomendação, orientação ou conteúdo
-acionável** naquele domínio. **Menção retórica não conta.**
+The unit of coding is `document x component x reviewer`, with presence first and depth second. A final included document must have 34/34 resolved components. Missing means unassessed, not absence. `DOUBT` is retained during review/calibration and cannot be a final closed state.
 
-- ❌ "é importante cozinhar em casa" (menção retórica) → **não** marca B.
-- ✅ "recomenda-se ensinar habilidades culinárias por meio de oficinas de preparo"
-  (conteúdo acionável) → marca B.
+No global score, profile, number-of-domains-positive, mean depth, maturity score or ranking is a valid manuscript-facing ABCD result.
 
-Operacionalmente (`code_domains`), um domínio conta quando:
+## What the historical heuristic may still do
 
-1. há **pelo menos uma** palavra-chave do domínio no texto (título + resumo +
-   texto extraído); **e**
-2. o contexto é **substantivo**: existe uma pista acionável no texto (recomenda,
-   deve, diretriz, estratégia, intervenção, *recommend*, *should*, *guidance*,
-   *strategy*, *intervention*…) em texto de tamanho suficiente, **ou** o próprio
-   documento é um guia/diretriz/consenso (cujo propósito é orientar).
+The legacy code can suggest broad textual signals in A/B/C/D and preserve old outputs for reproducibility. It must remain visibly labelled as machine assistance/legacy compatibility and must not be used to:
 
-Campos derivados: `profile` (ex.: `"AD"`, `"ABCD"`), `n_domains` (0–4).
+- declare final ABCD presence/absence;
+- assign final 34-component depth;
+- infer integration or causal/function relations;
+- rank documents;
+- substitute for R1/R2 human coding or adjudication.
 
-## Marcadores de contexto (argumento brasileiro)
+## Current implementation references
 
-- `mentions_cost` — o documento aborda custo/acessibilidade econômica.
-- `mentions_equity` — o documento aborda equidade/iniquidade/vulnerabilidade.
-- Cruzamento reportado: "menciona custo **E** oferece estratégia" (custo + domínio
-  D substantivo).
+- Canonical ABCD contract: `src/nutev/analysis/article1_abcd.py`
+- Screening calibration and decision semantics: `src/nutev/review/screening.py`
+- Manuscript-safe 34-component export: `src/nutev/export/article1_exports.py::abcd_34_matrix_rows`
+- Method note: `docs/ARTICLE1_ABCD_V11_IMPLEMENTATION.md`
 
-## Codificação assistida, decisão humana
-
-A codificação do sistema é **assistiva**, nunca final. Todo documento entra na
-fila de revisão humana com `domain_coding_needs_human_review = True`. O revisor
-confirma ou corrige, e a decisão é registrada em
-`07_logs/human_review_decisions.csv` com: sugestão do sistema, decisão humana e
-concordância — o que permite calcular a **concordância (kappa)** depois. Ver
-`nutev.review` e [`docs/SCIENTIFIC_GOVERNANCE.md`](SCIENTIFIC_GOVERNANCE.md).
-
-## Limitações declaradas
-
-A codificação automática é **heurística baseada em léxico** — é um ponto de
-partida auditável, não um classificador validado. O léxico (em português e
-inglês) está explícito no código para inspeção e ajuste. A validade do achado
-depende da **revisão humana** de cada documento; a concordância humano×sistema
-deve ser reportada no artigo.
+This separation preserves historical reproducibility without allowing the deprecated four-domain heuristic to compete with the current protocol.
