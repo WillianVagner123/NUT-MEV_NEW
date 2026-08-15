@@ -2,7 +2,8 @@
 
 This module never authorizes a scientific transition. It summarizes persisted
 state without collapsing software completion, pre-PRESS readiness, post-PRESS
-provider validation, FREEZE, FORMAL execution, or PRISMA into one flag.
+provider validation, FREEZE, FORMAL execution, screening, ABCD extraction or
+PRISMA into one flag.
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from nutev.pipelines.article1_downstream_status import derive_postformal_status
 from nutev.search.licensed_provider_evidence import licensed_pilot_status
 from nutev.search.scientific_gates import (
     global_freeze_status,
@@ -28,9 +30,13 @@ CANONICAL_SEQUENCE = (
     "CLOSE_SCIENTIFIC_GATES",
     "FREEZE",
     "FORMAL_EXECUTION",
-    "SCREENING",
-    "ABCD_EXTRACTION",
+    "SCREENING_INITIALIZATION",
+    "TITLE_ABSTRACT_HUMAN_REVIEW",
+    "FULLTEXT_HUMAN_REVIEW",
+    "ABCD_HUMAN_REVIEW",
+    "RELATIONS_HUMAN_REVIEW",
     "SYNTHESIS_PRISMA",
+    "COMPLETE",
 )
 
 
@@ -119,7 +125,13 @@ def _freeze_record_status(project_root: Path) -> dict[str, Any]:
     try:
         record = load_freeze_record(path)
     except Exception as exc:
-        return {"path": str(path), "present": True, "valid": False, "freeze_id": None, "error": str(exc)}
+        return {
+            "path": str(path),
+            "present": True,
+            "valid": False,
+            "freeze_id": None,
+            "error": str(exc),
+        }
     return {"path": str(path), "present": True, "valid": True, "freeze_id": record.freeze_id}
 
 
@@ -143,6 +155,7 @@ def _formal_play_status(project_root: Path) -> dict[str, Any]:
         "summary_path": str(summary_path) if summary else None,
         "execution_status": execution_status or None,
         "formal_freeze_authorized": authorized,
+        "summary": summary,
     }
 
 
@@ -188,6 +201,7 @@ def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> di
         "freeze_id": None,
     }
     formal_play = _formal_play_status(project)
+    downstream: dict[str, Any] = {}
 
     if not pubmed_pilot_complete:
         current_phase = "GF02_PUBMED_PILOT"
@@ -214,8 +228,20 @@ def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> di
         current_phase = "FORMAL_EXECUTION"
         next_action = "Execute the frozen FORMAL computational chain from zero."
     else:
-        current_phase = "SCREENING_HUMAN_REVIEW"
-        next_action = "Complete blinded R1/R2 screening and adjudication from the formal corpus."
+        try:
+            downstream = derive_postformal_status(
+                project,
+                formal_play.get("summary") or {},
+            )
+        except Exception as exc:
+            downstream = {
+                "phase": "SCREENING_INITIALIZATION",
+                "next_action": "Initialize/recover the canonical post-FORMAL screening state.",
+                "error": str(exc),
+                "human_decision_inferred": False,
+            }
+        current_phase = str(downstream.get("phase") or "SCREENING_INITIALIZATION")
+        next_action = str(downstream.get("next_action") or "Continue the post-FORMAL workflow.")
 
     blockers_to_press: list[str] = []
     if not pubmed_pilot_complete:
@@ -225,21 +251,20 @@ def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> di
     if pubmed_pilot_complete and noise_review_complete and not ready_for_press:
         blockers_to_press.append("gf02_human_ready_for_press_decision_missing")
 
-    phase_order = {
-        "GF02_PUBMED_PILOT": 0,
-        "GF02_NOISE_REVIEW": 1,
-        "GF02_HUMAN_DECISION": 2,
-        "GF03_PRESS": 3,
-        "POST_PRESS_PROVIDER_VALIDATION": 4,
-        "CLOSE_SCIENTIFIC_GATES": 5,
-        "FREEZE": 6,
-        "FORMAL_EXECUTION": 7,
-        "SCREENING_HUMAN_REVIEW": 8,
+    phase_order = {phase: index for index, phase in enumerate(CANONICAL_SEQUENCE)}
+    aliases = {
+        "GF02_PUBMED_PILOT": "PUBMED_PILOT",
+        "GF02_NOISE_REVIEW": "PUBMED_PILOT",
+        "GF02_HUMAN_DECISION": "PUBMED_PILOT",
+        "GF03_PRESS": "PRESS",
+        "POST_PRESS_PROVIDER_VALIDATION": "LICENSED_PILOT",
     }
-    phase_index = phase_order.get(current_phase, 0)
+    phase_index = phase_order.get(aliases.get(current_phase, current_phase), 0)
 
+    final_complete = current_phase == "COMPLETE"
+    formal_public = {key: value for key, value in formal_play.items() if key != "summary"}
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "system_core_complete": True,
         "software_only": True,
         "article1_current_phase": current_phase,
@@ -279,11 +304,13 @@ def derive_article1_scientific_status(repo_root: Path, project_root: Path) -> di
         "formal_execution": {
             "authorized": bool(gates.get("gf10_authorized")) and bool(freeze_record.get("valid")),
             "downstream": phase_index < phase_order["FORMAL_EXECUTION"],
-            **formal_play,
+            **formal_public,
         },
+        "downstream": downstream,
         "prisma": {
             "formal_count_allowed": bool(formal_play.get("complete")),
-            "downstream": phase_index < phase_order["SCREENING_HUMAN_REVIEW"],
+            "final_package_complete": final_complete,
+            "downstream": phase_index < phase_order["SYNTHESIS_PRISMA"],
         },
         "blockers_to_press": blockers_to_press,
         "canonical_sequence": list(CANONICAL_SEQUENCE),
@@ -320,8 +347,10 @@ def scientific_execution_card(status: dict[str, Any]) -> dict[str, str]:
         body = "Gates pré-FREEZE completos: falta autorização GF-10 e o registro imutável que vincula estratégia, Git SHA e configuração."
     elif phase == "FORMAL_EXECUTION":
         body = "FREEZE válido detectado: o próximo passo é a execução FORMAL do fluxo computacional congelado."
+    elif phase == "COMPLETE":
+        body = "Fluxo FORMAL do Artigo 1 concluído com triagem resolvida, síntese e pacote PRISMA auditável."
     else:
-        body = "Execução FORMAL detectada: o próximo trabalho é a revisão humana do corpus, preservando R1/R2 e adjudicação."
+        body = str(status.get("next_action") or "Fluxo pós-FORMAL em andamento.")
     return {"title": "EXECUÇÃO CIENTÍFICA", "body": body}
 
 

@@ -7,10 +7,11 @@ import pytest
 import nutev.pipelines.article1_engine as engine
 
 
-def _scientific(phase: str) -> dict:
+def _scientific(phase: str, *, downstream: dict | None = None) -> dict:
     return {
         "article1_current_phase": phase,
         "gf02": {"candidate_version": "v0.5"},
+        "downstream": downstream or {},
     }
 
 
@@ -75,3 +76,79 @@ def test_interrupted_run_reuses_same_gf02_run_id_on_continue(tmp_path: Path, mon
     assert resumed["status"] == "WAITING_HUMAN"
     assert len(seen_run_ids) == 2
     assert seen_run_ids[0] == seen_run_ids[1]
+
+
+def test_one_button_initializes_formal_screening_then_pauses_for_review(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "repo"
+    project = tmp_path / "project"
+    phase = {"value": "SCREENING_INITIALIZATION"}
+    calls = {"count": 0}
+
+    monkeypatch.setattr(
+        engine,
+        "derive_article1_scientific_status",
+        lambda repo_root, project_root: _scientific(phase["value"]),
+    )
+
+    def fake_context(project_root: Path):
+        calls["count"] += 1
+        phase["value"] = "TITLE_ABSTRACT_HUMAN_REVIEW"
+        return {
+            "session_id": "session-formal",
+            "build_id": "build-formal",
+            "reviewer_assignment_present": True,
+        }
+
+    monkeypatch.setattr(engine, "ensure_formal_screening_context", fake_context)
+
+    state = engine.run_or_resume_article1_engine(repo, project_root=project)
+
+    assert calls["count"] == 1
+    assert state["status"] == "WAITING_HUMAN"
+    assert state["current_phase"] == "TITLE_ABSTRACT_HUMAN_REVIEW"
+    assert state["completed_stages"]["SCREENING_INITIALIZATION"]["session_id"] == "session-formal"
+
+
+def test_one_button_builds_final_package_and_reaches_complete(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "repo"
+    project = tmp_path / "project"
+    phase = {"value": "SYNTHESIS_PRISMA"}
+    calls = {"count": 0}
+
+    def fake_status(repo_root: Path, project_root: Path):
+        return _scientific(
+            phase["value"],
+            downstream={"session_id": "session-formal"},
+        )
+
+    monkeypatch.setattr(engine, "derive_article1_scientific_status", fake_status)
+    monkeypatch.setattr(
+        engine,
+        "_formal_summary",
+        lambda project_root: {
+            "scientific_state": {
+                "search_type": "FORMAL",
+                "formal_freeze_authorized": True,
+            }
+        },
+    )
+
+    def fake_final(project_root: Path, **kwargs):
+        calls["count"] += 1
+        assert kwargs["session_id"] == "session-formal"
+        phase["value"] = "COMPLETE"
+        return {
+            "status": "SUCCEEDED",
+            "manifest_path": str(project / "08_exports" / "article1_final" / "manifest.json"),
+            "manifest_sha256": "abc123",
+        }
+
+    monkeypatch.setattr(engine, "build_article1_final_outputs", fake_final)
+
+    state = engine.run_or_resume_article1_engine(repo, project_root=project)
+
+    assert calls["count"] == 1
+    assert state["status"] == "COMPLETE"
+    assert state["current_phase"] == "COMPLETE"
+    assert state["completed_stages"]["SYNTHESIS_PRISMA"]["manifest_sha256"] == "abc123"
+    assert engine.engine_button_label(repo, project) == "✓ CONCLUÍDO"
