@@ -56,6 +56,10 @@ def _render_workflow_map() -> None:
         "8. FREEZE → 9. execução FORMAL → 10. corpus/triagem → 11. extração → 12. PRISMA."
     )
     st.caption(
+        "Fluxo downstream preservado: 7. Triagem → 8. Texto completo → "
+        "9. Elegibilidade → 10. Extração → 11. Qualidade → 12. Matriz final e PRISMA."
+    )
+    st.caption(
         "A ordem metodológica é sequencial: Scopus/WoS não bloqueiam a ida ao PRESS "
         "antes da etapa pós-PRESS definida em D-096."
     )
