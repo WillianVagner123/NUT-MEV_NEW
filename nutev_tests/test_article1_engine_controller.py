@@ -109,11 +109,14 @@ def test_one_button_initializes_formal_screening_then_pauses_for_review(tmp_path
     assert state["completed_stages"]["SCREENING_INITIALIZATION"]["session_id"] == "session-formal"
 
 
-def test_one_button_builds_final_package_and_reaches_complete(tmp_path: Path, monkeypatch) -> None:
+def test_one_button_builds_final_package_syncs_when_possible_and_reaches_complete(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     repo = tmp_path / "repo"
     project = tmp_path / "project"
     phase = {"value": "SYNTHESIS_PRISMA"}
-    calls = {"count": 0}
+    calls = {"final": 0, "sync": 0}
 
     def fake_status(repo_root: Path, project_root: Path):
         return _scientific(
@@ -133,22 +136,37 @@ def test_one_button_builds_final_package_and_reaches_complete(tmp_path: Path, mo
         },
     )
 
+    export_bundle = project / "08_exports" / "article1_final" / "article1_export_bundle.json"
+
     def fake_final(project_root: Path, **kwargs):
-        calls["count"] += 1
+        calls["final"] += 1
         assert kwargs["session_id"] == "session-formal"
         phase["value"] = "COMPLETE"
         return {
             "status": "SUCCEEDED",
             "manifest_path": str(project / "08_exports" / "article1_final" / "manifest.json"),
             "manifest_sha256": "abc123",
+            "outputs": {"export_bundle_path": str(export_bundle)},
+        }
+
+    def fake_sync(project_root: Path, path: Path):
+        calls["sync"] += 1
+        assert path == export_bundle
+        return {
+            "status": "SKIPPED_NOT_CONFIGURED",
+            "audit_path": str(project / "08_exports" / "article1_final" / "google_sheets_sync.json"),
+            "spreadsheet_id": None,
+            "reason": "not configured",
         }
 
     monkeypatch.setattr(engine, "build_article1_final_outputs", fake_final)
+    monkeypatch.setattr(engine, "sync_article1_export_bundle", fake_sync)
 
     state = engine.run_or_resume_article1_engine(repo, project_root=project)
 
-    assert calls["count"] == 1
+    assert calls == {"final": 1, "sync": 1}
     assert state["status"] == "COMPLETE"
     assert state["current_phase"] == "COMPLETE"
     assert state["completed_stages"]["SYNTHESIS_PRISMA"]["manifest_sha256"] == "abc123"
+    assert state["completed_stages"]["SYNTHESIS_PRISMA"]["google_sheets_sync_status"] == "SKIPPED_NOT_CONFIGURED"
     assert engine.engine_button_label(repo, project) == "✓ CONCLUÍDO"
