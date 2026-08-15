@@ -38,9 +38,9 @@ def _write_repo(repo: Path) -> None:
                 "rescue_only": {"left": "#6", "operator": "NOT", "right": "#3"},
                 "rescue_sample": {"minimum": 10, "maximum": 20, "default": 10},
                 "priority_expectations": {
-                    "NORM-035": {"pmid": "41651737", "expected_final": true},
-                    "NORM-063": {"pmid": "36994026", "expected_final": true}
-                }
+                    "NORM-035": {"pmid": "41651737", "expected_final": True},
+                    "NORM-063": {"pmid": "36994026", "expected_final": True},
+                },
             }
         ),
         encoding="utf-8",
@@ -55,7 +55,7 @@ def _write_repo(repo: Path) -> None:
                         "doi": "10.1/a",
                         "pmid": "41651737",
                         "document_unit_rule": "one",
-                        "identity_status": "RESOLVED"
+                        "identity_status": "RESOLVED",
                     },
                     {
                         "sentinel_id": "NORM-063",
@@ -63,8 +63,8 @@ def _write_repo(repo: Path) -> None:
                         "doi": "10.1/b",
                         "pmid": "36994026",
                         "document_unit_rule": "one",
-                        "identity_status": "RESOLVED"
-                    }
+                        "identity_status": "RESOLVED",
+                    },
                 ]
             }
         ),
@@ -86,7 +86,7 @@ def test_real_path_counts_without_downloading_full_final_set(tmp_path: Path, mon
                 "count": "123",
                 "querytranslation": "translated",
                 "warninglist": {},
-                "errorlist": {}
+                "errorlist": {},
             }
         }
 
@@ -100,7 +100,7 @@ def test_real_path_counts_without_downloading_full_final_set(tmp_path: Path, mon
             total_found=999,
             total_returned=len(rows),
             status="completed",
-            meta={"querytranslation": "translated rescue", "warninglist": {}}
+            meta={"querytranslation": "translated rescue", "warninglist": {}},
         )
 
     monkeypatch.setattr(optimized, "_request_json", fake_request_json)
@@ -110,7 +110,7 @@ def test_real_path_counts_without_downloading_full_final_set(tmp_path: Path, mon
         repo,
         project_root=tmp_path / "project",
         noise_sample_size=10,
-        run_id="fast"
+        run_id="fast",
     )
 
     assert len(esearch_calls) == 12
