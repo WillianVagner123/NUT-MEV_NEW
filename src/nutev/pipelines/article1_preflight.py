@@ -13,6 +13,7 @@ from typing import Any
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from nutev.control_plane import gf02_candidate_firewall
 from nutev.search.gf02_evidence import validate_sentinel_registry
 from nutev.search.gf02_pubmed_pilot import load_candidate_config, load_sentinel_registry
 
@@ -54,6 +55,16 @@ def run_article1_preflight(repo_root: Path, project_root: Path) -> dict[str, Any
         record("gf02_config", False, str(exc))
 
     if config:
+        firewall = gf02_candidate_firewall(config)
+        record(
+            "deterministic_control_plane",
+            firewall["allowed"] is True,
+            (
+                f"rule={firewall['rule']}"
+                if firewall["allowed"] is True
+                else "blockers=" + ",".join(str(item) for item in firewall["blockers"])
+            ),
+        )
         record(
             "gf02_is_pilot",
             str(config.get("search_type") or "").upper() == "PILOT",
@@ -94,11 +105,13 @@ def run_article1_preflight(repo_root: Path, project_root: Path) -> dict[str, Any
 
     passed = all(bool(item["ok"]) for item in checks)
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "checked_at": datetime.now(LOCAL_TIMEZONE).isoformat(timespec="seconds"),
         "status": "PASSED" if passed else "FAILED",
         "passed": passed,
         "checks": checks,
+        "control_plane": "DETERMINISTIC",
+        "llm_control_plane_actor_allowed": False,
         "ci_replacement": False,
         "note": "Runtime preflight complements repository CI; it does not replace the full automated test suite.",
     }
