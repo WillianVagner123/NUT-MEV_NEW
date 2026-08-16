@@ -86,14 +86,15 @@ def test_approved_press_with_requested_changes_requires_incorporation_record(tmp
         )
 
 
-def test_press_ui_routes_gate_to_form_and_disables_fake_continue() -> None:
+def test_press_ui_routes_real_collection_before_press_form() -> None:
     source = Path("src/nutev/ui/article1_play_panel.py").read_text(encoding="utf-8")
     workbench = Path("src/nutev/ui/press_gate_workbench.py").read_text(encoding="utf-8")
 
     assert 'elif phase == "GF03_PRESS"' in source
     assert "render_press_gate_workbench(project_root)" in source
     assert 'press_pending = phase == "GF03_PRESS"' in source
-    assert '"PRESS PENDENTE — PREENCHA ABAIXO"' in source
-    assert 'disabled=phase == "COMPLETE" or press_pending' in source
+    assert "▶ BUSCAR E ORGANIZAR DADOS REAIS AGORA" in source
+    assert "run_pre_review_collection" in source
+    assert 'phase == "GF03_PRESS" and not bool(pre_review_collection_status(project_root).get("complete"))' in source
     assert "record_press_gate(" in workbench
     assert "software não inventa aprovação" in workbench
