@@ -96,3 +96,12 @@ def test_guidelines_thesis_mode_surfaces_broader_guidance_families_early():
     assert '("scientific statement")' in rendered[3]
     assert '("position paper")' in rendered[4]
     assert '("guidance statement")' in rendered[5]
+
+
+def test_guidelines_exhaustive_mode_includes_clinical_practice_update_terms():
+    rows = build_watch_queries(["guidelines_consensus"], 7, "exhaustive")
+    rendered = " ".join(str(row["query"]) for row in rows).lower()
+
+    assert "clinical practice update" in rendered
+    assert "clinical practice recommendation" in rendered
+    assert "clinical practice recommendations" in rendered
