@@ -11,6 +11,7 @@ from nutev.pipelines.article1_engine import (
     load_article1_engine_state,
     run_or_resume_article1_engine,
 )
+from nutev.pipelines.article1_preflight import run_article1_preflight
 from nutev.search.article1_scientific_status import derive_article1_scientific_status
 from nutev.ui.article1_human_workbench import render_article1_human_workbench
 from nutev.ui.gf02_press_decision_workbench import render_gf02_press_decision
@@ -208,6 +209,15 @@ def render_article1_play_panel(project_root: Path) -> None:
                     status_box.write(text)
 
                 try:
+                    preflight = run_article1_preflight(repo, project_root)
+                    if not preflight.get("passed"):
+                        failures = [
+                            str(item.get("name") or "check") + ": " + str(item.get("detail") or "")
+                            for item in (preflight.get("checks") or [])
+                            if not item.get("ok")
+                        ]
+                        raise RuntimeError("Pré-teste local falhou: " + "; ".join(failures))
+                    status_box.write("Pré-teste local aprovado. Iniciando/retomando a execução autorizada...")
                     result = run_or_resume_article1_engine(
                         repo,
                         project_root=project_root,
