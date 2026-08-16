@@ -5,29 +5,52 @@ from pathlib import Path
 
 import streamlit as st
 
-from nutev.review.gf02_press_decision import (
-    load_gf02_gate_status,
-    record_gf02_press_decision,
-)
+from nutev.review.gf02_press_decision import record_gf02_press_decision
+from nutev.search.gf02_gate_materialization import materialize_gf02_prepress_gate
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
 
 
 def render_gf02_press_decision(project_root: Path) -> None:
     gate_path = Path(project_root) / "07_logs" / "gf02" / "gate_status.json"
     try:
-        gate = load_gf02_gate_status(gate_path)
+        gate = materialize_gf02_prepress_gate(_repo_root(), project_root)
     except (OSError, ValueError) as exc:
-        st.error(str(exc))
+        st.error(f"Não foi possível montar a evidência GF-02 para a decisão: {exc}")
+        st.caption(
+            "O Engine não vai inventar READY_FOR_PRESS. Corrija o artefato apontado acima e use CONTINUAR para retomar."
+        )
         return
 
     evidence_complete = gate.get("evidence_complete") is True
     blockers = [str(item) for item in (gate.get("blockers") or [])]
     current = str(gate.get("human_decision") or "").strip().upper()
+    counts = gate.get("sample_classification_counts") or {}
+    sentinel = gate.get("pubmed_sentinel_evidence") or {}
 
     st.markdown("#### Decisão de prontidão para PRESS")
     st.caption(
         "Esta decisão diz apenas se a estratégia está pronta para seguir ao PRESS. "
         "Ela não aprova o PRESS, não autoriza a busca FORMAL e não libera contagens PRISMA."
     )
+
+    summary_cols = st.columns(3)
+    summary_cols[0].metric("Amostra revisada", int(gate.get("sample_size") or 0))
+    summary_cols[1].metric("Sentinelas recuperados", len(sentinel.get("recovered_sentinel_ids") or []))
+    summary_cols[2].metric("Bloqueios", len(blockers))
+    if counts:
+        st.caption(
+            "Classificações rescue-only: "
+            + " · ".join(f"{label}: {value}" for label, value in sorted(counts.items()))
+        )
+    recovered = [str(item) for item in (sentinel.get("recovered_sentinel_ids") or [])]
+    missing = [str(item) for item in (sentinel.get("missing_resolved_sentinel_ids") or [])]
+    if recovered:
+        st.caption("Sentinelas recuperados no resultado final: " + ", ".join(recovered))
+    if missing:
+        st.caption("Sentinelas prioritários ausentes: " + ", ".join(missing))
 
     c1, c2 = st.columns(2)
     with c1:
@@ -44,7 +67,7 @@ def render_gf02_press_decision(project_root: Path) -> None:
         )
 
     if evidence_complete:
-        st.success("Evidência GF-02 marcada como completa para esta decisão humana.")
+        st.success("Evidência GF-02 materializada e completa para esta decisão humana.")
     else:
         st.warning("O gate GF-02 não está marcado como evidence_complete=true. READY_FOR_PRESS ficará bloqueado.")
         if blockers:
@@ -53,14 +76,20 @@ def render_gf02_press_decision(project_root: Path) -> None:
     if current:
         st.info(
             f"Decisão atualmente registrada: {current}. Você pode registrar uma nova decisão explícita; "
-            "o histórico anterior será preservado."
+            "o histórico anterior será preservado quando a base de evidência for a mesma."
         )
 
     labels = {
         "Pronto para PRESS": "READY_FOR_PRESS",
         "Ainda não está pronto": "NOT_READY_FOR_PRESS",
     }
-    default_label = "Pronto para PRESS" if current == "READY_FOR_PRESS" else "Ainda não está pronto" if current == "NOT_READY_FOR_PRESS" else "Pronto para PRESS"
+    default_label = (
+        "Pronto para PRESS"
+        if current == "READY_FOR_PRESS"
+        else "Ainda não está pronto"
+        if current == "NOT_READY_FOR_PRESS"
+        else "Pronto para PRESS"
+    )
 
     with st.form("gf02_ready_for_press_form"):
         choice_label = st.radio(
