@@ -1,4 +1,8 @@
-"""Streamlit workbench for recording the real PRESS gate inside the app."""
+"""Streamlit workbench for recording the real PRESS gate inside the app.
+
+This is optional presentation code. Scientific persistence and validation live
+in ``nutev.review.press_gate`` and are exercised by executable tests.
+"""
 from __future__ import annotations
 
 from datetime import date
@@ -9,7 +13,7 @@ import streamlit as st
 from nutev.review.press_gate import PRESS_STATUSES, load_press_gate, record_press_gate
 
 
-def _status_help(status: str) -> str:
+def _status_help(status: str) -> str:  # pragma: no cover
     return {
         "APPROVED": "Parecer PRESS concluído e aprovado. O Engine poderá avançar para o trecho pós-PRESS.",
         "CHANGES_REQUIRED": "O parecer existe, mas exige alterações antes de poder ser considerado aprovado.",
@@ -17,7 +21,7 @@ def _status_help(status: str) -> str:
     }.get(status, "")
 
 
-def render_press_gate_workbench(project_root: Path) -> None:
+def render_press_gate_workbench(project_root: Path) -> None:  # pragma: no cover
     existing = load_press_gate(project_root)
     current_status = str(existing.get("review_status") or "").strip().upper()
 
