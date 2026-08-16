@@ -16,6 +16,7 @@ from nutev.search.article1_scientific_status import derive_article1_scientific_s
 from nutev.ui.article1_human_workbench import render_article1_human_workbench
 from nutev.ui.gf02_press_decision_workbench import render_gf02_press_decision
 from nutev.ui.gf02_review_workbench import render_gf02_easy_review
+from nutev.ui.press_gate_workbench import render_press_gate_workbench
 
 
 def _repo_root() -> Path:
@@ -59,6 +60,12 @@ def _status_copy(state: dict, scientific: dict) -> tuple[str, str]:
     phase = str(scientific.get("article1_current_phase") or "")
     if phase == "COMPLETE":
         return "Concluído", "Fluxo FORMAL, síntese e pacote PRISMA validados."
+    if phase == "GF03_PRESS":
+        return (
+            "PRESS pendente",
+            "A automação chegou ao gate PRESS. Registre o parecer real no formulário ao final desta tela; "
+            "o Engine não tenta executar novamente até esse registro existir.",
+        )
     if status == "FAILED":
         return "Interrompido", "Seu progresso foi salvo. Clique CONTINUAR para retomar do último checkpoint."
     if status == "WAITING_HUMAN":
@@ -131,6 +138,8 @@ def _render_human_review_center(project_root: Path, scientific: dict) -> None:
         render_gf02_easy_review(scientific)
     elif phase == "GF02_HUMAN_DECISION":
         render_gf02_press_decision(project_root)
+    elif phase == "GF03_PRESS":
+        render_press_gate_workbench(project_root)
     else:
         render_article1_human_workbench(project_root, scientific)
 
@@ -142,6 +151,8 @@ def render_article1_play_panel(project_root: Path) -> None:
     phase = str(scientific.get("article1_current_phase") or "")
     title, message = _status_copy(state, scientific)
     button_label = engine_button_label(repo, project_root)
+    press_pending = phase == "GF03_PRESS"
+    visible_button_label = "PRESS PENDENTE — PREENCHA ABAIXO" if press_pending else button_label
 
     st.markdown(
         """
@@ -196,11 +207,11 @@ def render_article1_play_panel(project_root: Path) -> None:
             )
 
             clicked = st.button(
-                button_label,
+                visible_button_label,
                 type="primary",
                 width="stretch",
                 key="article1_engine_run_all",
-                disabled=phase == "COMPLETE",
+                disabled=phase == "COMPLETE" or press_pending,
             )
             if clicked:
                 status_box = st.status("NutEV em execução...", expanded=True)
