@@ -1,24 +1,43 @@
 """Real, non-FORMAL Article 1 collection before human PRESS review.
 
 This module deliberately separates *collecting real provider data* from
-*promoting a search to FORMAL/PRISMA*.  It may execute only an already persisted
-PILOT/non-PRISMA strategy version, writes immutable raw/corpus artifacts through
-PLAY, and never changes scientific gates.
+*promoting a search to FORMAL/PRISMA*. It executes only persisted PILOT,
+non-PRISMA expressions. If no Article 1 strategy-registry row exists yet, it may
+materialize a deterministic operational mirror of the already-canonical GF-02
+PubMed #7 expression; that mirror does not create or change scientific approval.
 """
 from __future__ import annotations
 
+from dataclasses import asdict
 import json
 from pathlib import Path
 from typing import Any, Callable
 from uuid import uuid4
 
 from nutev.pipelines.play_pipeline import run_play
+from nutev.search.gf02_pubmed_current import load_candidate_config, resolved_line_expressions
 from nutev.search.strategy_executor import EXECUTABLE_PROVIDERS
-from nutev.search.strategy_registry import default_registry_path, list_strategy_versions
+from nutev.search.strategy_registry import (
+    default_registry_path,
+    list_strategy_versions,
+    save_strategy_version,
+)
 
 ProgressFn = Callable[[str], None]
 COLLECTION_SCHEMA_VERSION = 1
 NATIVE_EXPORT_PROVIDERS = {"scielo_native", "lilacs_bvs"}
+CORE_DISCOVERY_PROVIDERS = (
+    "pubmed",
+    "europepmc",
+    "crossref",
+    "openalex",
+    "scielo_native",
+    "lilacs_bvs",
+)
+
+
+def _default_repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
 
 
 def _state_path(project_root: Path) -> Path:
@@ -43,14 +62,48 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
-def _latest_nonformal_version(project_root: Path) -> dict[str, Any] | None:
+def _canonical_gf02_query(repo_root: Path) -> tuple[str, str]:
+    config = load_candidate_config(Path(repo_root) / "config" / "gf02_pubmed_candidates.json")
+    final_line = str(config.get("final_line") or "#7")
+    expressions = resolved_line_expressions(config)
+    return str(config.get("current_candidate") or "UNKNOWN"), expressions[final_line]
+
+
+def _matching_nonformal_version(project_root: Path, repo_root: Path) -> dict[str, Any] | None:
+    _, canonical_query = _canonical_gf02_query(repo_root)
     versions = list_strategy_versions(default_registry_path(project_root), limit=1000)
     for version in versions:
-        if str(version.get("search_type") or "").upper() == "PILOT" and not bool(
+        if str(version.get("search_type") or "").upper() != "PILOT" or bool(
             version.get("prisma_eligible")
         ):
+            continue
+        grid = version.get("providers") or {}
+        pubmed_expression = str((grid.get("pubmed") or {}).get("specific") or "").strip()
+        if pubmed_expression == canonical_query:
             return version
     return None
+
+
+def _materialize_gf02_operational_mirror(project_root: Path, repo_root: Path) -> dict[str, Any]:
+    candidate_version, query = _canonical_gf02_query(repo_root)
+    record = save_strategy_version(
+        default_registry_path(project_root),
+        title="Article 1 GF-02 operational mirror",
+        query_text=f"Canonical GF-02 PubMed {candidate_version} final line #7",
+        strategy_payload={
+            "query": [query],
+            "filters": {},
+            "providers": {"pubmed": {"specific": query}},
+        },
+        search_type="PILOT",
+        prisma_eligible=False,
+        created_by="SYSTEM_DETERMINISTIC_GF02_MIRROR",
+        notes=(
+            "article1_pre_review_candidate=true; deterministic operational mirror of "
+            "config/gf02_pubmed_candidates.json; no scientific gate effect"
+        ),
+    )
+    return asdict(record)
 
 
 def _native_export_available(project_root: Path, expression: str) -> bool:
@@ -73,9 +126,15 @@ def executable_collection_providers(
     grid = version.get("providers") or {}
     executable: list[str] = []
     deferred: list[dict[str, str]] = []
-    for provider in EXECUTABLE_PROVIDERS:
+    for provider in CORE_DISCOVERY_PROVIDERS:
         expression = str((grid.get(provider) or {}).get(breadth) or "").strip()
         if not expression:
+            deferred.append(
+                {"provider": provider, "reason": "no_exact_provider_expression_registered"}
+            )
+            continue
+        if provider not in EXECUTABLE_PROVIDERS:
+            deferred.append({"provider": provider, "reason": "provider_not_executable_in_play"})
             continue
         if provider in NATIVE_EXPORT_PROVIDERS and not _native_export_available(project_root, expression):
             deferred.append(
@@ -87,10 +146,9 @@ def executable_collection_providers(
             continue
         executable.append(provider)
 
-    # These remain legitimate external/licensed sources and are never silently
-    # substituted by open providers.
     deferred.extend(
         [
+            {"provider": "official_web", "reason": "not_integrated_in_strategy_play"},
             {"provider": "scopus", "reason": "licensed_execution_required"},
             {"provider": "web_of_science", "reason": "licensed_execution_required"},
         ]
@@ -98,16 +156,34 @@ def executable_collection_providers(
     return executable, deferred
 
 
-def pre_review_collection_status(project_root: Path) -> dict[str, Any]:
-    """Read current collection status and validate it against the PILOT strategy."""
-    current = _load_json(_state_path(project_root))
-    version = _latest_nonformal_version(project_root)
-    if version is None:
+def pre_review_collection_status(
+    project_root: Path,
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
+    """Read collection status without manufacturing a human/scientific decision."""
+    root = Path(project_root)
+    repo = Path(repo_root) if repo_root is not None else _default_repo_root()
+    current = _load_json(_state_path(root))
+    try:
+        version = _matching_nonformal_version(root, repo)
+        _, canonical_query = _canonical_gf02_query(repo)
+    except Exception as exc:
         return {
+            **current,
             "complete": False,
             "can_run": False,
-            "reason": "no_nonformal_pilot_strategy_registered",
-            "path": str(_state_path(project_root)),
+            "reason": f"gf02_canonical_query_unavailable:{exc}",
+            "path": str(_state_path(root)),
+        }
+    if version is None:
+        return {
+            **current,
+            "complete": False,
+            "can_run": True,
+            "reason": "gf02_operational_mirror_will_be_materialized_on_run",
+            "canonical_pubmed_query_present": bool(canonical_query),
+            "path": str(_state_path(root)),
         }
     checksum = str(version.get("checksum_sha256") or "")
     complete = bool(
@@ -124,33 +200,29 @@ def pre_review_collection_status(project_root: Path) -> dict[str, Any]:
         "can_run": True,
         "source_strategy_version_id": version.get("version_id"),
         "source_strategy_checksum_sha256": checksum,
-        "path": str(_state_path(project_root)),
+        "path": str(_state_path(root)),
     }
 
 
 def run_pre_review_collection(
     project_root: Path,
     *,
+    repo_root: Path | None = None,
     progress_fn: ProgressFn | None = None,
     limit: int = 10000,
 ) -> dict[str, Any]:
     """Collect real searchable data now, without creating FORMAL/PRISMA evidence."""
     root = Path(project_root)
-    version = _latest_nonformal_version(root)
+    repo = Path(repo_root) if repo_root is not None else _default_repo_root()
+    version = _matching_nonformal_version(root, repo)
     if version is None:
-        result = {
-            "schema_version": COLLECTION_SCHEMA_VERSION,
-            "collection_type": "REAL_PRE_REVIEW_COLLECTION",
-            "status": "BLOCKED",
-            "reason": "no_nonformal_pilot_strategy_registered",
-            "prisma_eligible": False,
-            "formal_execution_authorized": False,
-            "scientific_gate_effect": "NONE",
-        }
-        _atomic_json(_state_path(root), result)
-        return result
+        if progress_fn:
+            progress_fn(
+                "Materializando no registry um espelho operacional determinístico da query GF-02 já canônica."
+            )
+        version = _materialize_gf02_operational_mirror(root, repo)
 
-    existing = pre_review_collection_status(root)
+    existing = pre_review_collection_status(root, repo_root=repo)
     if bool(existing.get("complete")):
         return existing
 
@@ -167,14 +239,13 @@ def run_pre_review_collection(
             "prisma_eligible": False,
             "formal_execution_authorized": False,
             "scientific_gate_effect": "NONE",
+            "human_decision_inferred": False,
         }
         _atomic_json(_state_path(root), result)
         return result
 
     if progress_fn:
-        progress_fn(
-            "Coleta real pré-revisão: executando " + ", ".join(providers) + "."
-        )
+        progress_fn("Coleta real pré-revisão: executando " + ", ".join(providers) + ".")
         progress_fn(
             "Estes resultados são reais e auditáveis, mas permanecem NÃO-FORMAIS e fora do PRISMA até FREEZE/FORMAL."
         )
