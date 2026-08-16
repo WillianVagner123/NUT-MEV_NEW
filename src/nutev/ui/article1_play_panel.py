@@ -11,6 +11,10 @@ from nutev.pipelines.article1_engine import (
     load_article1_engine_state,
     run_or_resume_article1_engine,
 )
+from nutev.pipelines.article1_pre_review_collection import (
+    pre_review_collection_status,
+    run_pre_review_collection,
+)
 from nutev.pipelines.article1_preflight import run_article1_preflight
 from nutev.search.article1_scientific_status import derive_article1_scientific_status
 from nutev.ui.article1_human_workbench import render_article1_human_workbench
@@ -60,12 +64,6 @@ def _status_copy(state: dict, scientific: dict) -> tuple[str, str]:
     phase = str(scientific.get("article1_current_phase") or "")
     if phase == "COMPLETE":
         return "Concluído", "Fluxo FORMAL, síntese e pacote PRISMA validados."
-    if phase == "GF03_PRESS":
-        return (
-            "PRESS pendente",
-            "A automação chegou ao gate PRESS. Registre o parecer real no formulário ao final desta tela; "
-            "o Engine não tenta executar novamente até esse registro existir.",
-        )
     if status == "FAILED":
         return "Interrompido", "Seu progresso foi salvo. Clique CONTINUAR para retomar do último checkpoint."
     if status == "WAITING_HUMAN":
@@ -123,6 +121,9 @@ def _render_human_task(project_root: Path) -> bool:
 
 
 def _render_human_review_center(project_root: Path, scientific: dict) -> None:
+    phase = str(scientific.get("article1_current_phase") or "")
+    if phase == "GF03_PRESS" and not bool(pre_review_collection_status(project_root).get("complete")):
+        return
     queue = _load_human_queue(project_root)
     if not list(queue.get("tasks") or []):
         return
@@ -133,7 +134,6 @@ def _render_human_review_center(project_root: Path, scientific: dict) -> None:
         "Etapas científicas dependentes continuam bloqueadas até a decisão real ser registrada."
     )
     _render_human_task(project_root)
-    phase = str(scientific.get("article1_current_phase") or "")
     if phase == "GF02_NOISE_REVIEW":
         render_gf02_easy_review(scientific)
     elif phase == "GF02_HUMAN_DECISION":
@@ -144,6 +144,41 @@ def _render_human_review_center(project_root: Path, scientific: dict) -> None:
         render_article1_human_workbench(project_root, scientific)
 
 
+def _render_collection_summary(collection: dict) -> None:
+    if not collection:
+        return
+    if collection.get("complete"):
+        st.markdown("#### Coleta real pré-revisão")
+        st.success(
+            "Busca real concluída e organizada. Estes dados continuam NÃO-FORMAIS e não entram no PRISMA até FREEZE/FORMAL."
+        )
+        st.caption(
+            f"Recuperados: {int(collection.get('records_returned') or 0)} · "
+            f"Únicos: {int(collection.get('unique_records') or 0)} · "
+            f"Duplicatas automáticas removidas: {int(collection.get('duplicates_removed') or 0)}"
+        )
+        executed = ", ".join(str(item) for item in (collection.get("providers_executed") or []))
+        if executed:
+            st.caption(f"Fontes executadas agora: {executed}")
+        deferred = collection.get("providers_deferred") or []
+        if deferred:
+            text = ", ".join(
+                f"{item.get('provider')} ({item.get('reason')})" for item in deferred
+            )
+            st.caption(f"Fontes que ainda dependem de acesso/exportação real: {text}")
+        if collection.get("any_provider_truncated"):
+            st.warning(
+                "Pelo menos uma fonte informou mais resultados do que o limite recuperado nesta coleta. "
+                "A truncagem ficou auditada; não é tratada como cobertura completa."
+            )
+        master = str(collection.get("master_corpus_path") or "")
+        if master:
+            st.caption(f"Corpus organizado: {master}")
+        st.caption(f"Auditoria da coleta: {collection.get('path')}")
+    elif collection.get("reason"):
+        st.warning(f"Coleta real ainda não executável: {collection.get('reason')}")
+
+
 def render_article1_play_panel(project_root: Path) -> None:
     repo = _repo_root()
     state = load_article1_engine_state(project_root)
@@ -152,7 +187,31 @@ def render_article1_play_panel(project_root: Path) -> None:
     title, message = _status_copy(state, scientific)
     button_label = engine_button_label(repo, project_root)
     press_pending = phase == "GF03_PRESS"
-    visible_button_label = "PRESS PENDENTE — PREENCHA ABAIXO" if press_pending else button_label
+    collection = pre_review_collection_status(project_root) if press_pending else {}
+    collection_complete = bool(collection.get("complete"))
+    collection_can_run = bool(collection.get("can_run"))
+
+    if press_pending and collection_complete:
+        title = "Coleta real concluída — PRESS pendente"
+        message = (
+            f"{int(collection.get('records_returned') or 0)} registros reais foram recuperados e "
+            f"{int(collection.get('unique_records') or 0)} documentos únicos foram organizados. "
+            "Agora o PRESS só controla a promoção científica posterior para FREEZE/FORMAL/PRISMA."
+        )
+        visible_button_label = "COLETA REAL CONCLUÍDA — PRESS ABAIXO"
+    elif press_pending and collection_can_run:
+        title = "Pronto para buscar dados reais"
+        message = (
+            "O PRESS não bloqueará a coleta exploratória real. O Engine vai consultar agora todas as fontes "
+            "já executáveis, salvar resultados brutos, hashes, manifests e corpus deduplicado; nada será promovido a FORMAL/PRISMA."
+        )
+        visible_button_label = "▶ BUSCAR E ORGANIZAR DADOS REAIS AGORA"
+    elif press_pending:
+        title = "Coleta real bloqueada"
+        message = str(collection.get("reason") or "Não existe estratégia PILOT não-PRISMA executável.")
+        visible_button_label = "COLETA BLOQUEADA — VER MOTIVO ABAIXO"
+    else:
+        visible_button_label = button_label
 
     st.markdown(
         """
@@ -211,7 +270,11 @@ def render_article1_play_panel(project_root: Path) -> None:
                 type="primary",
                 width="stretch",
                 key="article1_engine_run_all",
-                disabled=phase == "COMPLETE" or press_pending,
+                disabled=(
+                    phase == "COMPLETE"
+                    or (press_pending and collection_complete)
+                    or (press_pending and not collection_can_run)
+                ),
             )
             if clicked:
                 status_box = st.status("NutEV em execução...", expanded=True)
@@ -228,12 +291,39 @@ def render_article1_play_panel(project_root: Path) -> None:
                             if not item.get("ok")
                         ]
                         raise RuntimeError("Pré-teste local falhou: " + "; ".join(failures))
-                    status_box.write("Pré-teste local aprovado. Iniciando/retomando a execução autorizada...")
-                    result = run_or_resume_article1_engine(
-                        repo,
-                        project_root=project_root,
-                        progress_fn=progress,
-                    )
+                    if press_pending:
+                        status_box.write(
+                            "Pré-teste local aprovado. Iniciando coleta REAL não-FORMAL antes da revisão humana..."
+                        )
+                        result = run_pre_review_collection(project_root, progress_fn=progress)
+                        if str(result.get("status") or "") not in {"COMPLETE", "COMPLETE_WITH_WARNINGS"}:
+                            raise RuntimeError(
+                                "Coleta real não concluída: " + str(result.get("reason") or result.get("status") or "desconhecido")
+                            )
+                        status_box.update(
+                            label="Coleta real concluída — saídas organizadas",
+                            state="complete",
+                            expanded=False,
+                        )
+                    else:
+                        status_box.write("Pré-teste local aprovado. Iniciando/retomando a execução autorizada...")
+                        result = run_or_resume_article1_engine(
+                            repo,
+                            project_root=project_root,
+                            progress_fn=progress,
+                        )
+                        result_status = str(result.get("status") or "")
+                        if result_status in {"WAITING_HUMAN", "WAITING_EXTERNAL"}:
+                            status_box.update(
+                                label="Automação concluída — revisão/etapa humana no final",
+                                state="complete",
+                                expanded=False,
+                            )
+                        elif result_status == "COMPLETE":
+                            status_box.update(label="Execução concluída", state="complete", expanded=False)
+                        else:
+                            status_box.update(label="Checkpoint salvo", state="complete", expanded=False)
+                    st.rerun()
                 except BaseException as exc:
                     status_box.update(
                         label="Execução interrompida — checkpoint salvo",
@@ -241,36 +331,25 @@ def render_article1_play_panel(project_root: Path) -> None:
                         expanded=True,
                     )
                     st.error(str(exc) or type(exc).__name__)
-                else:
-                    result_status = str(result.get("status") or "")
-                    if result_status in {"WAITING_HUMAN", "WAITING_EXTERNAL"}:
-                        status_box.update(
-                            label="Automação concluída — revisão/etapa humana no final",
-                            state="complete",
-                            expanded=False,
-                        )
-                    elif result_status == "COMPLETE":
-                        status_box.update(label="Execução concluída", state="complete", expanded=False)
-                    else:
-                        status_box.update(label="Checkpoint salvo", state="complete", expanded=False)
-                    st.rerun()
 
             state = load_article1_engine_state(project_root)
             if state:
                 last_message = str(state.get("last_message") or "")
                 updated_at = str(state.get("updated_at") or "")
-                if last_message:
+                if last_message and not (press_pending and collection_complete):
                     st.caption(f"Último checkpoint: {last_message}")
                 if updated_at:
                     st.caption(f"Salvo em {updated_at}")
                 if state.get("last_error"):
                     st.caption(f"Último erro: {state['last_error']}")
 
+            if press_pending:
+                _render_collection_summary(collection)
             _render_human_review_center(project_root, scientific)
 
         st.caption(
-            "O Engine executa primeiro tudo que é computacionalmente autorizado. "
-            "A revisão humana fica concentrada ao final do trecho executável e nunca é inferida pelo software."
+            "O Engine coleta e organiza primeiro tudo que pode executar de forma real e auditável. "
+            "Gates humanos controlam promoção científica posterior; nunca são inferidos pelo software."
         )
 
 
