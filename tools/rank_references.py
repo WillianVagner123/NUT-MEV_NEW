@@ -14,9 +14,11 @@ from nutev.audit_guardrails import (
     GUARDRAIL_POLICY_VERSION,
     IntegrityError,
     annotate_record,
+    has_valid_identifier,
     sha256_file,
     verify_manifest_master,
 )
+from nutev.reference_identity import canonical_identity, dedupe_records
 from nutev.taxonomy import (
     TaxonomyError,
     load_canonical_taxonomy,
@@ -238,38 +240,11 @@ def _source_rows(
 
 
 def _identity(row: dict[str, Any]) -> str:
-    doi = _norm(row.get("doi") or row.get("doi_normalized"))
-    if doi:
-        return "doi:" + doi
-    pmid = _norm(row.get("pmid") or row.get("pmid_normalized"))
-    if pmid:
-        return "pmid:" + pmid
-    url = _norm(row.get("url") or row.get("url_normalized"))
-    if url:
-        return "url:" + url
-    title = _norm(row.get("title"))
-    return "title:" + title
+    return canonical_identity(row)
 
 
 def _dedupe(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    best: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        key = _identity(row)
-        if not key or key == "title:":
-            continue
-        current = best.get(key)
-        if current is None:
-            best[key] = dict(row)
-            continue
-        current_text = str(
-            current.get("abstract") or current.get("summary") or current.get("snippet") or ""
-        )
-        new_text = str(
-            row.get("abstract") or row.get("summary") or row.get("snippet") or ""
-        )
-        if len(new_text) > len(current_text):
-            best[key] = dict(row)
-    return list(best.values())
+    return dedupe_records(rows)
 
 
 def _extract_year(row: dict[str, Any]) -> int | None:
@@ -431,7 +406,7 @@ def score_record(
         document_score = document_terms[document_type_applied]
 
     provider_score = _provider_bonus(provider, provider_weights)
-    identifier_score = 2.0 if row.get("doi") or row.get("pmid") or row.get("pmcid") else 0.0
+    identifier_score = 2.0 if has_valid_identifier(row) else 0.0
     year = _extract_year(row)
     recency_score = 0.0
     if year:
