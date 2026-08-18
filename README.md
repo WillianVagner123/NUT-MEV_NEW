@@ -41,14 +41,14 @@ The first run creates `.venv`, upgrades `pip`, installs the project in editable 
 If the repository is already cloned, update it first:
 
 ```bat
-cd C:\Users\Victor\NutEV-Evidence-Engine
+cd %USERPROFILE%\NutEV-Evidence-Engine
 git checkout main
 git pull --ff-only origin main
 git rev-parse HEAD
 Iniciar-NutEV-Windows.bat
 ```
 
-`git rev-parse HEAD` is optional for normal use but recommended when an execution must be auditable or cited.
+If the repository was cloned elsewhere, `cd` to that directory instead. `git rev-parse HEAD` is optional for normal use but recommended when an execution must be auditable or cited.
 
 ## What a successful run looks like
 
