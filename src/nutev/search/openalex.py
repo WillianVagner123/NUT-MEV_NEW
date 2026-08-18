@@ -5,11 +5,13 @@ import time
 
 import requests
 
+_OPENALEX_URL = "https://api.openalex.org/works"
+USER_AGENT = "NutEV-Reference-Engine/1.0 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
+
 
 def _pick_openalex_url(item: dict) -> str:
     primary = item.get("primary_location") or {}
     best_oa = item.get("best_oa_location") or {}
-
     for candidate in [
         primary.get("pdf_url"),
         primary.get("landing_page_url"),
@@ -20,11 +22,7 @@ def _pick_openalex_url(item: dict) -> str:
     ]:
         if candidate:
             return candidate
-
     return ""
-
-
-_OPENALEX_URL = "https://api.openalex.org/works"
 
 
 def _normalize_openalex_item(item: dict, query: str) -> dict:
@@ -32,7 +30,9 @@ def _normalize_openalex_item(item: dict, query: str) -> dict:
         "source": "openalex",
         "source_provider": "openalex",
         "title": item.get("display_name"),
-        "abstract": " ".join((item.get("abstract_inverted_index") or {}).keys()) if isinstance(item.get("abstract_inverted_index"), dict) else "",
+        "abstract": " ".join((item.get("abstract_inverted_index") or {}).keys())
+        if isinstance(item.get("abstract_inverted_index"), dict)
+        else "",
         "snippet": "",
         "doi": item.get("doi"),
         "url": _pick_openalex_url(item),
@@ -42,11 +42,20 @@ def _normalize_openalex_item(item: dict, query: str) -> dict:
         or (item.get("best_oa_location") or {}).get("pdf_url")
         or (item.get("best_oa_location") or {}).get("landing_page_url")
         or "",
-        "journal": ((item.get("primary_location") or {}).get("source") or {}).get("display_name", ""),
+        "journal": ((item.get("primary_location") or {}).get("source") or {}).get(
+            "display_name", ""
+        ),
         "year": item.get("publication_year") or "",
         "publication_date": item.get("publication_date") or "",
         "article_type": item.get("type") or "",
-        "authors": "; ".join([str((a.get("author") or {}).get("display_name") or "") for a in item.get("authorships", [])[:12]]) if isinstance(item.get("authorships"), list) else "",
+        "authors": "; ".join(
+            [
+                str((a.get("author") or {}).get("display_name") or "")
+                for a in item.get("authorships", [])[:12]
+            ]
+        )
+        if isinstance(item.get("authorships"), list)
+        else "",
         "metadata_status": "openalex_search",
         "query": query,
         "provider_query": query,
@@ -59,24 +68,24 @@ def _mailto() -> dict:
 
 
 def _openalex_get(params: dict) -> dict | None:
-    """GET with exponential backoff (was linear). Returns parsed JSON or None."""
+    """GET with exponential backoff. Returns parsed JSON or None."""
     for attempt in range(1, 4):
         try:
             response = requests.get(
                 _OPENALEX_URL,
                 params=params,
                 timeout=(10, 25),
-                headers={"User-Agent": "NutEV Research Pipeline/1.0"},
+                headers={"User-Agent": USER_AGENT},
             )
             response.raise_for_status()
             return response.json()
         except Exception:
-            time.sleep(min(2 ** attempt, 8))
+            time.sleep(min(2**attempt, 8))
     return None
 
 
 def _resolve_max_results(default: int, max_results: int | None) -> int:
-    """Default (None) preserves single-page behaviour; opt in with
+    """Default preserves single-page behaviour; opt in with
     NUTEV_OPENALEX_MAX_RESULTS so default runs stay reproducible."""
     if max_results is not None:
         return max(max_results, 0)
@@ -110,16 +119,17 @@ def search_openalex(
 
     target = _resolve_max_results(per_page, max_results)
 
-    # Single-page path — identical to the historical request (no cursor).
     if target <= per_page:
         data = _openalex_get(
             _request_params(query, per_page, filter_value=filter_value)
         )
         if not data:
             return []
-        return [_normalize_openalex_item(item, query) for item in data.get("results", []) or []]
+        return [
+            _normalize_openalex_item(item, query)
+            for item in data.get("results", []) or []
+        ]
 
-    # Paginated path — cursor walk up to `target`, de-duplicating across pages.
     collected: list[dict] = []
     seen: set[str] = set()
     cursor = "*"
@@ -138,7 +148,9 @@ def search_openalex(
         if not results:
             break
         for item in results:
-            key = str(item.get("id") or item.get("doi") or item.get("display_name") or "")
+            key = str(
+                item.get("id") or item.get("doi") or item.get("display_name") or ""
+            )
             if key and key in seen:
                 continue
             if key:
