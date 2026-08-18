@@ -46,6 +46,8 @@ def test_reference_ranker_prioritizes_taxonomy_and_focus_keywords(tmp_path: Path
                         "source_provider": "pubmed",
                         "pmid": "123",
                         "year": 2025,
+                        "prisma_eligible": False,
+                        "formal_execution_authorized": False,
                     }
                 ),
                 json.dumps(
@@ -65,11 +67,16 @@ def test_reference_ranker_prioritizes_taxonomy_and_focus_keywords(tmp_path: Path
     (logs / "latest.json").write_text(json.dumps({"master_records_path": str(master)}), encoding="utf-8")
 
     summary = rank_references.run(project, config, 10)
-    rows = [json.loads(line) for line in (project / "reference_ranking" / "reference_ranking.jsonl").read_text(encoding="utf-8").splitlines()]
+    rows = [
+        json.loads(line)
+        for line in (project / "reference_ranking" / "reference_ranking.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
 
     assert summary["mode"] == "REFERENCE_RANKING"
-    assert summary["prisma"] is False
-    assert summary["screening"] is False
+    assert "prisma" not in summary
+    assert "screening" not in summary
     assert rows[0]["pmid"] == "123"
     assert rows[0]["reference_score"] > rows[1]["reference_score"]
     assert "global.nutrition.core" in rows[0]["taxonomy_groups"]
+    assert "prisma_eligible" not in rows[0]
+    assert "formal_execution_authorized" not in rows[0]
