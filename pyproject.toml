@@ -7,12 +7,10 @@ name = "nutev-nutmev"
 dynamic = ["version"]
 description = "NutEV Reference Engine: taxonomy-guided multi-source reference discovery and ranking for lifestyle nutrition research"
 readme = "README.md"
-# Matches the CI matrix (3.12, 3.13). Bump the upper bound only when a 3.14 job
-# is added to .github/workflows/ci.yml — declare only what is actually tested.
 requires-python = ">=3.12,<3.14"
 license = {file = "LICENSE"}
 authors = [
-    {name = "NutEV/NutMEV Project"},
+    {name = "Willian Vagner Dorneles Schneider"},
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -20,79 +18,19 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
-# ---------------------------------------------------------------------------
-# CORE dependencies — the minimum required to import `nutev`, parse config,
-# perform bibliographic discovery and read/write tabular outputs.
-# ---------------------------------------------------------------------------
 dependencies = [
-    "pandas~=3.0",
-    "pydantic~=2.12",
-    "requests>=2.32",
-    "beautifulsoup4~=4.14",
-    "python-dateutil~=2.9",
-    "openpyxl~=3.1",
-    "typing-extensions~=4.15",
+    "requests>=2.32,<3",
 ]
 
 [project.optional-dependencies]
-search = [
-    "wikipedia~=1.4",
-    "google-search-results~=2.4",
-    "lxml>=5.3",
-    "xmltodict~=1.0",
-]
-documents = [
-    "pypdf~=6.14.2",
-    "pdfplumber~=0.11",
-    "pymupdf~=1.24",
-    "pdf2image~=1.17",
-    "pytesseract~=0.3",
-    "python-docx~=1.1",
-    "Pillow>=12.1.1",
-]
-dashboard = [
-    "streamlit",
-    "pandas~=3.0",
-    "openpyxl~=3.1",
-    "plotly~=6.5",
-]
-api = [
-    "fastapi",
-    "uvicorn",
-    "pydantic~=2.12",
-    "jinja2",
-]
-platform = [
-    "nutev-nutmev[api]",
-]
-watch = [
-    "playwright~=1.58",
-    "apscheduler~=3.11",
-    "aiohttp~=3.13",
-    "tenacity~=9.1",
-]
-mcp = [
-    "mcp[cli]~=1.2",
-]
-report = [
-    "scikit-learn~=1.5",
-    "matplotlib~=3.9",
-    "pandas~=3.0",
-    "openpyxl~=3.1",
-]
 dev = [
-    "virtualenv~=20.36",
-    "pre-commit~=4.5",
-    "pytest~=9.0",
-    "pytest-cov~=7.0",
-    "pytest-timeout~=2.4",
-    "pytest-xdist~=3.8",
-    "ruff~=0.15",
-    "mypy~=1.19",
-    "types-requests~=2.32",
-]
-all = [
-    "nutev-nutmev[search,documents,dashboard,api,watch,mcp,report]",
+    "build>=1.2",
+    "twine>=5",
+    "pytest>=8,<10",
+    "pytest-cov>=5,<8",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "types-requests>=2.32",
 ]
 
 [project.urls]
@@ -102,46 +40,17 @@ all = [
 [project.scripts]
 nutev = "nutev.cli:main"
 
-[tool.setuptools]
-include-package-data = true
-
 [tool.pdm]
 distribution = true
 version = { source = "file", path = "src/nutev/__version__.py" }
 
-[tool.pdm.resolution.overrides]
-requests = ">=2.33"
-lxml = ">=6.0"
-
 [tool.pytest.ini_options]
 testpaths = ["nutev_tests"]
 markers = [
-    "unit: fast, isolated unit tests (default group)",
-    "contracts: schema/contract tests (artifact and metadata contracts)",
-    "integration_no_network: integration tests that must NOT touch the network",
-    "integration_network: integration tests that require network access",
-    "slow: slow tests",
-    "llm: tests that require a real LLM (paid/hosted) — excluded from default CI",
-    "dashboard: tests for the Streamlit dashboard",
-    "api: tests for the FastAPI platform",
-    "global_watch: tests for the Global Watch pipeline",
-    "requires_llm: (alias of llm) tests requiring a real LLM",
-    "integration: (broad) integration tests",
-    "asyncio: async tests that use asyncio",
+    "unit: isolated unit tests",
+    "integration_no_network: integration tests that must not touch the network",
 ]
-timeout = 60
-timeout_method = "thread"
 
 [tool.coverage.run]
 source = ["src"]
 branch = true
-omit = [
-    "*/tests/*",
-    "*/__pycache__/*",
-    "*/migrations/*",
-    "*/strategies/*",
-    "*/cli.py",
-    "*/cli/*",
-    "*/visualization.py",
-    "*/answer_decoding/*",
-]

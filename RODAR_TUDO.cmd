@@ -6,9 +6,7 @@ echo.
 echo ============================================================
 echo NUTEV REFERENCE ENGINE - BUSCAR E RANQUEAR
 echo ============================================================
-echo Objetivo: encontrar e priorizar as melhores referencias.
-echo Fluxo fechado: coleta -> LILACS/BVS + SciELO -> ranking por taxonomia/palavras-chave.
-echo Sem PRISMA, PRESS, FREEZE, triagem formal ou decisao de inclusao/exclusao.
+echo Fluxo: coleta multi-fonte ^> LILACS/BVS + SciELO ^> ranking ^> exportacao.
 echo.
 
 set "PY=.venv\Scripts\python.exe"
@@ -17,7 +15,7 @@ set "OVERALL_EXIT=0"
 
 if not exist "%PY%" (
   echo ERRO: %PY% nao encontrado.
-  echo O ambiente virtual do projeto precisa existir antes deste comando.
+  echo Crie e ative o ambiente virtual antes de executar este comando.
   exit /b 1
 )
 
@@ -25,8 +23,8 @@ echo [1/3] COLETA MULTI-FONTE...
 call run_everything_now.cmd
 set "COLLECT_EXIT=!ERRORLEVEL!"
 if not "!COLLECT_EXIT!"=="0" (
-  echo AVISO: coleta geral terminou com codigo !COLLECT_EXIT!.
-  echo Autosaves foram preservados; o ranking tentara usar o ultimo master valido.
+  echo AVISO: a coleta geral terminou com codigo !COLLECT_EXIT!.
+  echo Falhas de provider permanecem registradas nos manifests.
   set "OVERALL_EXIT=1"
 )
 
@@ -51,7 +49,7 @@ if not "!RANK_EXIT!"=="0" (
 
 echo.
 echo ============================================================
-echo NUTEV - BUSCA FECHADA CONCLUIDA
+echo NUTEV REFERENCE ENGINE - EXECUCAO CONCLUIDA
 echo ============================================================
 echo Coleta geral: codigo !COLLECT_EXIT!
 echo LILACS/BVS + SciELO: codigo !LATIN_EXIT!
@@ -63,8 +61,7 @@ echo   %PROJECT_ROOT%\reference_ranking\reference_ranking.csv
 echo   %PROJECT_ROOT%\reference_ranking\reference_ranking.jsonl
 echo   %PROJECT_ROOT%\reference_ranking\latest.json
 echo.
-echo O score organiza referencias por aderencia a taxonomia, palavras-chave, tipo documental,
-echo fonte e recencia. Ele nao decide inclusao/exclusao e nao gera PRISMA.
+echo A/B/C sao niveis de prioridade de leitura. O score nao e recomendacao clinica.
 echo.
 
 if "%RANK_EXIT%"=="0" (

@@ -1,4 +1,4 @@
-"""NutEV local research engine."""
+"""NutEV Reference Engine."""
 
 from nutev.__version__ import __version__
 
