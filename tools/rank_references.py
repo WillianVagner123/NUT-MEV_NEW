@@ -11,6 +11,18 @@ from typing import Any, Iterable
 
 _SPACE_RE = re.compile(r"\s+")
 _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
+_LEGACY_FIELDS = {
+    "prisma_eligible",
+    "formal_execution_authorized",
+    "scientific_gate_effect",
+    "human_screening_decision",
+    "human_decision_inferred",
+    "screening_stage",
+    "human_decision",
+    "reviewer",
+    "reviewed_at",
+    "machine_decision",
+}
 
 
 def _now() -> str:
@@ -256,8 +268,9 @@ def score_record(
     if not abstract:
         score -= 1.0
 
+    clean = {key: value for key, value in row.items() if key not in _LEGACY_FIELDS}
     return {
-        **row,
+        **clean,
         "reference_score": round(score, 2),
         "taxonomy_groups": matched_groups[:20],
         "matched_terms": sorted(set(matched_terms))[:40],
@@ -332,7 +345,7 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         "# Top referencias NutEV",
         "",
         "Ranking tecnico por aderencia a taxonomia, palavras-chave, tipo documental, fonte e recencia.",
-        "Nao e decisao de inclusao/exclusao e nao produz PRISMA.",
+        "Use esta lista para priorizar leitura e escolha de referencias.",
         "",
     ]
     for row in top:
@@ -368,11 +381,6 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
             "csv": str(csv_path),
             "markdown": str(markdown_path),
         },
-        "scientific_review_workflow": False,
-        "prisma": False,
-        "screening": False,
-        "press": False,
-        "freeze": False,
     }
     _write_json(out_dir / "latest.json", summary)
     return summary
