@@ -13,6 +13,7 @@ abstract: >-
 type: software
 version: "1.0.0"
 date-released: "2026-08-18"
+doi: "10.5281/zenodo.21998607"
 license: MIT
 repository-code: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
 url: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
@@ -35,11 +36,12 @@ keywords:
 authors:
   - given-names: "Willian Vagner Dorneles"
     family-names: "Schneider"
-# ORCID, affiliation and DOI are intentionally omitted until independently confirmed.
+# ORCID and affiliation are intentionally omitted until independently confirmed.
 preferred-citation:
   type: software
   title: "NutEV Reference Engine: taxonomy-guided reference discovery and ranking for Lifestyle Nutrition"
   version: "1.0.0"
+  doi: "10.5281/zenodo.21998607"
   license: MIT
   repository-code: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
   url: "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
