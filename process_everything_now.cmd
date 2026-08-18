@@ -3,8 +3,8 @@ setlocal
 cd /d "%~dp0"
 
 echo.
-echo NUTEV EVIDENCE ENGINE - LIMPEZA + OCR POS-COLETA
-echo RAW preservado. Limpeza deterministica. OCR somente em arquivos ja baixados.
+echo NUTEV REFERENCE ENGINE - RANQUEAR REFERENCIAS
+echo Compatibilidade: este comando agora gera somente a fila priorizada de referencias.
 echo.
 
 if not exist ".venv\Scripts\python.exe" (
@@ -13,16 +13,15 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 1
 )
 
-".venv\Scripts\python.exe" tools\process_everything_now.py --project-root .\project_output_scientific
+".venv\Scripts\python.exe" tools\rank_references.py --project-root .\project_output_reference --config-dir .\config --top-n 100
 set EXITCODE=%ERRORLEVEL%
 
 if not "%EXITCODE%"=="0" (
   echo.
-  echo Pos-processamento terminou com codigo %EXITCODE%.
-  echo Os arquivos RAW e autosaves existentes foram preservados.
+  echo Ranking terminou com codigo %EXITCODE%.
   exit /b %EXITCODE%
 )
 
 echo.
-echo Pos-processamento concluido. Veja project_output_scientific\07_logs\postprocess_everything\latest.json
+echo Ranking concluido. Veja project_output_reference\reference_ranking\TOP_REFERENCIAS.md
 endlocal

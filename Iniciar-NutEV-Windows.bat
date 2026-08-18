@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 echo ============================================
-echo    NutEV/NutMEV - iniciar painel (dashboard)
+echo    NutEV Reference Engine - iniciar
 echo ============================================
 echo.
 
@@ -20,12 +20,11 @@ if not defined PY (
 )
 
 REM --- 2) Criar ambiente e instalar na primeira vez ---
-if not exist ".venv\Scripts\nutev.exe" (
+if not exist ".venv\Scripts\python.exe" (
   echo ==^> Preparando o ambiente na primeira vez. Isso pode levar alguns minutos...
   %PY% -m venv .venv
   ".venv\Scripts\python.exe" -m pip install --upgrade pip
-  REM dashboard = painel; documents = leitura de PDF/OCR; search = coleta real.
-  ".venv\Scripts\python.exe" -m pip install -e ".[dashboard,documents,search]"
+  ".venv\Scripts\python.exe" -m pip install -e ".[documents,search]"
   if errorlevel 1 (
     echo [ERRO] Falha na instalacao. Veja as mensagens acima.
     pause
@@ -33,17 +32,23 @@ if not exist ".venv\Scripts\nutev.exe" (
   )
 )
 
-REM --- 3) Gerar dados de demonstracao se ainda nao existirem ---
-if not exist "project_output_demo\07_logs\run_summary.json" (
-  echo ==^> Gerando dados de demonstracao...
-  ".venv\Scripts\nutev.exe" demo-data --project-root ".\project_output_demo"
+REM --- 3) Buscar e ranquear referencias ---
+echo.
+echo ==^> Executando busca fechada e ranking de referencias...
+call RODAR_TUDO.cmd
+set "EXITCODE=!ERRORLEVEL!"
+
+REM --- 4) Abrir o ranking principal quando existir ---
+if exist "project_output_reference\reference_ranking\TOP_REFERENCIAS.md" (
+  echo.
+  echo ==^> Abrindo TOP_REFERENCIAS.md
+  start "" "project_output_reference\reference_ranking\TOP_REFERENCIAS.md"
 )
 
-REM --- 4) Abrir o painel no navegador ---
-echo.
-echo ==^> Abrindo o painel em http://localhost:8501
-echo     (para PARAR, feche esta janela)
-echo.
-".venv\Scripts\nutev.exe" dashboard --project-root ".\project_output_demo"
+if not "!EXITCODE!"=="0" (
+  echo.
+  echo Execucao concluida com avisos/erros. Consulte a saida acima.
+)
 
 pause
+exit /b !EXITCODE!

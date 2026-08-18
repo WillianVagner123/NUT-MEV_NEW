@@ -4,16 +4,15 @@ cd /d "%~dp0"
 
 echo.
 echo ============================================================
-echo NUTEV EVIDENCE ENGINE - RODAR TUDO
+echo NUTEV REFERENCE ENGINE - BUSCAR E RANQUEAR
 echo ============================================================
-echo Um comando para executar tudo que o computador pode fazer agora.
-echo Coleta real + LILACS/BVS + SciELO nativo + limpeza + deduplicacao tecnica + extracao + OCR.
-echo Gates humanos/cientificos nao serao inventados.
+echo Objetivo: encontrar e priorizar as melhores referencias.
+echo Fluxo fechado: coleta -> LILACS/BVS + SciELO -> ranking por taxonomia/palavras-chave.
+echo Sem PRISMA, PRESS, FREEZE, triagem formal ou decisao de inclusao/exclusao.
 echo.
 
 set "PY=.venv\Scripts\python.exe"
-set "NUTEV=.venv\Scripts\nutev.exe"
-set "PROJECT_ROOT=.\project_output_scientific"
+set "PROJECT_ROOT=.\project_output_reference"
 set "OVERALL_EXIT=0"
 
 if not exist "%PY%" (
@@ -22,99 +21,56 @@ if not exist "%PY%" (
   exit /b 1
 )
 
-echo [1/5] Verificando dependencias Python para documentos/OCR...
-"%PY%" -c "import fitz, PIL, pytesseract, pypdf" >nul 2>nul
-if errorlevel 1 (
-  echo Instalando dependencias .[documents] no ambiente virtual...
-  "%PY%" -m pip install -e ".[documents]"
-  if errorlevel 1 (
-    echo AVISO: nao foi possivel instalar todas as dependencias Python de documentos.
-    echo A coleta continuara; extracao/OCR registrara a pendencia sem inventar texto.
-    set "OVERALL_EXIT=1"
-  )
-) else (
-  echo Dependencias Python de documentos: OK
-)
-
-echo.
-echo [2/5] Verificando Tesseract para PDFs escaneados...
-where tesseract >nul 2>nul
-if errorlevel 1 (
-  if exist "C:\Program Files\Tesseract-OCR\tesseract.exe" (
-    set "PATH=C:\Program Files\Tesseract-OCR;!PATH!"
-  ) else if exist "C:\Program Files (x86)\Tesseract-OCR\tesseract.exe" (
-    set "PATH=C:\Program Files (x86)\Tesseract-OCR;!PATH!"
-  ) else (
-    where winget >nul 2>nul
-    if not errorlevel 1 (
-      echo Tesseract nao encontrado. Tentando instalar automaticamente pelo winget...
-      winget install --id UB-Mannheim.TesseractOCR --exact --accept-package-agreements --accept-source-agreements --silent
-      if exist "C:\Program Files\Tesseract-OCR\tesseract.exe" set "PATH=C:\Program Files\Tesseract-OCR;!PATH!"
-      if exist "C:\Program Files (x86)\Tesseract-OCR\tesseract.exe" set "PATH=C:\Program Files (x86)\Tesseract-OCR;!PATH!"
-    )
-  )
-)
-where tesseract >nul 2>nul
-if errorlevel 1 (
-  echo AVISO: Tesseract ainda nao esta disponivel.
-  echo O fluxo NAO vai parar: texto nativo sera extraido e scans ficarao marcados como pendentes de OCR.
-) else (
-  echo Tesseract: OK
-  tesseract --version 2>nul | findstr /b /c:"tesseract"
-)
-
-echo.
-echo [3/5] COLETA REAL COMPLETA - fontes automatizaveis gerais...
+echo [1/3] COLETA MULTI-FONTE...
 call run_everything_now.cmd
 set "COLLECT_EXIT=!ERRORLEVEL!"
 if not "!COLLECT_EXIT!"=="0" (
   echo AVISO: coleta geral terminou com codigo !COLLECT_EXIT!.
-  echo Autosaves foram preservados. O fluxo continuara.
+  echo Autosaves foram preservados; o ranking tentara usar o ultimo master valido.
   set "OVERALL_EXIT=1"
 )
 
 echo.
-echo [4/5] LILACS/BVS + SCIELO NATIVO...
+echo [2/3] LILACS/BVS + SCIELO NATIVO...
 "%PY%" tools\run_latin_sources.py --project-root "%PROJECT_ROOT%"
 set "LATIN_EXIT=!ERRORLEVEL!"
 if not "!LATIN_EXIT!"=="0" (
   echo AVISO: uma ou mais rotas latino-americanas falharam ou mudaram de interface.
-  echo O HTML bruto e os erros disponiveis foram preservados para auditoria quando possivel.
+  echo O ranking continuara com as fontes disponiveis.
   set "OVERALL_EXIT=1"
 )
 
 echo.
-echo [5/5] LIMPEZA + ORGANIZACAO + EXTRACAO/OCR...
-call process_everything_now.cmd
-set "PROCESS_EXIT=!ERRORLEVEL!"
-if not "!PROCESS_EXIT!"=="0" (
-  echo AVISO: pos-processamento terminou com codigo !PROCESS_EXIT!.
-  echo RAW e autosaves foram preservados.
+echo [3/3] RANKING DE REFERENCIAS...
+"%PY%" tools\rank_references.py --project-root "%PROJECT_ROOT%" --config-dir ".\config" --top-n 100
+set "RANK_EXIT=!ERRORLEVEL!"
+if not "!RANK_EXIT!"=="0" (
+  echo ERRO: nao foi possivel gerar o ranking de referencias.
   set "OVERALL_EXIT=1"
 )
 
 echo.
 echo ============================================================
-echo NUTEV - RODAR TUDO TERMINOU
+echo NUTEV - BUSCA FECHADA CONCLUIDA
 echo ============================================================
 echo Coleta geral: codigo !COLLECT_EXIT!
 echo LILACS/BVS + SciELO: codigo !LATIN_EXIT!
-echo Pos-processamento/OCR: codigo !PROCESS_EXIT!
+echo Ranking: codigo !RANK_EXIT!
 echo.
-echo Auditorias:
-echo   %PROJECT_ROOT%\07_logs\collect_everything\latest.json
-echo   %PROJECT_ROOT%\07_logs\latin_native\latest.json
-echo   %PROJECT_ROOT%\07_logs\postprocess_everything\latest.json
+echo PRINCIPAIS SAIDAS:
+echo   %PROJECT_ROOT%\reference_ranking\TOP_REFERENCIAS.md
+echo   %PROJECT_ROOT%\reference_ranking\reference_ranking.csv
+echo   %PROJECT_ROOT%\reference_ranking\reference_ranking.jsonl
+echo   %PROJECT_ROOT%\reference_ranking\latest.json
 echo.
-echo Scopus e Web of Science nao sao simulados nem tratados como equivalentes por outras bases.
-echo As rotas abertas ampliam cobertura; nao apagam a limitacao metodologica de acesso licenciado.
-echo O sistema nao inventa INCLUDE/EXCLUDE, PRESS, FREEZE ou PRISMA.
+echo O score organiza referencias por aderencia a taxonomia, palavras-chave, tipo documental,
+echo fonte e recencia. Ele nao decide inclusao/exclusao e nao gera PRISMA.
 echo.
 
-if "%OVERALL_EXIT%"=="0" (
-  echo SUCESSO: etapas automatizaveis concluidas.
+if "%RANK_EXIT%"=="0" (
+  echo SUCESSO: ranking de referencias gerado.
 ) else (
-  echo CONCLUIDO COM AVISOS: veja as mensagens acima. Os dados existentes nao foram apagados.
+  echo CONCLUIDO COM ERRO NO RANKING: veja as mensagens acima.
 )
 
 exit /b %OVERALL_EXIT%
