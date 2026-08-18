@@ -1,1 +1,1 @@
-question_id,reference_id,relevance_grade,assessor_id,reason,decision_timestamp,conflict_status,adjudicated_grade
+question_id,reference_id,relevance_grade,adjudication_status,adjudicator_id,adjudication_timestamp,doi,pmid,pmcid,url,title,notes

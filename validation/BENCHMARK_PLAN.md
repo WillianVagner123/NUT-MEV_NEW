@@ -2,19 +2,38 @@
 
 ## Pergunta primária
 
-O NutEV Reference Engine melhora a priorização de referências relevantes e/ou reduz o volume necessário de leitura em comparação com baselines apropriados?
+O NutEV Reference Engine melhora a **priorização de leitura** e/ou reduz o volume necessário para localizar referências relevantes em comparação com baselines apropriados?
+
+A alegação de **descoberta/cobertura** será testada separadamente. Um bom ranking dentro de um corpus não prova que o corpus contém a literatura relevante que deveria conter.
+
+## Candidato congelado
+
+Runtime NutEV a ser testado:
+
+```text
+6aa7a5fe6009776e611ca3e1506486606b05f4f6
+```
+
+O harness de benchmark pode evoluir fora desse SHA, mas não pode alterar o runtime congelado nem usar labels de `external_test` para recalibrá-lo.
 
 ## Unidade de análise
 
 A unidade primária é a pergunta (`question_id`). Resultados agregados nunca devem esconder desempenho por pergunta.
 
-## Sistemas mínimos
+## Duas camadas de benchmark
+
+### A. COMMON_POOL_PRIORITIZATION
+
+Objetivo: testar **ordenação/priorização** entre os registros já elegíveis no output congelado do NutEV.
+
+Essa camada usa o mesmo conjunto de referências para todos os sistemas comparados. Ela permite testar o score NutEV contra baselines de ordenação sem confundir ranking com cobertura de busca.
+
+Sistemas:
 
 - `nutev_full`;
-- `pubmed_native`;
-- `union_unranked`;
-- `lexical_baseline`;
+- `lexical_baseline` — BM25 label-blind usando apenas texto da pergunta e metadados do registro;
 - `recency_baseline`;
+- `union_unranked` — ordem pseudoaleatória determinística pré-especificada;
 - `nutev_no_taxonomy`;
 - `nutev_no_focus`;
 - `nutev_no_provider_weight`;
@@ -22,7 +41,40 @@ A unidade primária é a pergunta (`question_id`). Resultados agregados nunca de
 - `nutev_no_document_type`;
 - `nutev_no_identifier_bonus`.
 
-Ferramentas externas podem ser adicionadas quando houver forma reprodutível e comparável de exportar resultados.
+O `nutev_full` congelado não recebe `question_text` como parâmetro. Portanto sua mesma fila global é avaliada em cada pergunta. Isso é uma propriedade/limitação do produto congelado, não deve ser mascarada por uma adaptação criada depois do freeze.
+
+As ablações são reconstruídas de forma label-blind a partir do `score_breakdown` congelado, removendo um componente por vez. Elas não re-treinam pesos.
+
+**Limite:** `recall@k` nesta camada significa recuperação de itens julgados relevantes **dentro do common pool**. Não é estimativa de recall bibliográfico global.
+
+### B. DISCOVERY_COVERAGE
+
+Objetivo: testar se o conjunto recuperado pelo NutEV encontra referências relevantes que deveriam ser encontradas e como sua cobertura se compara a rotas independentes.
+
+Comparadores mínimos quando a execução real estiver disponível:
+
+- PubMed com estratégia registrada e ordenação nativa;
+- providers/união multibase com estratégia registrada;
+- busca independente usada na construção do gold standard;
+- ferramentas externas somente quando houver exportação reproduzível e comparável.
+
+Essa camada precisa de referências relevantes independentes que possam estar **fora** do corpus NutEV. Somente ela pode sustentar alegações de discovery recall.
+
+`DISCOVERY_COVERAGE` permanece `NOT_TESTED` até existirem execuções comparáveis e gold standard independente.
+
+## Harness label-blind
+
+`tools/build_scientific_benchmark_rankings.py` constrói a camada common-pool sem abrir o gold standard.
+
+Parâmetros pré-especificados:
+
+- frozen runtime SHA obrigatório: `6aa7a5fe6009776e611ca3e1506486606b05f4f6`;
+- BM25 `k1 = 1.2`, `b = 0.75`;
+- `union_unranked` usa SHA-256 pseudoaleatório determinístico com seed `nutev-benchmark-v1`;
+- identidade de ranking usa o contrato canônico do runtime;
+- o manifesto declara `gold_standard_consumed = false`.
+
+A ferramenta deve falhar se o SHA fornecido não corresponder ao candidato congelado.
 
 ## Métricas
 
@@ -36,10 +88,20 @@ Ferramentas externas podem ser adicionadas quando houver forma reprodutível e c
 
 ### Workload
 
-- registros lidos até 80% de recall;
-- registros lidos até 90% de recall;
-- registros lidos até 95% de recall;
-- fração do ranking lida até cada marco.
+- registros lidos até 80% de recall disponível;
+- registros lidos até 90%;
+- registros lidos até 95%;
+- fração da lista lida até cada marco.
+
+### Discovery coverage
+
+Quando a camada B for executada, reportar adicionalmente:
+
+- recall contra o gold standard independente;
+- relevantes exclusivos por sistema/provider;
+- referências do gold standard ausentes do NutEV;
+- contribuição marginal por provider;
+- efeito da quarentena na cobertura.
 
 ## Relevance
 
@@ -48,7 +110,9 @@ Ferramentas externas podem ser adicionadas quando houver forma reprodutível e c
 
 ## Identidade
 
-Os rankings e o gold standard devem usar o mesmo `reference_id` canônico. Registros sem identidade reconciliável devem ser reportados, não aproximados silenciosamente.
+Rankings e gold standard precisam de reconciliação explícita de identidade. Não usar posição no ranking como identidade e não aproximar títulos silenciosamente.
+
+O common-pool usa o `reference_id` derivado do contrato do runtime congelado. A camada de discovery pode preservar DOI/PMID/PMCID/URL e uma chave manual controlada para referências externas, mas qualquer reconciliação com o ranking precisa ficar auditável.
 
 ## Pré-especificação
 
@@ -56,18 +120,22 @@ Antes de abrir `external_test`, registrar:
 
 - commit SHA do candidato;
 - hash de `reference_mode.json`;
+- hash de `reference_search.json`;
 - hash de `taxonomy_registry.json`;
 - hashes de `keyword_taxonomy*.json`;
 - queries e provider limits;
 - versão da política de guardrails;
-- scripts e versões de comparadores;
-- critérios primários de sucesso.
+- versão/hash dos scripts de benchmark;
+- comparadores e parâmetros;
+- critério primário de sucesso.
 
-## Critério mínimo para sair de B_DEMOTE
+## Critério para sair de B_DEMOTE
 
-Não existe limiar universal pré-declarado neste scaffold. Antes do teste externo, deve ser escolhido um critério material e defensável, por exemplo ganho em `recall@100`, `nDCG@20` ou redução de workload sem perda inaceitável de recall.
+Nenhum resultado do common-pool isoladamente autoriza `D — VALIDATED_FOR_DEFINED_USE`.
 
-O critério deve ser escolhido antes de observar o conjunto externo e permanecer registrado mesmo se o resultado for desfavorável.
+Para considerar `C — SCIENTIFIC_CANDIDATE`, deve existir sinal quantitativo pré-especificado de benefício sobre o baseline primário, acompanhado de análise por pergunta e sem perda material escondida em métricas secundárias.
+
+Para considerar `D`, o efeito precisa sobreviver ao conjunto externo selado e ao escopo definido da alegação. O critério numérico final deve ser registrado **antes** de abrir `external_test`; não pode ser escolhido depois de observar o resultado.
 
 ## Relato
 
@@ -76,10 +144,10 @@ Para cada sistema:
 - métricas por pergunta;
 - média e mediana;
 - dispersão;
-- pior caso;
-- melhor caso;
-- número de perguntas vencidas/empatadas/perdidas versus baseline primário;
-- análise de erros qualitativa.
+- pior e melhor caso;
+- perguntas vencidas/empatadas/perdidas versus baseline primário;
+- análise de erros;
+- distinção explícita entre common-pool e discovery coverage.
 
 ## Estatística
 
@@ -87,8 +155,10 @@ Quando o número de perguntas permitir, usar intervalos de confiança por reamos
 
 ## Ablations
 
-Ablations devem alterar um componente por vez usando o mesmo corpus e gold standard. Se uma ablação melhorar consistentemente o resultado, o componente removido deve ser considerado prejudicial ou desnecessário até explicação adicional.
+As ablações alteram um componente por vez no score congelado usando o mesmo common pool e os mesmos labels. Se a remoção de um componente melhorar consistentemente o desempenho, o componente removido deve ser tratado como potencialmente prejudicial ou desnecessário até explicação adicional.
 
 ## Estado atual
 
-`NOT_TESTED` — o scaffold de métricas pode ser executado somente após existir gold standard e arquivos de ranking comparáveis.
+- `COMMON_POOL_PRIORITIZATION`: **INFRASTRUCTURE_READY / LABELS_NOT_AVAILABLE**;
+- `DISCOVERY_COVERAGE`: **NOT_TESTED**;
+- veredito científico do produto: **B — DEMOTE**.
