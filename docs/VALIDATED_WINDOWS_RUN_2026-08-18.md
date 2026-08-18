@@ -38,10 +38,10 @@ The supplied `latest.json` output reported:
 }
 ```
 
-The source files reported for that ranking were:
+The source files reported for that ranking were a general collection master and the native Latin-source master. The local Windows username is normalized below to avoid publishing workstation-specific account data:
 
 ```text
-C:\Users\Victor\NutEV-Evidence-Engine\project_output_reference\13_reference_collection\reference_20260818T143953-0300_246d457c\master_records.jsonl
+%USERPROFILE%\NutEV-Evidence-Engine\project_output_reference\13_reference_collection\reference_20260818T143953-0300_246d457c\master_records.jsonl
 project_output_reference\14_latin_native\latin_20260818T144145-0300\latin_native_records.jsonl
 ```
 
