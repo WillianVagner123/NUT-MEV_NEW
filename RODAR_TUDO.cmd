@@ -7,7 +7,7 @@ echo ============================================================
 echo NUTEV EVIDENCE ENGINE - RODAR TUDO
 echo ============================================================
 echo Um comando para executar tudo que o computador pode fazer agora.
-echo Coleta real + autosave + limpeza + deduplicacao tecnica + extracao + OCR.
+echo Coleta real + LILACS/BVS + SciELO nativo + limpeza + deduplicacao tecnica + extracao + OCR.
 echo Gates humanos/cientificos nao serao inventados.
 echo.
 
@@ -22,7 +22,7 @@ if not exist "%PY%" (
   exit /b 1
 )
 
-echo [1/4] Verificando dependencias Python para documentos/OCR...
+echo [1/5] Verificando dependencias Python para documentos/OCR...
 "%PY%" -c "import fitz, PIL, pytesseract, pypdf" >nul 2>nul
 if errorlevel 1 (
   echo Instalando dependencias .[documents] no ambiente virtual...
@@ -37,7 +37,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [2/4] Verificando Tesseract para PDFs escaneados...
+echo [2/5] Verificando Tesseract para PDFs escaneados...
 where tesseract >nul 2>nul
 if errorlevel 1 (
   if exist "C:\Program Files\Tesseract-OCR\tesseract.exe" (
@@ -64,17 +64,27 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/4] COLETA REAL COMPLETA - todas as fontes automatizaveis...
+echo [3/5] COLETA REAL COMPLETA - fontes automatizaveis gerais...
 call run_everything_now.cmd
 set "COLLECT_EXIT=!ERRORLEVEL!"
 if not "!COLLECT_EXIT!"=="0" (
-  echo AVISO: coleta terminou com codigo !COLLECT_EXIT!.
-  echo Autosaves foram preservados. O pos-processamento tentara usar o ultimo master valido.
+  echo AVISO: coleta geral terminou com codigo !COLLECT_EXIT!.
+  echo Autosaves foram preservados. O fluxo continuara.
   set "OVERALL_EXIT=1"
 )
 
 echo.
-echo [4/4] LIMPEZA + ORGANIZACAO + EXTRACAO/OCR...
+echo [4/5] LILACS/BVS + SCIELO NATIVO...
+"%PY%" tools\run_latin_sources.py --project-root "%PROJECT_ROOT%"
+set "LATIN_EXIT=!ERRORLEVEL!"
+if not "!LATIN_EXIT!"=="0" (
+  echo AVISO: uma ou mais rotas latino-americanas falharam ou mudaram de interface.
+  echo O HTML bruto e os erros disponiveis foram preservados para auditoria quando possivel.
+  set "OVERALL_EXIT=1"
+)
+
+echo.
+echo [5/5] LIMPEZA + ORGANIZACAO + EXTRACAO/OCR...
 call process_everything_now.cmd
 set "PROCESS_EXIT=!ERRORLEVEL!"
 if not "!PROCESS_EXIT!"=="0" (
@@ -87,15 +97,18 @@ echo.
 echo ============================================================
 echo NUTEV - RODAR TUDO TERMINOU
 echo ============================================================
-echo Coleta: codigo !COLLECT_EXIT!
+echo Coleta geral: codigo !COLLECT_EXIT!
+echo LILACS/BVS + SciELO: codigo !LATIN_EXIT!
 echo Pos-processamento/OCR: codigo !PROCESS_EXIT!
 echo.
 echo Auditorias:
 echo   %PROJECT_ROOT%\07_logs\collect_everything\latest.json
+echo   %PROJECT_ROOT%\07_logs\latin_native\latest.json
 echo   %PROJECT_ROOT%\07_logs\postprocess_everything\latest.json
 echo.
-echo O sistema executou tudo que e computacionalmente permitido agora.
-echo Se houver fila humana, ela e o proximo limite real; o software nao inventa INCLUDE/EXCLUDE, PRESS, FREEZE ou PRISMA.
+echo Scopus e Web of Science nao sao simulados nem tratados como equivalentes por outras bases.
+echo As rotas abertas ampliam cobertura; nao apagam a limitacao metodologica de acesso licenciado.
+echo O sistema nao inventa INCLUDE/EXCLUDE, PRESS, FREEZE ou PRISMA.
 echo.
 
 if "%OVERALL_EXIT%"=="0" (
