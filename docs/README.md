@@ -1,14 +1,16 @@
 # Documentação do NutEV Reference Engine
 
-Esta pasta contém a documentação operacional, técnica, de release e de proveniência do produto suportado atualmente.
+Esta pasta contém a documentação operacional, técnica, de auditoria, taxonomia, release e proveniência do produto suportado atualmente.
 
 ## Ordem recomendada de leitura
 
 1. [`POP_USO_NUTEV_REFERENCE_ENGINE.md`](POP_USO_NUTEV_REFERENCE_ENGINE.md) — como instalar, atualizar, executar, verificar sucesso e recuperar falhas.
 2. [`ARCHITECTURE.md`](ARCHITECTURE.md) — arquitetura real do pipeline, regras de deduplicação, scoring e contratos de saída.
-3. [`SEARCH_PROVIDERS.md`](SEARCH_PROVIDERS.md) — providers, limites, credenciais, estados `failed`/`unavailable` e comportamento de cobertura.
-4. [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — limitações conhecidas e interpretação responsável dos outputs.
-5. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida.
+3. [`TAXONOMY.md`](TAXONOMY.md) — taxonomia canônica, dimensões, grupos, rank dentro da taxonomia e governança de novos termos.
+4. [`AUDITABILITY_AND_GUARDRAILS.md`](AUDITABILITY_AND_GUARDRAILS.md) — integridade, rastreabilidade, hashes, quarentena e comportamento fail-closed.
+5. [`SEARCH_PROVIDERS.md`](SEARCH_PROVIDERS.md) — providers, limites, credenciais, estados `failed`/`unavailable` e comportamento de cobertura.
+6. [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — limitações conhecidas e interpretação responsável dos outputs.
+7. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
 ## Release, DOI e proveniência
 
@@ -21,7 +23,7 @@ Esta pasta contém a documentação operacional, técnica, de release e de prove
 ## Produto suportado
 
 ```text
-SEARCH -> NORMALIZE -> DEDUPLICATE -> RANK -> EXPORT
+SEARCH -> NORMALIZE -> DEDUPLICATE -> CLASSIFY -> RANK -> EXPORT
 ```
 
 Entrada operacional no Windows:
@@ -41,18 +43,35 @@ Iniciar-NutEV-Windows.bat
      -> tools/rank_references.py
 ```
 
+## Taxonomia canônica
+
+Os arquivos `keyword_taxonomy*.json` preservam o vocabulário acumulado do projeto. A classificação usada no ranking é organizada por `config/taxonomy_registry.json` em quatro dimensões estáveis:
+
+```text
+domain
+context
+condition
+outcome
+```
+
+Estruturas históricas `workstreams.*` e `global.document_types.*` não entram no score taxonômico. Novos caminhos semânticos não registrados fazem a compilação da taxonomia falhar em vez de alterar silenciosamente o ranking.
+
 ## Saídas canônicas
 
 ```text
 project_output_reference/reference_ranking/TOP_REFERENCIAS.md
 project_output_reference/reference_ranking/reference_ranking.csv
 project_output_reference/reference_ranking/reference_ranking.jsonl
+project_output_reference/reference_ranking/reference_quarantine.jsonl
+project_output_reference/reference_ranking/AUDIT_MANIFEST.json
 project_output_reference/reference_ranking/latest.json
 ```
 
+O ranking exporta `reference_rank` global e também classificação/rank taxonômico por referência, incluindo `taxonomy_primary`, `taxonomy_primary_rank`, `taxonomy_secondary`, `taxonomy_group_scores` e `taxonomy_ranks`.
+
 ## Fronteira de interpretação
 
-O Reference Engine é uma ferramenta de **descoberta e priorização de leitura**.
+O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**.
 
 Ele não substitui:
 
@@ -67,7 +86,9 @@ A deduplicação atual é orientada por DOI, PMID, URL e, como fallback, título
 
 ## Evidência operacional registrada
 
-Uma execução real no Windows, em 18/08/2026, terminou com status `COMPLETE`, `8.702` registros de entrada no ranking, `8.702` registros únicos segundo a regra ativa, `115` grupos de taxonomia carregados e TOP 100 exportado.
+Uma execução real no Windows, em 18/08/2026, terminou com status `COMPLETE`, `8.702` registros de entrada no ranking, `8.702` registros únicos segundo a regra então ativa, `115` grupos brutos de taxonomia carregados e TOP 100 exportado.
+
+Esse registro é histórico. A taxonomia canônica v2 reorganiza os grupos para reduzir fragmentação e remover workstreams históricos do scoring; portanto, a contagem de grupos de futuras execuções não deve ser comparada diretamente com os `115` grupos do run anterior.
 
 Esses números descrevem uma execução observada, não uma promessa de volume ou cobertura para execuções futuras.
 

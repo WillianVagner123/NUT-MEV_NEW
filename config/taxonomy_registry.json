@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "taxonomy_version": "2026-08-v2",
+  "description": "Canonical NutEV Reference Engine taxonomy. Existing keyword_taxonomy*.json files remain vocabulary/provenance inputs; this registry maps their semantic leaf paths into stable neutral groups used for classification and ranking.",
+  "allowed_roots": [
+    "global",
+    "clinical",
+    "outcomes"
+  ],
+  "excluded_paths": [
+    "global.document_types"
+  ],
+  "primary_dimension_order": [
+    "domain",
+    "context",
+    "condition",
+    "outcome"
+  ],
+  "dimensions": {
+    "domain": "Tema ou intervenção de Nutrição do Estilo de Vida",
+    "context": "Implementação, comportamento, cuidado e contexto social/alimentar",
+    "condition": "Condição clínica associada",
+    "outcome": "Desfecho ou construto avaliado"
+  },
+  "groups": {
+    "domain.lifestyle_medicine.nutrition": {
+      "label_pt": "Nutrição na Medicina do Estilo de Vida",
+      "source_paths": ["global.lifestyle_medicine_pillars.nutrition"]
+    },
+    "domain.lifestyle_medicine.physical_activity": {
+      "label_pt": "Atividade física",
+      "source_paths": ["global.lifestyle_medicine_pillars.physical_activity"]
+    },
+    "domain.lifestyle_medicine.sleep_stress_social": {
+      "label_pt": "Sono, estresse e conexão social",
+      "source_paths": ["global.lifestyle_medicine_pillars.sleep_stress_social"]
+    },
+    "domain.lifestyle_medicine.substance_risk_reduction": {
+      "label_pt": "Redução de risco por tabaco, álcool e substâncias",
+      "source_paths": ["global.lifestyle_medicine_pillars.substances"]
+    },
+    "domain.dietary_patterns.general": {
+      "label_pt": "Padrões alimentares",
+      "source_paths": ["global.diet_patterns.core"]
+    },
+    "domain.dietary_patterns.guidelines": {
+      "label_pt": "Guias e diretrizes alimentares",
+      "source_paths": ["global.diet_patterns.guidelines"]
+    },
+    "domain.dietary_patterns.mediterranean": {
+      "label_pt": "Padrão mediterrâneo",
+      "source_paths": ["global.diet_patterns.mediterranean"]
+    },
+    "domain.dietary_patterns.dash": {
+      "label_pt": "Padrão DASH",
+      "source_paths": ["global.diet_patterns.dash"]
+    },
+    "domain.dietary_patterns.mind": {
+      "label_pt": "Padrão MIND",
+      "source_paths": ["global.diet_patterns.mind"]
+    },
+    "domain.dietary_patterns.plant_based": {
+      "label_pt": "Padrões baseados em plantas",
+      "source_paths": ["global.diet_patterns.plant_based"]
+    },
+    "domain.dietary_patterns.sustainable": {
+      "label_pt": "Padrões saudáveis e sustentáveis",
+      "source_paths": ["global.diet_patterns.eat_lancet"]
+    },
+    "domain.dietary_patterns.portfolio_nordic": {
+      "label_pt": "Portfolio e padrões nórdicos",
+      "source_paths": ["global.diet_patterns.portfolio_nordic"]
+    },
+    "domain.dietary_patterns.processing": {
+      "label_pt": "Processamento de alimentos",
+      "source_paths": ["global.diet_patterns.processing"]
+    },
+    "domain.dietary_patterns.chrononutrition": {
+      "label_pt": "Crononutrição e timing alimentar",
+      "source_paths": ["global.diet_patterns.chrononutrition"]
+    },
+    "domain.dietary_patterns.remission_maintenance": {
+      "label_pt": "Remissão metabólica e manutenção",
+      "source_paths": ["global.diet_patterns.metabolic_remission_and_maintenance"]
+    },
+    "domain.dietary_patterns.cardioprotective": {
+      "label_pt": "Padrões cardioprotetores",
+      "source_paths": ["global.diet_patterns.cardiometabolic_dietary_patterns"]
+    },
+    "domain.dietary_patterns.diet_quality_indices": {
+      "label_pt": "Índices de qualidade da dieta",
+      "source_paths": ["global.diet_patterns.diet_quality_indices"]
+    },
+    "domain.nutrition_composition.energy": {
+      "label_pt": "Energia e balanço energético",
+      "source_paths": ["global.nutrition_domains.energy"]
+    },
+    "domain.nutrition_composition.carbohydrates": {
+      "label_pt": "Carboidratos, fibras e qualidade de carboidratos",
+      "source_paths": ["global.nutrition_domains.carbohydrates"]
+    },
+    "domain.nutrition_composition.proteins": {
+      "label_pt": "Proteínas e fontes proteicas",
+      "source_paths": ["global.nutrition_domains.proteins"]
+    },
+    "domain.nutrition_composition.fats": {
+      "label_pt": "Gorduras e qualidade lipídica",
+      "source_paths": ["global.nutrition_domains.fats"]
+    },
+    "domain.nutrition_composition.food_matrix_micronutrients": {
+      "label_pt": "Matriz alimentar, densidade nutricional e micronutrientes",
+      "source_paths": ["global.nutrition_domains.fiber_matrix_micros"]
+    },
+    "domain.nutrition_composition.food_groups": {
+      "label_pt": "Grupos de alimentos",
+      "source_paths": ["global.nutrition_domains.food_groups"]
+    },
+    "domain.culinary_food_literacy.culinary_practice": {
+      "label_pt": "Habilidades culinárias, planejamento, rotulagem e literacia alimentar",
+      "source_paths": ["global.nutrition_domains.culinary_labeling"]
+    },
+    "domain.culinary_food_literacy.instruments": {
+      "label_pt": "Instrumentos de literacia, competência e habilidades alimentares",
+      "source_paths": ["global.implementation_behavior.food_literacy_instruments"]
+    },
+    "context.behavior_change.adherence": {
+      "label_pt": "Adesão e implementação",
+      "source_paths": ["global.implementation_behavior.adherence"]
+    },
+    "context.behavior_change.behavioral": {
+      "label_pt": "Mudança de comportamento",
+      "source_paths": ["global.implementation_behavior.behavioral"]
+    },
+    "context.behavior_change.maintenance_self_regulation": {
+      "label_pt": "Manutenção, autorregulação e prevenção de recaída",
+      "source_paths": ["global.implementation_behavior.maintenance_self_regulation"]
+    },
+    "context.behavior_change.engagement_retention": {
+      "label_pt": "Engajamento, retenção e dose de intervenção",
+      "source_paths": ["global.implementation_behavior.adherence_engagement_retention"]
+    },
+    "context.social_environment.contextual_determinants": {
+      "label_pt": "Determinantes contextuais e ambiente social/alimentar",
+      "source_paths": ["global.implementation_behavior.contextual"]
+    },
+    "context.social_environment.commensality": {
+      "label_pt": "Comensalidade e refeições compartilhadas",
+      "source_paths": ["global.implementation_behavior.commensality"]
+    },
+    "context.care_delivery.group_care": {
+      "label_pt": "Cuidado em grupo, visitas compartilhadas e apoio por pares",
+      "source_paths": ["global.implementation_behavior.group_care_delivery"]
+    },
+    "context.care_delivery.personalized_nutrition": {
+      "label_pt": "Nutrição personalizada, decisão compartilhada e coaching",
+      "source_paths": [
+        "global.implementation_behavior.personalized_adherence",
+        "global.implementation_behavior.personalized_nutrition_adherence"
+      ]
+    },
+    "context.implementation.diabetes_prevention_translation": {
+      "label_pt": "Tradução e implementação de programas de prevenção do diabetes",
+      "source_paths": ["global.implementation_behavior.diabetes_prevention_translation"]
+    },
+    "context.food_access.food_as_medicine": {
+      "label_pt": "Food is Medicine e prescrições alimentares",
+      "source_paths": ["global.implementation_behavior.food_as_medicine_access"]
+    },
+    "context.food_access.incentives_programs": {
+      "label_pt": "Incentivos, subsídios e programas de acesso a alimentos saudáveis",
+      "source_paths": ["global.nutrition_domains.food_access_interventions"]
+    },
+    "context.food_access.food_environment": {
+      "label_pt": "Ambiente alimentar, varejo e políticas de acesso",
+      "source_paths": ["global.implementation_behavior.food_environment_access"]
+    },
+    "context.food_access.navigation_referral": {
+      "label_pt": "Navegação e encaminhamento para recursos alimentares",
+      "source_paths": ["global.implementation_behavior.food_navigation_referral"]
+    },
+    "context.food_access.social_prescribing": {
+      "label_pt": "Social prescribing relacionado a alimentação e nutrição",
+      "source_paths": ["global.implementation_behavior.social_prescribing_food_referral"]
+    },
+    "condition.obesity": {
+      "label_pt": "Obesidade e adiposidade",
+      "source_paths": ["clinical.obesity"]
+    },
+    "condition.diabetes": {
+      "label_pt": "Diabetes e metabolismo glicêmico",
+      "source_paths": ["clinical.diabetes"]
+    },
+    "condition.hypertension": {
+      "label_pt": "Hipertensão",
+      "source_paths": ["clinical.hypertension"]
+    },
+    "condition.dyslipidemia": {
+      "label_pt": "Dislipidemia",
+      "source_paths": ["clinical.dyslipidemia"]
+    },
+    "condition.cardiovascular": {
+      "label_pt": "Doença e risco cardiovascular",
+      "source_paths": ["clinical.cvd"]
+    },
+    "condition.metabolic_syndrome": {
+      "label_pt": "Síndrome metabólica",
+      "source_paths": ["clinical.metabolic_syndrome"]
+    },
+    "condition.fatty_liver": {
+      "label_pt": "Doença hepática esteatótica metabólica",
+      "source_paths": ["clinical.fatty_liver"]
+    },
+    "condition.ckm_cardiorenal": {
+      "label_pt": "Saúde cardiovascular-rim-metabólica e cardiorrenal",
+      "source_paths": ["clinical.cardiometabolic"]
+    },
+    "outcome.anthropometry": {
+      "label_pt": "Antropometria e peso corporal",
+      "source_paths": ["outcomes.anthropometry"]
+    },
+    "outcome.glycemia": {
+      "label_pt": "Glicemia e controle glicêmico",
+      "source_paths": ["outcomes.glycemia"]
+    },
+    "outcome.blood_pressure": {
+      "label_pt": "Pressão arterial",
+      "source_paths": ["outcomes.pressure"]
+    },
+    "outcome.lipids": {
+      "label_pt": "Lipídios e lipoproteínas",
+      "source_paths": ["outcomes.lipids"]
+    },
+    "outcome.inflammation": {
+      "label_pt": "Inflamação, função endotelial e estresse oxidativo",
+      "source_paths": ["outcomes.inflammation"]
+    },
+    "outcome.diet_quality_adherence": {
+      "label_pt": "Qualidade da dieta, adesão e manutenção",
+      "source_paths": ["outcomes.diet_quality_adherence"]
+    },
+    "outcome.behavioral": {
+      "label_pt": "Desfechos comportamentais",
+      "source_paths": ["outcomes.behavioral"]
+    },
+    "outcome.cardiometabolic": {
+      "label_pt": "Desfechos cardiometabólicos e cardiorrenais",
+      "source_paths": ["outcomes.cardiometabolic"]
+    },
+    "outcome.food_access_implementation": {
+      "label_pt": "Acesso alimentar e implementação",
+      "source_paths": ["outcomes.food_access_implementation"]
+    },
+    "outcome.food_literacy_competence": {
+      "label_pt": "Literacia, competência e habilidades alimentares",
+      "source_paths": ["outcomes.food_literacy_competence"]
+    },
+    "outcome.personalized_adherence": {
+      "label_pt": "Adesão em cuidado nutricional personalizado",
+      "source_paths": ["outcomes.personalized_adherence"]
+    }
+  }
+}
