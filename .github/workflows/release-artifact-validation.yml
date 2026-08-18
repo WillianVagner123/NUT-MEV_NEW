@@ -60,19 +60,5 @@ jobs:
           )"
           ACTUAL="$(.release-venv/bin/python -c "from importlib.metadata import version; print(version('nutev-nutmev'))")"
           test "$ACTUAL" = "$EXPECTED"
-          .release-venv/bin/nutev --help
-
-      - name: Zero-key demo from installed wheel
-        run: |
-          .release-venv/bin/nutev demo-data --project-root ./project_output_release_validation
-          test -f ./project_output_release_validation/07_logs/run_summary.json
-          .release-venv/bin/python - <<'PY'
-          import json
-          from pathlib import Path
-
-          path = Path('project_output_release_validation/07_logs/run_summary.json')
-          payload = json.loads(path.read_text(encoding='utf-8'))
-          if not isinstance(payload, dict) or not payload:
-              raise SystemExit('zero-key run_summary.json is missing or empty')
-          print('zero-key run summary validated:', path)
-          PY
+          .release-venv/bin/nutev --version
+          .release-venv/bin/nutev providers

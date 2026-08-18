@@ -11,17 +11,38 @@ from typing import Any, Iterable
 
 _SPACE_RE = re.compile(r"\s+")
 _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
-_LEGACY_FIELDS = {
-    "prisma_eligible",
-    "formal_execution_authorized",
-    "scientific_gate_effect",
-    "human_screening_decision",
-    "human_decision_inferred",
-    "screening_stage",
-    "human_decision",
-    "reviewer",
-    "reviewed_at",
-    "machine_decision",
+_PUBLIC_INPUT_FIELDS = {
+    "source",
+    "source_provider",
+    "source_institution",
+    "source_category",
+    "title",
+    "abstract",
+    "summary",
+    "snippet",
+    "doi",
+    "doi_normalized",
+    "pmid",
+    "pmid_normalized",
+    "pmcid",
+    "url",
+    "url_normalized",
+    "journal",
+    "year",
+    "publication_year",
+    "published_year",
+    "publication_date",
+    "date",
+    "article_type",
+    "authors",
+    "keywords",
+    "keyword",
+    "subjects",
+    "query",
+    "provider_query",
+    "provider_search_url",
+    "metadata_status",
+    "collection_type",
 }
 
 
@@ -268,7 +289,7 @@ def score_record(
     if not abstract:
         score -= 1.0
 
-    clean = {key: value for key, value in row.items() if key not in _LEGACY_FIELDS}
+    clean = {key: value for key, value in row.items() if key in _PUBLIC_INPUT_FIELDS}
     return {
         **clean,
         "reference_score": round(score, 2),
