@@ -33,3 +33,35 @@ Restricting the default primary pool to the candidate and primary baseline there
 ### Scientific boundary
 
 This amendment changes only the **human judgment workload/universe for the primary comparison**. It does not supply evidence, improve measured performance, or change the current verdict of **B — DEMOTE**.
+
+---
+
+## Amendment 2 — physical sealing by benchmark split
+
+Status: **PRE-RESULTS / NO HUMAN LABELS OBSERVED**  
+Recorded: **2026-08-18**
+
+### Change
+
+Development, validation and external-test judgment pools, assessor packets, raw assessments, gold-standard files and metric outputs should be generated and held as **physically separate artifacts**.
+
+The benchmark tools support split-specific pool construction and split-specific metric evaluation. The external-test gold/results must remain under separate custody until the validation continuation decision is locked.
+
+### Reason
+
+A single combined gold/result file could expose external-test labels or performance to the development team while the validation decision is still being made. Even if no code used those labels for training, that exposure would weaken the claim that `external_test` remained sealed.
+
+Physical separation makes the leakage boundary operational rather than relying only on analyst discipline.
+
+### Safeguards
+
+- `build_blinded_judgment_pool.py --split <split>` creates split-specific pools.
+- `evaluate_scientific_validation.py --split <split>` computes only the requested split.
+- External-test completed assessor packets, raw assessments, gold and metrics should be held by a custodian not making validation-stage candidate changes.
+- Validation-stage analysts receive no external gold, external metrics or external error analysis.
+- The external package is released only after the validation decision and candidate freeze are documented.
+- If external labels leak before that point, the affected external test is no longer considered sealed and must not support `D — VALIDATED_FOR_DEFINED_USE` without a new independent external round.
+
+### Scientific boundary
+
+This amendment strengthens leakage control. It does not alter the frozen runtime, improve any measured score, or itself change the verdict from **B — DEMOTE**.
