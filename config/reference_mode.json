@@ -1,0 +1,28 @@
+{
+  "mode": "REFERENCE_RANKING",
+  "top_n": 100,
+  "focus_keywords": [
+    "lifestyle medicine",
+    "lifestyle nutrition",
+    "nutrition care",
+    "dietary pattern",
+    "food-based dietary guideline",
+    "behavior change",
+    "food literacy",
+    "culinary",
+    "shared decision making",
+    "social determinants of health"
+  ],
+  "provider_weights": {
+    "official": 8,
+    "pubmed": 6,
+    "lilacs": 5,
+    "bvs": 5,
+    "scielo": 4,
+    "europepmc": 4,
+    "openalex": 3,
+    "crossref": 2,
+    "doaj": 2,
+    "semantic": 2
+  }
+}
