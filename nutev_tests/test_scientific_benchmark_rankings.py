@@ -4,6 +4,7 @@ import csv
 import importlib.util
 import json
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -13,6 +14,7 @@ MODULE_PATH = ROOT / "tools" / "build_scientific_benchmark_rankings.py"
 SPEC = importlib.util.spec_from_file_location("build_scientific_benchmark_rankings", MODULE_PATH)
 assert SPEC and SPEC.loader
 benchmark = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = benchmark
 SPEC.loader.exec_module(benchmark)
 
 
