@@ -11,11 +11,13 @@ Merged `main`: `55344c4201febfe435fba1bc001ac96fd5d96dc8`
 
 Reduce the current working tree to the supported NutEV Reference Engine and remove obsolete product surfaces rather than retaining them as compatibility layers.
 
-Canonical product flow:
+Canonical product flow at the time of this cleanup:
 
 ```text
 SEARCH -> NORMALIZE -> DEDUPLICATE -> RANK -> EXPORT
 ```
+
+The later guardrail layer extends the operational flow with traceability gating and audit outputs; see `docs/AUDITABILITY_AND_GUARDRAILS.md`.
 
 ## Dependency finding
 
@@ -59,7 +61,7 @@ The original collector still obtained its PubMed query from a research-workflow-
 
 ## Dependency audit
 
-Current runtime dependency target: `requests` only. Development/CI dependencies are isolated in the `dev` extra and `requirements/nutev-ci.txt`.
+Current runtime dependency target at cleanup time: `requests` only. Development/CI dependencies are isolated in the `dev` extra and `requirements/nutev-ci.txt`.
 
 ## Final diff statistics
 
@@ -79,8 +81,21 @@ All workflows associated with validated cleanup head `1d418d26bb3fe72e460b728b91
 
 The cleanup PR was marked ready only after these checks completed successfully and was merged without bypass. The resulting `main` merge commit is `55344c4201febfe435fba1bc001ac96fd5d96dc8`.
 
-The merge commit points to the cleaned Reference Engine tree. Release metadata on `main` remains synchronized at version `1.0.0`; no Zenodo DOI is claimed before a real archive DOI exists and is verified.
+The merge commit points to the cleaned Reference Engine tree. Release metadata on `main` remained synchronized at version `1.0.0`.
+
+## DOI state: historical clarification
+
+At the exact time this cleanup audit was written, no Zenodo DOI had yet been claimed because an archive DOI had not been independently verified. That statement described the repository state **at that point in time** and must not be read as a current assertion.
+
+The stable v1.0.0 archive was subsequently published and verified as:
+
+- Zenodo record: `21998607`;
+- DOI: `10.5281/zenodo.21998607`.
+
+The immutable release snapshot remains the `v1.0.0` tag; later guardrails and documentation changes on `main` do not rewrite that archived snapshot.
 
 ## Result
 
-The current tree is intentionally focused on the Reference Engine product. Obsolete research-review and parallel product surfaces remain recoverable through Git history but are not present in the supported HEAD runtime.
+The cleanup established the Reference Engine as the supported product and removed obsolete research-review and parallel product surfaces from the current tree. Those historical surfaces remain recoverable through Git history but are not part of the supported runtime.
+
+For the current fail-closed provenance, quarantine and hashing contract, use `docs/AUDITABILITY_AND_GUARDRAILS.md` rather than treating this historical cleanup document as the current operational specification.
