@@ -1,8 +1,11 @@
 # Reference Engine cleanup audit
 
 Date: 2026-08-18  
-Branch: `agent/cleanup-reference-engine`  
-Base `main`: `dd4dcb9857b64696ec61976ef63a3e1164eb32e8`
+Cleanup branch: `agent/cleanup-reference-engine`  
+Initial audit base: `dd4dcb9857b64696ec61976ef63a3e1164eb32e8`  
+Final reconciled base before merge: `ed051bf57026c826cf77569cc58fdce89c8d6407`  
+Validated cleanup head: `1d418d26bb3fe72e460b728b9193997aad03d365`  
+Merged `main`: `55344c4201febfe435fba1bc001ac96fd5d96dc8`
 
 ## Objective
 
@@ -58,8 +61,26 @@ The original collector still obtained its PubMed query from a research-workflow-
 
 Current runtime dependency target: `requests` only. Development/CI dependencies are isolated in the `dev` extra and `requirements/nutev-ci.txt`.
 
-## Validation status
+## Final diff statistics
 
-Remote GitHub Actions is the authoritative integration environment for this cleanup because the execution environment used to prepare the branch could not clone GitHub directly over DNS. No unexecuted local integration test is reported as passed.
+PR #1082 (`Clean repository for Reference Engine v1`) changed 459 files, with 1,159 additions and 67,375 deletions.
 
-Final validation requires all current branch CI/security/build jobs to pass at the exact final SHA. Exact file/line removal statistics and final check results are appended in the final validation commit.
+## Final validation
+
+GitHub Actions was the authoritative integration environment for this cleanup because the preparation environment could not clone GitHub directly over DNS. No unexecuted local integration test is reported as passed.
+
+All workflows associated with validated cleanup head `1d418d26bb3fe72e460b728b9193997aad03d365` completed successfully:
+
+- `ci` — success;
+- `security-scan` — success;
+- `dependency-review` — success;
+- `codeql` — success;
+- `release-artifact-validation` — success.
+
+The cleanup PR was marked ready only after these checks completed successfully and was merged without bypass. The resulting `main` merge commit is `55344c4201febfe435fba1bc001ac96fd5d96dc8`.
+
+The merge commit points to the cleaned Reference Engine tree. Release metadata on `main` remains synchronized at version `1.0.0`; no Zenodo DOI is claimed before a real archive DOI exists and is verified.
+
+## Result
+
+The current tree is intentionally focused on the Reference Engine product. Obsolete research-review and parallel product surfaces remain recoverable through Git history but are not present in the supported HEAD runtime.
