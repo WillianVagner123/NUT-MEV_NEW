@@ -13,7 +13,7 @@ from nutev.settings import NutevSettings
 def main() -> None:
     p = argparse.ArgumentParser(
         prog="nutev",
-        description="NutEV Evidence Engine — canonical command-line interface",
+        description="NutEV Reference Engine — command-line utilities",
     )
     sub = p.add_subparsers(dest="command")
 
@@ -108,9 +108,7 @@ def main() -> None:
     guides.add_argument(
         "--report",
         action="store_true",
-        help=(
-            "Also write the corpus report; needs pip install -e \".[report]\""
-        ),
+        help="Also write the corpus report; needs pip install -e \".[report]\"",
     )
 
     strategy = sub.add_parser(
@@ -139,8 +137,8 @@ def main() -> None:
     play = sub.add_parser(
         "play",
         help=(
-            "Run the gate-aware one-command PILOT pipeline: search, master corpus, "
-            "lawful full-text recovery, download, text extraction and OCR"
+            "Legacy compatibility pipeline retained for historical workflows; "
+            "it is not the supported NutEV Reference Engine v1 path"
         ),
     )
     play.add_argument("--project-root", type=Path, required=True)
@@ -233,7 +231,7 @@ def main() -> None:
             metadata_only=args.metadata_only,
             logger=logger,
         )
-        print("\nNutEV PLAY complete")
+        print("\nLegacy NutEV PLAY compatibility run complete")
         print(f"play_id: {summary['play_id']}")
         print(f"status: {summary['status']['execution_status']}")
         print(
@@ -250,7 +248,7 @@ def main() -> None:
         print(f"summary: {summary['artifacts']['summary_path']}")
         if summary["search"]["any_truncated"]:
             print("WARNING: at least one provider was truncated; this is not exhaustive.")
-        print("Scientific state: PILOT only; PRISMA/formal execution remains blocked.")
+        print("Legacy compatibility path only. Supported v1 path: RODAR_TUDO.cmd -> reference ranking outputs.")
         return
 
     if args.command == "dashboard":
