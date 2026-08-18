@@ -46,7 +46,7 @@ Basta uma instalação Python compatível; o launcher procura primeiro `py -3.12
 No Prompt de Comando:
 
 ```bat
-cd C:\Users\Victor
+cd %USERPROFILE%
 git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
 cd NutEV-Evidence-Engine
 Iniciar-NutEV-Windows.bat
@@ -58,10 +58,10 @@ Se o repositório já estiver clonado, não é necessário clonar novamente.
 
 ## 5. Atualizar antes de executar
 
-Para trabalhar com a versão mais recente de `main`:
+Para trabalhar com a versão mais recente de `main`, entrar no diretório onde o repositório foi clonado. No local padrão usado neste POP:
 
 ```bat
-cd C:\Users\Victor\NutEV-Evidence-Engine
+cd %USERPROFILE%\NutEV-Evidence-Engine
 git checkout main
 git pull --ff-only origin main
 ```
