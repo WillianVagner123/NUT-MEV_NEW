@@ -3,10 +3,15 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 from typing import Any
 from urllib.parse import urlsplit
 
-GUARDRAIL_POLICY_VERSION = "2026-08-18.1"
+GUARDRAIL_POLICY_VERSION = "2026-08-18.2"
+
+_DOI_RE = re.compile(r"^10\.\d{4,9}/\S+$", re.I)
+_PMID_RE = re.compile(r"^[0-9]{1,9}$")
+_PMCID_RE = re.compile(r"^PMC[0-9]+$", re.I)
 
 
 class IntegrityError(RuntimeError):
@@ -39,11 +44,45 @@ def _has_http_url(value: Any) -> bool:
     return parts.scheme in {"http", "https"} and bool(parts.netloc)
 
 
+def _normalized_doi(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    lowered = raw.casefold()
+    for prefix in (
+        "https://doi.org/",
+        "http://doi.org/",
+        "https://dx.doi.org/",
+        "http://dx.doi.org/",
+        "doi:",
+    ):
+        if lowered.startswith(prefix):
+            raw = raw[len(prefix) :].strip()
+            break
+    return raw.rstrip(" .;,)]}")
+
+
+def _valid_doi(value: Any) -> bool:
+    doi = _normalized_doi(value)
+    return bool(doi and _DOI_RE.fullmatch(doi))
+
+
+def _valid_pmid(value: Any) -> bool:
+    raw = str(value or "").strip()
+    return bool(raw and _PMID_RE.fullmatch(raw))
+
+
+def _valid_pmcid(value: Any) -> bool:
+    raw = str(value or "").strip()
+    return bool(raw and _PMCID_RE.fullmatch(raw))
+
+
 def record_traceability(row: dict[str, Any]) -> tuple[str, list[str]]:
     """Classify whether a record is independently traceable without inference.
 
-    The engine never upgrades or invents missing identifiers. Records that cannot
-    be traced to an identifier or URL are quarantined instead of silently ranked.
+    An identifier must be syntactically plausible to qualify. The engine never
+    upgrades, repairs, or invents identifiers. Records that cannot be traced to a
+    valid identifier or HTTP(S) URL are quarantined instead of silently ranked.
     """
 
     provider = str(row.get("source_provider") or row.get("source") or "").strip()
@@ -58,16 +97,30 @@ def record_traceability(row: dict[str, Any]) -> tuple[str, list[str]]:
     if reasons:
         return "Q_INCOMPLETE_ORIGIN", reasons
 
-    if row.get("doi") or row.get("doi_normalized"):
-        return "A_IDENTIFIER", ["doi"]
-    if row.get("pmid") or row.get("pmid_normalized"):
-        return "A_IDENTIFIER", ["pmid"]
-    if row.get("pmcid"):
-        return "A_IDENTIFIER", ["pmcid"]
-    if _has_http_url(row.get("url") or row.get("url_normalized")):
-        return "B_TRACEABLE_URL", ["url"]
+    doi_value = row.get("doi") or row.get("doi_normalized")
+    pmid_value = row.get("pmid") or row.get("pmid_normalized")
+    pmcid_value = row.get("pmcid")
 
-    return "Q_UNTRACEABLE", ["no_identifier_or_http_url"]
+    invalid_identifiers: list[str] = []
+    if doi_value:
+        if _valid_doi(doi_value):
+            return "A_IDENTIFIER", ["doi"]
+        invalid_identifiers.append("invalid_doi")
+    if pmid_value:
+        if _valid_pmid(pmid_value):
+            return "A_IDENTIFIER", ["pmid"]
+        invalid_identifiers.append("invalid_pmid")
+    if pmcid_value:
+        if _valid_pmcid(pmcid_value):
+            return "A_IDENTIFIER", ["pmcid"]
+        invalid_identifiers.append("invalid_pmcid")
+
+    if _has_http_url(row.get("url") or row.get("url_normalized")):
+        return "B_TRACEABLE_URL", ["url", *invalid_identifiers]
+
+    if invalid_identifiers:
+        return "Q_INVALID_IDENTIFIER", invalid_identifiers
+    return "Q_UNTRACEABLE", ["no_valid_identifier_or_http_url"]
 
 
 def annotate_record(row: dict[str, Any]) -> dict[str, Any]:
