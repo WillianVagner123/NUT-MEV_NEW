@@ -17,6 +17,25 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Verify release identity metadata are synchronized
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          ns = {}
+          exec(Path("src/nutev/__version__.py").read_text(encoding="utf-8"), ns)
+          expected = ns["__version__"]
+          assert expected and ".dev" not in expected, expected
+          assert json.loads(Path(".zenodo.json").read_text(encoding="utf-8"))["version"] == expected
+          citation = Path("CITATION.cff").read_text(encoding="utf-8")
+          versions = [v.strip() for v in re.findall(r'^\s*version:\s*["\']?([^"\'\n#]+)', citation, flags=re.MULTILINE)]
+          assert versions and all(v == expected for v in versions), versions
+          assert "NutEV Reference Engine" in Path("README.md").read_text(encoding="utf-8")
+          print("release identity synchronized:", expected)
+          PY
+
       - name: Build wheel and sdist
         run: |
           python -m pip install --upgrade pip
@@ -33,7 +52,14 @@ jobs:
           WHEEL="$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
           .release-venv/bin/python -m pip install "$WHEEL"
           .release-venv/bin/python -m pip check
-          .release-venv/bin/python -c "from importlib.metadata import version; print(version('nutev-nutmev'))"
+          EXPECTED="$(python - <<'PY'
+          ns = {}
+          exec(open('src/nutev/__version__.py', encoding='utf-8').read(), ns)
+          print(ns['__version__'])
+          PY
+          )"
+          ACTUAL="$(.release-venv/bin/python -c "from importlib.metadata import version; print(version('nutev-nutmev'))")"
+          test "$ACTUAL" = "$EXPECTED"
           .release-venv/bin/nutev --help
 
       - name: Zero-key demo from installed wheel

@@ -5,7 +5,7 @@ build-backend = "pdm.backend"
 [project]
 name = "nutev-nutmev"
 dynamic = ["version"]
-description = "NutEV/NutMEV reproducible evidence engine for lifestyle nutrition research and candidate protocol recommendations"
+description = "NutEV Reference Engine: taxonomy-guided multi-source reference discovery and ranking for lifestyle nutrition research"
 readme = "README.md"
 # Matches the CI matrix (3.12, 3.13). Bump the upper bound only when a 3.14 job
 # is added to .github/workflows/ci.yml — declare only what is actually tested.
@@ -22,65 +22,49 @@ classifiers = [
 ]
 # ---------------------------------------------------------------------------
 # CORE dependencies — the minimum required to import `nutev`, parse config,
-# generate demo data, run a basic bibliographic search and read/write tabular
-# outputs. Deliberately excludes Flask, the frontend, Elasticsearch, FAISS,
-# Playwright, SQLCipher and the LangChain ecosystem (all optional below).
-# Rationale for each is documented in docs/DEPENDENCY_ARCHITECTURE.md.
+# perform bibliographic discovery and read/write tabular outputs.
 # ---------------------------------------------------------------------------
 dependencies = [
-    "pandas~=3.0",            # tabular pipelines/exports/demo (analysis, export, audit, protocol, review, pipelines)
-    "pydantic~=2.12",         # typed engine/audit/api models
-    "requests>=2.32",         # HTTP client for bibliographic search and downloads
-    "beautifulsoup4~=4.14",   # HTML parsing in search/global_watch/download
-    "python-dateutil~=2.9",   # robust parsing of publication dates
-    "openpyxl~=3.1",          # .xlsx export tables (export/extract)
-    "typing-extensions~=4.15",# typing backports used across the core
+    "pandas~=3.0",
+    "pydantic~=2.12",
+    "requests>=2.32",
+    "beautifulsoup4~=4.14",
+    "python-dateutil~=2.9",
+    "openpyxl~=3.1",
+    "typing-extensions~=4.15",
 ]
 
 [project.optional-dependencies]
-# Optional bibliographic search helpers. The arXiv provider itself uses the
-# public Atom API through the core `requests` dependency, not the third-party
-# `arxiv` Python client.
 search = [
-    "wikipedia~=1.4",              # Wikipedia summaries
-    "google-search-results~=2.4",  # SerpAPI (OPTIONAL — Google/SerpAPI not required)
-    "lxml>=5.3",                   # faster HTML/XML parsing
-    "xmltodict~=1.0",              # PubMed / NCBI E-utilities XML
+    "wikipedia~=1.4",
+    "google-search-results~=2.4",
+    "lxml>=5.3",
+    "xmltodict~=1.0",
 ]
-# Document ingestion / OCR / PDF text extraction (heavy, system deps: tesseract, poppler).
 documents = [
     "pypdf~=6.14.2",
     "pdfplumber~=0.11",
-    # PyMuPDF renders scanned PDFs to images with no system dependency, so OCR
-    # works with only `tesseract` installed (no poppler). pdf2image is kept as a
-    # poppler-based fallback for environments that already have it.
     "pymupdf~=1.24",
     "pdf2image~=1.17",
     "pytesseract~=0.3",
     "python-docx~=1.1",
     "Pillow>=12.1.1",
 ]
-# Streamlit review dashboard.
 dashboard = [
     "streamlit",
     "pandas~=3.0",
     "openpyxl~=3.1",
     "plotly~=6.5",
 ]
-# FastAPI platform / REST API.
 api = [
     "fastapi",
     "uvicorn",
     "pydantic~=2.12",
     "jinja2",
 ]
-# Alias kept so the CLI hint `pip install -e ".[platform]"` keeps working.
 platform = [
     "nutev-nutmev[api]",
 ]
-# Optional LLM providers — NutEV runs without any LLM. Nothing here is required
-# to produce RecommendationCandidates; the LLM assists, it never approves.
-# Global Watch browser capture and scheduling.
 watch = [
     "playwright~=1.58",
     "apscheduler~=3.11",
@@ -90,16 +74,12 @@ watch = [
 mcp = [
     "mcp[cli]~=1.2",
 ]
-# Corpus report: fuzzy (content) dedup, thematic clustering and the heatmap.
-# Optional — the guides pipeline runs without it; --report degrades gracefully
-# with an install hint when these are absent.
 report = [
     "scikit-learn~=1.5",
     "matplotlib~=3.9",
     "pandas~=3.0",
     "openpyxl~=3.1",
 ]
-# Development / test tooling (also available as the pdm `dev` group).
 dev = [
     "virtualenv~=20.36",
     "pre-commit~=4.5",
@@ -111,9 +91,6 @@ dev = [
     "mypy~=1.19",
     "types-requests~=2.32",
 ]
-# Everything (all NutEV optional groups). The inherited local_deep_research
-# engine and its `legacy` extra were removed from the active tree; provenance is
-# preserved in LICENSE, NOTICE.md, Git history and docs/PROVENANCE_AND_LICENSE.md.
 all = [
     "nutev-nutmev[search,documents,dashboard,api,watch,mcp,report]",
 ]
@@ -121,37 +98,24 @@ all = [
 [project.urls]
 "Homepage" = "https://github.com/WillianVagner123/NutEV-Evidence-Engine"
 "Bug Tracker" = "https://github.com/WillianVagner123/NutEV-Evidence-Engine/issues"
-"Validation Report" = "https://github.com/WillianVagner123/NutEV-Evidence-Engine/blob/main/docs/VALIDATION_REPORT.md"
 
 [project.scripts]
-# Canonical NutEV/NutMEV entrypoint — the only console script. The inherited
-# local_deep_research engine (and its ldr/ldr-web/ldr-mcp scripts) was removed
-# from the active tree; see NOTICE.md and docs/PROVENANCE_AND_LICENSE.md.
 nutev = "nutev.cli:main"
 
-# Build backend is pdm.backend (see [build-system]); the setuptools section is a
-# fallback for editable installs via `pip install -e .`.
 [tool.setuptools]
 include-package-data = true
 
 [tool.pdm]
 distribution = true
-# Version is sourced from the canonical NutEV package.
 version = { source = "file", path = "src/nutev/__version__.py" }
 
 [tool.pdm.resolution.overrides]
 requests = ">=2.33"
 lxml = ">=6.0"
 
-# Dev tooling now lives in [project.optional-dependencies].dev above so that
-# `pip install -e ".[dev]"` works for external contributors without pdm.
-
 [tool.pytest.ini_options]
-# Canonical test location is nutev_tests/. Historical inherited tests and
-# legacy-only workstream/querypack tests are not part of the current suite.
 testpaths = ["nutev_tests"]
 markers = [
-    # Canonical NutEV test groups.
     "unit: fast, isolated unit tests (default group)",
     "contracts: schema/contract tests (artifact and metadata contracts)",
     "integration_no_network: integration tests that must NOT touch the network",
@@ -161,7 +125,6 @@ markers = [
     "dashboard: tests for the Streamlit dashboard",
     "api: tests for the FastAPI platform",
     "global_watch: tests for the Global Watch pipeline",
-    # Backwards-compatible aliases.
     "requires_llm: (alias of llm) tests requiring a real LLM",
     "integration: (broad) integration tests",
     "asyncio: async tests that use asyncio",

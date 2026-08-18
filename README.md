@@ -1,38 +1,60 @@
-# NutEV Reference Engine — Lifestyle Nutrition
+# NutEV Reference Engine
 
-Motor de busca e priorização de referências para Nutrição do Estilo de Vida.
+**Stable release: 1.0.0**
 
-O objetivo operacional é simples: **buscar em múltiplas fontes, normalizar/deduplicar os registros e apontar quais arquivos/artigos/documentos merecem ser lidos primeiro** com base na taxonomia NutEV e em palavras-chave de foco.
+NutEV Reference Engine is a multi-source reference discovery and prioritization engine for Lifestyle Nutrition research. It searches configured bibliographic and institutional sources, normalizes and deduplicates records, matches them against the NutEV taxonomy and configurable focus keywords, then exports a ranked reading/reference queue.
 
-O caminho padrão **não executa revisão sistemática ou de escopo**, não produz PRISMA, não faz PRESS, não usa FREEZE, não cria decisão automática de INCLUDE/EXCLUDE e não transforma ranking em recomendação clínica.
+The ranking is an information-retrieval aid. It is not a systematic/scoping-review workflow, does not produce scientific INCLUDE/EXCLUDE decisions, does not create clinical recommendations, and does not simulate Scopus or Web of Science.
 
-## Fluxo fechado
+## Supported v1 flow
 
 ```text
-coleta multi-fonte
-      ↓
-LILACS/BVS + SciELO nativo
-      ↓
-deduplicação técnica do ranking
-      ↓
-match com keyword_taxonomy*.json
-      ↓
-score por palavras-chave + taxonomia + tipo documental + fonte + recência
-      ↓
-TOP_REFERENCIAS.md + CSV + JSONL
+SEARCH
+  ↓
+NORMALIZE
+  ↓
+DEDUPLICATE
+  ↓
+RANK
+  ↓
+EXPORT
 ```
 
-O produto final é uma **fila priorizada de leitura/referência**, não um conjunto de estudos incluídos.
+The default Windows launcher expands that flow into the implemented providers:
 
-## Rodar no Windows
+```text
+multi-source collection
+      ↓
+native LILACS/BVS + SciELO
+      ↓
+technical deduplication
+      ↓
+NutEV taxonomy + focus keyword matching
+      ↓
+document/source/recency weighting
+      ↓
+TOP_REFERENCIAS.md + CSV + JSONL + latest.json
+```
 
-Depois de criar/ativar o ambiente virtual e instalar o projeto:
+## Quick Start — Windows
+
+Requires Python `>=3.12,<3.14`.
 
 ```powershell
+git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
+cd NutEV-Evidence-Engine
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[documents,search]"
 .\RODAR_TUDO.cmd
 ```
 
-O comando usa `project_output_reference` e gera principalmente:
+`RODAR_TUDO.cmd` is the supported one-command v1 path.
+
+## Outputs
+
+The primary public outputs are:
 
 ```text
 project_output_reference/reference_ranking/TOP_REFERENCIAS.md
@@ -41,80 +63,61 @@ project_output_reference/reference_ranking/reference_ranking.jsonl
 project_output_reference/reference_ranking/latest.json
 ```
 
-### Faixas do ranking
+### Ranking tiers
 
-- `A_TOP_REFERENCE`: primeiras referências a revisar.
-- `B_STRONG_REFERENCE`: referências fortes e prováveis complementos.
-- `C_DISCOVERY`: descoberta de menor prioridade relativa.
+- `A_TOP_REFERENCE` — highest-priority references to review first.
+- `B_STRONG_REFERENCE` — strong references likely to complement the top set.
+- `C_DISCOVERY` — lower relative priority within the discovered corpus.
 
-Essas faixas são **prioridade de leitura**, não elegibilidade científica.
+These tiers indicate **reading priority only**. They are not scientific eligibility decisions.
 
-## Como o score funciona
+## Sources
 
-O ranker usa os arquivos existentes `config/keyword_taxonomy*.json` e adiciona peso para:
+The collector uses the providers legitimately implemented and available in the repository, including:
 
-- correspondência no título;
-- correspondência em palavras-chave/assuntos;
-- correspondência em resumo/snippet;
-- número de grupos da taxonomia atingidos;
-- palavras-chave de foco configuradas;
-- termos documentais como `guideline`, `consensus`, `statement`, `framework`, `systematic review` e `meta-analysis`;
-- fonte/provedor;
-- identificadores fortes (DOI/PMID/PMCID);
-- recência como bônus leve.
+- PubMed;
+- Europe PMC;
+- OpenAlex;
+- Crossref;
+- DOAJ;
+- Semantic Scholar;
+- configured official/institutional sources;
+- native LILACS/BVS;
+- native SciELO;
+- optional configured web-search routes when credentials are available.
 
-Os pesos de fonte e as palavras-chave de foco ficam em:
+Scopus and Web of Science are not simulated. Their absence is not silently replaced by another provider.
 
-```text
-config/reference_mode.json
-```
+## Ranking model
 
-## Taxonomia
+The ranker uses `config/keyword_taxonomy*.json` together with `config/reference_mode.json`.
 
-A taxonomia principal e seus suplementos continuam sendo a base semântica do Engine:
+Score components include:
+
+- taxonomy-term matches in title, keywords/subjects and abstract/snippet;
+- configurable focus-keyword matches;
+- document-type signals such as guideline, consensus, statement, framework, systematic review and meta-analysis;
+- provider/source weighting;
+- strong identifiers such as DOI/PMID/PMCID;
+- a light recency bonus.
+
+Title matches carry more weight than abstract matches. Recency is intentionally a secondary signal and should not dominate topical relevance.
+
+## Configuration
+
+Main semantic configuration:
 
 ```text
 config/keyword_taxonomy.json
 config/keyword_taxonomy_supplement*.json
+config/reference_mode.json
 ```
 
-Adicionar ou ajustar termos nesses arquivos altera a priorização sem exigir uma nova estrutura de revisão científica.
+Changing taxonomy or focus terms changes prioritization without creating a separate scientific-review workflow.
 
-## Fontes
+## Run only the ranker
 
-O coletor existente consulta as rotas automatizáveis disponíveis no projeto, incluindo PubMed, Europe PMC, OpenAlex, Crossref, DOAJ, Semantic Scholar e fontes oficiais configuradas. O fluxo padrão também executa LILACS/BVS e SciELO nativamente.
-
-Scopus e Web of Science não são simulados.
-
-## Instalação
-
-Requer Python `>=3.12,<3.14`.
-
-### Windows PowerShell
-
-```powershell
-git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
-cd NutEV-Evidence-Engine
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e ".[dashboard,platform,documents]"
-```
-
-### macOS/Linux
-
-```bash
-git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
-cd NutEV-Evidence-Engine
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dashboard,platform,documents]"
-```
-
-## Uso separado do ranker
-
-Se a coleta já existir:
+If collection outputs already exist:
 
 ```bash
 python tools/rank_references.py \
@@ -123,10 +126,35 @@ python tools/rank_references.py \
   --top-n 100
 ```
 
-## Escopo do software
+## Limitations
 
-O NutEV Reference Engine é uma ferramenta de **descoberta, organização e priorização bibliográfica**. A decisão de usar uma referência em tese, artigo, aula, protocolo ou texto continua sendo humana.
+- Provider availability, rate limits and credentials can affect coverage.
+- Web interfaces such as BVS/LILACS and SciELO can change and require connector maintenance.
+- Coverage is heterogeneous across providers, languages, regions and document types.
+- Scopus and Web of Science are not simulated when licensed access is unavailable.
+- The ranking is lexical/taxonomic and metadata-driven; it does not replace human judgment about whether a reference should be cited or used.
+- A high score is not a clinical recommendation and is not proof of methodological quality.
 
-![status](https://img.shields.io/badge/status-reference--mode-blue)
+## Reproducibility and provenance
+
+Raw provider/source identity is preserved through the ranking pipeline. Failures and unavailable sources must remain explicit rather than being converted into fabricated zero-result claims.
+
+Historical research-review modules and documents remain only as compatibility/provenance material. They are outside the supported v1 runtime; see `docs/legacy/README.md` and `docs/RELEASE_V1_AUDIT.md`.
+
+## Citation
+
+Release metadata is provided in `CITATION.cff` and `.zenodo.json`.
+
+Until a real Zenodo archive DOI is issued and verified, no DOI is claimed by this repository.
+
+Preferred software identity:
+
+**NutEV Reference Engine: taxonomy-guided reference discovery and ranking for Lifestyle Nutrition. Version 1.0.0.**
+
+## License
+
+MIT. See `LICENSE` and `NOTICE.md` for licensing and provenance details.
+
+![status](https://img.shields.io/badge/status-stable%201.0.0-blue)
 ![python](https://img.shields.io/badge/python-3.12%E2%80%933.13-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
