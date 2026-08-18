@@ -1,1 +1,1 @@
-question_id,question_text,split,population_context,intervention_exposure,comparator,outcome_construct,time_window,languages,document_types,freeze_date,notes
+question_id,question_text,split,sampling_stratum,outside_historical_focus,population_context,intervention_exposure,comparator,outcome_construct,time_window,languages,document_types,freeze_date,human_approved_by,human_approval_date,notes
