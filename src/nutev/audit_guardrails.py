@@ -3,15 +3,17 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 from pathlib import Path
-import re
 from typing import Any
-from urllib.parse import urlsplit
+
+from nutev.reference_identity import (
+    normalize_url,
+    valid_doi,
+    valid_identifier_kind,
+    valid_pmcid,
+    valid_pmid,
+)
 
 GUARDRAIL_POLICY_VERSION = "2026-08-18.2"
-
-_DOI_RE = re.compile(r"^10\.\d{4,9}/\S+$", re.I)
-_PMID_RE = re.compile(r"^[0-9]{1,9}$")
-_PMCID_RE = re.compile(r"^PMC[0-9]+$", re.I)
 
 
 class IntegrityError(RuntimeError):
@@ -33,48 +35,10 @@ def canonical_json_sha256(value: Any) -> str:
     return sha256(payload).hexdigest()
 
 
-def _has_http_url(value: Any) -> bool:
-    raw = str(value or "").strip()
-    if not raw:
-        return False
-    try:
-        parts = urlsplit(raw)
-    except Exception:
-        return False
-    return parts.scheme in {"http", "https"} and bool(parts.netloc)
+def has_valid_identifier(row: dict[str, Any]) -> bool:
+    """Return whether the record contains a syntactically valid DOI/PMID/PMCID."""
 
-
-def _normalized_doi(value: Any) -> str:
-    raw = str(value or "").strip()
-    if not raw:
-        return ""
-    lowered = raw.casefold()
-    for prefix in (
-        "https://doi.org/",
-        "http://doi.org/",
-        "https://dx.doi.org/",
-        "http://dx.doi.org/",
-        "doi:",
-    ):
-        if lowered.startswith(prefix):
-            raw = raw[len(prefix) :].strip()
-            break
-    return raw.rstrip(" .;,)]}")
-
-
-def _valid_doi(value: Any) -> bool:
-    doi = _normalized_doi(value)
-    return bool(doi and _DOI_RE.fullmatch(doi))
-
-
-def _valid_pmid(value: Any) -> bool:
-    raw = str(value or "").strip()
-    return bool(raw and _PMID_RE.fullmatch(raw))
-
-
-def _valid_pmcid(value: Any) -> bool:
-    raw = str(value or "").strip()
-    return bool(raw and _PMCID_RE.fullmatch(raw))
+    return bool(valid_identifier_kind(row))
 
 
 def record_traceability(row: dict[str, Any]) -> tuple[str, list[str]]:
@@ -103,19 +67,19 @@ def record_traceability(row: dict[str, Any]) -> tuple[str, list[str]]:
 
     invalid_identifiers: list[str] = []
     if doi_value:
-        if _valid_doi(doi_value):
+        if valid_doi(doi_value):
             return "A_IDENTIFIER", ["doi"]
         invalid_identifiers.append("invalid_doi")
     if pmid_value:
-        if _valid_pmid(pmid_value):
+        if valid_pmid(pmid_value):
             return "A_IDENTIFIER", ["pmid"]
         invalid_identifiers.append("invalid_pmid")
     if pmcid_value:
-        if _valid_pmcid(pmcid_value):
+        if valid_pmcid(pmcid_value):
             return "A_IDENTIFIER", ["pmcid"]
         invalid_identifiers.append("invalid_pmcid")
 
-    if _has_http_url(row.get("url") or row.get("url_normalized")):
+    if normalize_url(row.get("url") or row.get("url_normalized")):
         return "B_TRACEABLE_URL", ["url", *invalid_identifiers]
 
     if invalid_identifiers:
