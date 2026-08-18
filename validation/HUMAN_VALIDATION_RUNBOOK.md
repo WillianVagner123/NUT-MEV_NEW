@@ -22,6 +22,8 @@ according to `validation/QUESTION_SET_PROTOCOL.md`.
 
 No script in this repository is authorized to invent final independent questions or human relevance labels.
 
+Assign an **external-test custodian** before labeling. This person/team may hold sealed external-test packets and labels, but must not provide them to the analyst/developer making the validation-stage continuation decision.
+
 ## 1. Produce a real frozen-runtime output
 
 In a clean clone/worktree, checkout the exact candidate:
@@ -49,9 +51,7 @@ git pull --ff-only origin main
 
 Do not overwrite the preserved frozen-run files.
 
-## 3. Build all label-blind rankings
-
-Example:
+## 3. Build all label-blind rankings once
 
 ```bash
 python tools/build_scientific_benchmark_rankings.py \
@@ -72,41 +72,62 @@ candidate_runtime_sha = 6aa7a5fe6009776e611ca3e1506486606b05f4f6
 
 Do not calculate scientific metrics at this stage.
 
-## 4. Build the primary blinded judgment pool
+## 4. Build physically separate primary pools by split
 
-Use only the preregistered primary pair by default:
+The primary pool uses only `nutev_full` and `lexical_baseline`, depth 100.
+
+### Validation pool
 
 ```bash
 python tools/build_blinded_judgment_pool.py \
   --rankings validation/data/BENCHMARK_RANKINGS.csv \
   --metadata <FROZEN_REFERENCE_RANKING.jsonl> \
   --systems nutev_full,lexical_baseline \
+  --split validation \
   --depth 100 \
-  --blinded-output validation/data/BLINDED_PRIMARY_POOL.csv \
-  --audit-output validation/data/PRIMARY_POOL_AUDIT.csv \
-  --manifest validation/data/PRIMARY_POOL_MANIFEST.json
+  --blinded-output validation/data/VALIDATION_BLINDED_POOL.csv \
+  --audit-output validation/data/VALIDATION_POOL_AUDIT.csv \
+  --manifest validation/data/VALIDATION_POOL_MANIFEST.json
 ```
 
-**Segregate `PRIMARY_POOL_AUDIT.csv`.** It contains system membership/ranks and must not be shown to assessors before their initial judgments are locked.
+### External-test pool
+
+Build this under the external custodian's control:
+
+```bash
+python tools/build_blinded_judgment_pool.py \
+  --rankings validation/data/BENCHMARK_RANKINGS.csv \
+  --metadata <FROZEN_REFERENCE_RANKING.jsonl> \
+  --systems nutev_full,lexical_baseline \
+  --split external_test \
+  --depth 100 \
+  --blinded-output <SEALED>/EXTERNAL_BLINDED_POOL.csv \
+  --audit-output <SEALED>/EXTERNAL_POOL_AUDIT.csv \
+  --manifest <SEALED>/EXTERNAL_POOL_MANIFEST.json
+```
+
+Pool audit files contain system membership/ranks. They must not be shown to assessors before initial judgments are locked.
+
+Development may be built analogously with `--split development`, but development evidence cannot promote the product.
 
 ## 5. Generate independent assessor packets
 
-Use pseudonymized assessor IDs. Example with two assessors:
+For validation:
 
 ```bash
 python tools/build_assessor_packets.py \
-  --pool validation/data/BLINDED_PRIMARY_POOL.csv \
+  --pool validation/data/VALIDATION_BLINDED_POOL.csv \
   --assessor-id assessor_A \
   --assessor-id assessor_B \
-  --output-dir validation/data/assessor_packets \
-  --manifest validation/data/ASSESSOR_PACKETS_MANIFEST.json
+  --output-dir validation/data/validation_assessor_packets \
+  --manifest validation/data/VALIDATION_ASSESSOR_PACKETS_MANIFEST.json
 ```
 
-Each assessor gets only their own `ASSESSOR_<id>.csv` plus the frozen question definitions/relevance instructions.
+For external test, run the same tool against `<SEALED>/EXTERNAL_BLINDED_POOL.csv` and write all outputs under `<SEALED>`.
 
-Do not provide:
+Each assessor receives only their own packet plus the frozen question definitions/relevance instructions. Do not provide:
 
-- `PRIMARY_POOL_AUDIT.csv`;
+- any pool audit file;
 - `BENCHMARK_RANKINGS.csv`;
 - NutEV scores/ranks/taxonomy;
 - another assessor's decisions.
@@ -121,52 +142,66 @@ Each assessor independently completes every row in their packet:
 - keep `assessor_id` unchanged;
 - keep `blind_to_nutev = true` only if the assessor actually remained blind.
 
-The grading scale is:
+Scale:
 
 - `0` — irrelevant;
 - `1` — relevant/peripheral or useful;
 - `2` — directly relevant/key reference.
 
-If blindness is broken for an item/assessor, do not falsely mark it true; the benchmark-grade validator is expected to reject that evidence.
+If blindness is broken for an item/assessor, do not falsely mark it true; the benchmark-grade validator must reject that evidence.
 
-## 7. Consolidate raw assessments
+External-test assessors/custodian may complete their work before the validation decision, but the external completed packets, labels, gold, metrics and error analysis must remain sealed from the validation-stage analyst.
 
-After **all** initial assessor packets are locked, concatenate their rows into:
+## 7. Consolidate raw assessments separately
+
+After initial assessor packets are locked, concatenate rows by split.
+
+Validation:
 
 ```text
-validation/data/ASSESSMENTS.csv
+validation/data/VALIDATION_ASSESSMENTS.csv
 ```
 
-Use the schema in `validation/templates/ASSESSMENTS_TEMPLATE.csv`. Preserve the original completed packets as immutable raw evidence.
+External, under custody:
 
-Do not average or overwrite disagreeing grades.
+```text
+<SEALED>/EXTERNAL_ASSESSMENTS.csv
+```
 
-## 8. Human adjudication
+Preserve original completed packets as immutable raw evidence. Do not average or overwrite disagreeing grades.
 
-Create `validation/data/GOLD_STANDARD.csv` using `validation/templates/GOLD_STANDARD_TEMPLATE.csv`.
+## 8. Human adjudication separately by split
 
-For each pool item:
+Validation final gold:
 
-- unanimous assessors: copy the common grade and set `adjudication_status = AGREED`;
-- disagreement: a human adjudicator sets the final `relevance_grade`, `adjudication_status = RESOLVED`, `adjudicator_id`, and `adjudication_timestamp`.
+```text
+validation/data/VALIDATION_GOLD_STANDARD.csv
+```
+
+External final gold, kept sealed:
+
+```text
+<SEALED>/EXTERNAL_GOLD_STANDARD.csv
+```
+
+For every pool item:
+
+- unanimous assessors: common grade + `adjudication_status = AGREED`;
+- disagreement: human adjudicator supplies final `relevance_grade`, `adjudication_status = RESOLVED`, `adjudicator_id`, and `adjudication_timestamp`.
 
 A script must not choose the winning assessor or resolve conflicts automatically.
 
-The final gold must contain one row for **every** `question_id/reference_id` in `BLINDED_PRIMARY_POOL.csv`.
-
-## 9. Fail-closed process validation
-
-Run:
+## 9. Validate the validation gold before metrics
 
 ```bash
 python tools/validate_gold_standard.py \
-  --pool validation/data/BLINDED_PRIMARY_POOL.csv \
-  --assessments validation/data/ASSESSMENTS.csv \
-  --gold validation/data/GOLD_STANDARD.csv \
-  --output validation/data/GOLD_STANDARD_VALIDATION.json
+  --pool validation/data/VALIDATION_BLINDED_POOL.csv \
+  --assessments validation/data/VALIDATION_ASSESSMENTS.csv \
+  --gold validation/data/VALIDATION_GOLD_STANDARD.csv \
+  --output validation/data/VALIDATION_GOLD_VALIDATION.json
 ```
 
-Proceed only if the output reports:
+Proceed only if:
 
 ```text
 status = PASS
@@ -177,83 +212,121 @@ minimum_assessors_per_reference >= 2
 
 A validator `PASS` proves process completeness/coherence, not correctness of scientific judgment.
 
-## 10. Calculate metrics only after gold validation PASS
-
-Run:
+## 10. Calculate **validation-only** metrics
 
 ```bash
 python tools/evaluate_scientific_validation.py \
-  --gold-standard validation/data/GOLD_STANDARD.csv \
+  --gold-standard validation/data/VALIDATION_GOLD_STANDARD.csv \
   --rankings validation/data/BENCHMARK_RANKINGS.csv \
+  --split validation \
   --require-judged-through 100 \
-  --output validation/data/BENCHMARK_RESULTS.csv
+  --output validation/data/VALIDATION_BENCHMARK_RESULTS.csv
 ```
 
-The evaluator fails closed if candidate/baseline results inside the required judged depth are missing judgments. Do not convert unjudged documents to relevance 0.
+The evaluator reads only validation rankings. External gold is not needed and must remain sealed.
 
-## 11. Development split
-
-Development may be inspected only to debug the benchmark machinery. It cannot promote the product.
+## 11. Apply the validation continuation gate
 
 ```bash
 python tools/compare_scientific_benchmark.py \
-  --results validation/data/BENCHMARK_RESULTS.csv \
-  --split development \
-  --summary-output validation/data/DEVELOPMENT_COMPARISON.json \
-  --paired-output validation/data/DEVELOPMENT_PAIRED.csv
-```
-
-## 12. Validation split — first possible reversal of B
-
-Run:
-
-```bash
-python tools/compare_scientific_benchmark.py \
-  --results validation/data/BENCHMARK_RESULTS.csv \
+  --results validation/data/VALIDATION_BENCHMARK_RESULTS.csv \
   --split validation \
   --summary-output validation/data/VALIDATION_COMPARISON.json \
   --paired-output validation/data/VALIDATION_PAIRED.csv
 ```
 
-Only if `validation_evidence_status = CONTINUATION_CRITERIA_PASS` may the frozen candidate be considered for **C — SCIENTIFIC_CANDIDATE** and the sealed external-test result be opened under the preregistered protocol.
+Only if:
 
-If validation fails, keep **B — DEMOTE** for this candidate. Do not alter the same frozen candidate after seeing external-test labels.
+```text
+validation_evidence_status = CONTINUATION_CRITERIA_PASS
+```
 
-## 13. Sealed external test — possible D for a bounded claim
+may the frozen candidate be considered for **C — SCIENTIFIC_CANDIDATE** and the sealed external-test evidence be released for analysis.
 
-After the validation decision is locked, run:
+If validation fails, keep **B — DEMOTE** for this candidate. Do not inspect external labels to rescue, retune or narratively optimize the same candidate.
+
+## 12. Lock the validation decision
+
+Before any external-test label/result is released, preserve:
+
+- validation gold validation report;
+- validation benchmark results;
+- validation paired output;
+- validation comparison summary;
+- a dated decision stating `CONTINUE_TO_EXTERNAL` or `STOP_AT_B`;
+- exact runtime and tooling SHAs.
+
+If the decision is `STOP_AT_B`, the sealed external set should remain unopened for this candidate unless the protocol explicitly documents a non-promotional diagnostic analysis.
+
+## 13. Release and validate external-test evidence only after CONTINUE
+
+The custodian releases the external pool/assessments/gold only after the locked validation decision.
+
+First validate process completeness:
+
+```bash
+python tools/validate_gold_standard.py \
+  --pool <SEALED_RELEASE>/EXTERNAL_BLINDED_POOL.csv \
+  --assessments <SEALED_RELEASE>/EXTERNAL_ASSESSMENTS.csv \
+  --gold <SEALED_RELEASE>/EXTERNAL_GOLD_STANDARD.csv \
+  --output validation/data/EXTERNAL_GOLD_VALIDATION.json
+```
+
+Require the same 100% pool coverage and at least two assessors per item.
+
+## 14. Calculate external-test-only metrics
+
+```bash
+python tools/evaluate_scientific_validation.py \
+  --gold-standard <SEALED_RELEASE>/EXTERNAL_GOLD_STANDARD.csv \
+  --rankings validation/data/BENCHMARK_RANKINGS.csv \
+  --split external_test \
+  --require-judged-through 100 \
+  --output validation/data/EXTERNAL_BENCHMARK_RESULTS.csv
+```
+
+Then apply the preregistered comparison:
 
 ```bash
 python tools/compare_scientific_benchmark.py \
-  --results validation/data/BENCHMARK_RESULTS.csv \
+  --results validation/data/EXTERNAL_BENCHMARK_RESULTS.csv \
   --split external_test \
   --summary-output validation/data/EXTERNAL_TEST_COMPARISON.json \
   --paired-output validation/data/EXTERNAL_TEST_PAIRED.csv
 ```
 
-A defined-use promotion requires all preregistered criteria, including at least 12 benchmark-grade external questions and `external_evidence_status = DEFINED_USE_CRITERIA_PASS`.
+A defined-use promotion requires all preregistered criteria, including at least 12 benchmark-grade external questions and:
+
+```text
+external_evidence_status = DEFINED_USE_CRITERIA_PASS
+```
 
 If it passes, the strongest supported claim is limited to prioritization within the common pool and represented benchmark domain/question population. It does not establish global discovery recall, methodological evidence quality or clinical validity.
 
-## 14. Discovery coverage remains separate
+## 15. Discovery coverage remains separate
 
 Do not use the common-pool result to claim exhaustive retrieval. `DISCOVERY_COVERAGE` requires independently obtained relevant references that may be outside the NutEV corpus and a separately auditable comparison.
 
-## 15. Artifact preservation
+## 16. Artifact preservation
 
 For each benchmark round preserve hashes/copies of at least:
 
 - frozen `QUESTIONS.csv`;
 - frozen candidate output and `AUDIT_MANIFEST.json`;
 - benchmark rankings + manifest;
-- blinded primary pool + manifest;
-- segregated pool audit;
-- assessor packet manifest and completed raw packets;
-- consolidated `ASSESSMENTS.csv`;
-- adjudicated `GOLD_STANDARD.csv`;
-- gold validation report;
-- benchmark results;
+- split-specific blinded pools + manifests;
+- segregated pool audits;
+- assessor packet manifests and completed raw packets;
+- split-specific raw assessments;
+- split-specific adjudicated gold standards;
+- gold validation reports;
+- split-specific benchmark results;
 - paired comparison outputs;
+- locked validation continuation decision;
 - exact Git SHAs of frozen runtime and benchmark tooling.
 
 Never rewrite unfavorable benchmark artifacts to create a cleaner narrative. A failed validation round is scientific evidence and must remain auditable.
+
+## Leakage failure rule
+
+If an analyst responsible for validation-stage candidate decisions obtains external-test relevance labels, external performance, external error analysis or system-specific external judgments before the continuation decision is locked, record the breach. The affected external round must not be presented as sealed evidence for `D — VALIDATED_FOR_DEFINED_USE`; use a new independent external round for that claim.
