@@ -7,14 +7,14 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 1
 )
 echo.
-echo NUTEV EVIDENCE ENGINE - COLETA REAL COMPLETA
-echo Autosave ativo. PRESS nao bloqueia esta coleta nao-FORMAL.
+echo NUTEV REFERENCE ENGINE - COLETA DE REFERENCIAS
+echo Busca multi-fonte com autosave para posterior ranking por taxonomia e palavras-chave.
 echo.
-".venv\Scripts\python.exe" "tools\run_everything_now.py" --project-root ".\project_output_scientific"
+".venv\Scripts\python.exe" "tools\run_everything_now.py" --project-root ".\project_output_reference"
 set EXITCODE=%ERRORLEVEL%
 echo.
 if "%EXITCODE%"=="0" (
-  echo Coleta finalizada. Veja project_output_scientific\07_logs\collect_everything\latest.json
+  echo Coleta finalizada. Veja project_output_reference\07_logs\collect_everything\latest.json
 ) else (
   echo Execucao interrompida ou com erro. Os autosaves existentes foram preservados.
   echo Rode este mesmo arquivo novamente para retomar.
