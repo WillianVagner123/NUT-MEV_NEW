@@ -13,8 +13,8 @@ from uuid import uuid4
 
 import requests
 
-COLLECTION_TYPE = "REAL_DISCOVERY_NONFORMAL"
-USER_AGENT = "NutEV Evidence Engine/0.3 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
+COLLECTION_TYPE = "REFERENCE_COLLECTION"
+USER_AGENT = "NutEV Reference Engine/1.0 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
 _SPACE_RE = re.compile(r"\s+")
 
 
@@ -35,13 +35,17 @@ def _atomic_text(path: Path, text: str) -> str:
 
 
 def _atomic_json(path: Path, payload: dict[str, Any]) -> str:
-    text = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True, default=str) + "\n"
-    return _atomic_text(path, text)
+    return _atomic_text(
+        path,
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True, default=str) + "\n",
+    )
 
 
 def _atomic_jsonl(path: Path, rows: list[dict[str, Any]]) -> str:
-    text = "".join(json.dumps(row, ensure_ascii=False, sort_keys=True, default=str) + "\n" for row in rows)
-    return _atomic_text(path, text)
+    return _atomic_text(
+        path,
+        "".join(json.dumps(row, ensure_ascii=False, sort_keys=True, default=str) + "\n" for row in rows),
+    )
 
 
 class _AnchorParser(HTMLParser):
@@ -55,8 +59,7 @@ class _AnchorParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag.lower() != "a":
             return
-        values = dict(attrs)
-        self._href = _clean(values.get("href"))
+        self._href = _clean(dict(attrs).get("href"))
         self._parts = []
 
     def handle_data(self, data: str) -> None:
@@ -75,15 +78,12 @@ class _AnchorParser(HTMLParser):
 
 
 def lilacs_search_url(query: str) -> str:
-    # Official BVS search interface. The db_cluster filter requests LILACS records.
     params = [("lang", "pt"), ("q", query), ("filter[db_cluster][]", "LILACS")]
     return "https://pesquisa.bvsalud.org/portal/?" + urlencode(params)
 
 
 def scielo_search_url(query: str) -> str:
-    # Official SciELO article-search interface. `subject:` searches title/abstract/keywords.
-    params = {"lang": "en", "q": f"subject:({query})"}
-    return "https://search.scielo.org/?" + urlencode(params)
+    return "https://search.scielo.org/?" + urlencode({"lang": "en", "q": f"subject:({query})"})
 
 
 def _candidate(provider: str, search_url: str, url: str, title: str, query: str) -> dict[str, Any] | None:
@@ -99,7 +99,6 @@ def _candidate(provider: str, search_url: str, url: str, title: str, query: str)
     elif provider == "scielo_native":
         if "scielo" not in parsed.netloc:
             return None
-        # Search results can resolve through collection-specific SciELO hosts.
         if not any(token in url.lower() for token in ("article", "script=sci_arttext", "pid=", "doi.org")):
             return None
     else:
@@ -118,9 +117,6 @@ def _candidate(provider: str, search_url: str, url: str, title: str, query: str)
         "provider_query": query,
         "provider_search_url": search_url,
         "collection_type": COLLECTION_TYPE,
-        "formal_execution_authorized": False,
-        "prisma_eligible": False,
-        "scientific_gate_effect": "NONE",
         "metadata_status": "native_search_html_candidate",
     }
 
@@ -141,8 +137,8 @@ def _run_provider(provider: str, search_url: str, query: str, run_dir: Path) -> 
             row = _candidate(provider, search_url, url, title, query)
             if row is None:
                 continue
-            key = (row["url"] or row["title"]).casefold()
-            if key in seen:
+            key = str(row.get("url") or row.get("title") or "").casefold()
+            if not key or key in seen:
                 continue
             seen.add(key)
             rows.append(row)
@@ -161,7 +157,7 @@ def _run_provider(provider: str, search_url: str, query: str, run_dir: Path) -> 
             "records_path": str(records_path),
             "records_sha256": records_sha,
             "records": len(rows),
-            "parser_note": "Raw official search HTML is the audit authority; parsed anchors are discovery candidates, not inclusion decisions.",
+            "parser_note": "Official search HTML is retained as retrieval evidence; parsed anchors are reference candidates.",
         }
     except Exception as exc:
         return {
@@ -180,7 +176,6 @@ def run(project_root: Path, query: str) -> dict[str, Any]:
     run_id = "latin_" + datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
     run_dir = project_root / "14_latin_native" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
-
     providers = [
         _run_provider("lilacs_bvs_native", lilacs_search_url(query), query, run_dir),
         _run_provider("scielo_native", scielo_search_url(query), query, run_dir),
@@ -193,7 +188,9 @@ def run(project_root: Path, query: str) -> dict[str, Any]:
             continue
         for line in path.read_text(encoding="utf-8").splitlines():
             if line.strip():
-                master_rows.append(json.loads(line))
+                value = json.loads(line)
+                if isinstance(value, dict):
+                    master_rows.append(value)
 
     master_path = run_dir / "latin_native_records.jsonl"
     master_sha = _atomic_jsonl(master_path, master_rows)
@@ -207,24 +204,19 @@ def run(project_root: Path, query: str) -> dict[str, Any]:
         "master_records_path": str(master_path),
         "master_records_sha256": master_sha,
         "records": len(master_rows),
-        "formal_execution_authorized": False,
-        "prisma_eligible": False,
-        "scientific_gate_effect": "NONE",
-        "method_note": "LILACS/BVS and SciELO are queried through their official native search interfaces. They are additional routes, not substitutes or claimed equivalents for Scopus/Web of Science.",
+        "method_note": "LILACS/BVS and SciELO use their native public search interfaces and retain provider identity.",
     }
     summary_path = run_dir / "summary.json"
     summary_sha = _atomic_json(summary_path, summary)
     summary["summary_path"] = str(summary_path)
     summary["summary_sha256"] = summary_sha
-
-    latest_path = project_root / "07_logs" / "latin_native" / "latest.json"
-    _atomic_json(latest_path, summary)
+    _atomic_json(project_root / "07_logs" / "latin_native" / "latest.json", summary)
     return summary
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run native LILACS/BVS and SciELO discovery routes.")
-    parser.add_argument("--project-root", default="./project_output_scientific")
+    parser = argparse.ArgumentParser(description="Collect reference candidates from native LILACS/BVS and SciELO routes.")
+    parser.add_argument("--project-root", default="./project_output_reference")
     parser.add_argument(
         "--query",
         default='(diet OR dietary OR nutrition OR "healthy eating") AND (guideline OR guidance OR recommendation OR consensus OR statement OR standard)',

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "mode": "REFERENCE_COLLECTION",
+  "queries": {
+    "pubmed": "(((\"Diet\"[Mesh] OR \"Nutrition Policy\"[Mesh] OR \"Nutrition Therapy\"[Mesh] OR \"Diet Therapy\"[Mesh] OR diet*[tiab] OR dietary[tiab] OR nutrition*[tiab] OR \"medical nutrition therapy\"[tiab] OR \"nutrition care\"[tiab] OR \"dietary care\"[tiab] OR \"healthy eating\"[tiab] OR \"dietary pattern*\"[tiab])) AND ((guideline[pt] OR \"practice guideline\"[pt] OR guideline*[tiab] OR \"clinical practice guideline*\"[tiab] OR consensus[tiab] OR \"consensus statement*\"[tiab] OR \"position statement*\"[tiab] OR \"scientific statement*\"[tiab] OR \"professional statement*\"[tiab] OR \"expert consensus\"[tiab] OR \"clinical guidance\"[tiab] OR advisory[tiab] OR \"standards of care\"[tiab] OR \"practice standard*\"[tiab] OR \"professional standard*\"[tiab] OR \"clinical recommendation*\"[tiab] OR \"practice recommendation*\"[tiab] OR recommendation*[ti]))) OR (((guideline[pt] OR \"practice guideline\"[pt] OR guideline*[ti] OR \"clinical practice guideline*\"[ti] OR consensus[ti] OR \"consensus statement*\"[ti] OR \"position statement*\"[ti] OR \"scientific statement*\"[ti] OR \"professional statement*\"[ti] OR \"standards of care\"[ti])) NOT ((hasabstract OR comment[pt] OR editorial[pt] OR letter[pt] OR \"published erratum\"[pt])))",
+    "generic": "(diet OR dietary OR nutrition OR \"medical nutrition therapy\" OR \"nutrition care\" OR \"dietary care\" OR \"healthy eating\" OR \"dietary pattern\") AND (guideline OR \"practice guideline\" OR \"clinical practice guideline\" OR consensus OR \"consensus statement\" OR \"position statement\" OR \"scientific statement\" OR \"professional statement\" OR \"clinical guidance\" OR advisory OR \"standards of care\" OR recommendation)",
+    "web": "diet dietary nutrition healthy eating dietary pattern guideline guidance recommendation consensus statement standard"
+  },
+  "provider_limits": {
+    "pubmed": 9999,
+    "europepmc": 50000,
+    "openalex": 50000,
+    "crossref": 10000,
+    "doaj": 10000,
+    "semantic_scholar": 10000
+  }
+}
