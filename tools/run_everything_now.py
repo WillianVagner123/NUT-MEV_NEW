@@ -167,7 +167,7 @@ def _run_pubmed(
     query: str,
     limit: int,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    print("pubmed: collecting...", flush=True)
+    print(f"pubmed: collecting up to {limit} records...", flush=True)
     try:
         result = PubMedClient().search(
             query,
@@ -224,11 +224,22 @@ def run(project_root: Path) -> dict[str, Any]:
     config_path = REPO_ROOT / "config" / "reference_search.json"
     search_config = load_reference_search(config_path)
     queries = dict(search_config["queries"])
-    limits = dict(search_config.get("provider_limits") or {})
+    deep_collection = os.environ.get("NUTEV_DEEP_COLLECTION") == "1"
+    limit_key = "deep_provider_limits" if deep_collection else "provider_limits"
+    limits = dict(search_config.get(limit_key) or search_config.get("provider_limits") or {})
+    collection_profile = "deep" if deep_collection else "operational"
     strategy_sha = sha256(config_path.read_bytes()).hexdigest()
     run_id = "reference_" + datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z") + "_" + uuid4().hex[:8]
     run_dir = project_root / "13_reference_collection" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"collection profile: {collection_profile}", flush=True)
+    print(
+        "provider limits: " + ", ".join(f"{name}={value}" for name, value in limits.items()),
+        flush=True,
+    )
+    if deep_collection:
+        print("deep collection enabled; this run can take substantially longer.", flush=True)
 
     rows_by_provider: dict[str, list[dict[str, Any]]] = {}
     provider_meta: dict[str, dict[str, Any]] = {}
@@ -238,7 +249,7 @@ def run(project_root: Path) -> dict[str, Any]:
         project_root,
         run_dir,
         queries["pubmed"],
-        int(limits.get("pubmed") or 9999),
+        int(limits.get("pubmed") or 2000),
     )
     rows_by_provider["pubmed"] = pubmed_rows
     provider_meta["pubmed"] = pubmed_meta
@@ -247,31 +258,31 @@ def run(project_root: Path) -> dict[str, Any]:
         (
             "europepmc",
             lambda: search_europepmc(
-                queries["generic"], page_size=1000, max_results=int(limits.get("europepmc") or 50000)
+                queries["generic"], page_size=1000, max_results=int(limits.get("europepmc") or 3000)
             ),
         ),
         (
             "openalex",
             lambda: search_openalex(
-                queries["web"], per_page=200, max_results=int(limits.get("openalex") or 50000)
+                queries["web"], per_page=200, max_results=int(limits.get("openalex") or 3000)
             ),
         ),
         (
             "crossref",
             lambda: search_crossref(
-                queries["web"], rows=1000, max_results=int(limits.get("crossref") or 10000)
+                queries["web"], rows=1000, max_results=int(limits.get("crossref") or 1000)
             ),
         ),
         (
             "doaj",
             lambda: search_doaj(
-                queries["web"], page_size=100, max_results=int(limits.get("doaj") or 10000)
+                queries["web"], page_size=100, max_results=int(limits.get("doaj") or 1000)
             ),
         ),
         (
             "semantic_scholar",
             lambda: search_semantic_scholar(
-                queries["web"], page_size=100, max_results=int(limits.get("semantic_scholar") or 10000)
+                queries["web"], page_size=100, max_results=int(limits.get("semantic_scholar") or 1000)
             ),
         ),
     ]
@@ -341,6 +352,8 @@ def run(project_root: Path) -> dict[str, Any]:
     result = {
         "schema_version": SCHEMA_VERSION,
         "collection_type": COLLECTION_TYPE,
+        "collection_profile": collection_profile,
+        "provider_limits": limits,
         "run_id": run_id,
         "created_at": _now(),
         "status": status,
@@ -358,6 +371,7 @@ def run(project_root: Path) -> dict[str, Any]:
             "Outputs are reference-discovery inputs for human reading priority.",
             "Unavailable or failed providers are reported explicitly and are never simulated.",
             "LILACS/BVS and SciELO are collected by the next canonical pipeline stage.",
+            "Set NUTEV_DEEP_COLLECTION=1 only when intentionally requesting the larger deep-collection limits.",
         ],
     }
     _atomic_json(run_dir / "manifest.json", result)

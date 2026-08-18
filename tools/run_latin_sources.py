@@ -124,7 +124,28 @@ def _candidate(provider: str, search_url: str, url: str, title: str, query: str)
 def _run_provider(provider: str, search_url: str, query: str, run_dir: Path) -> dict[str, Any]:
     started = _now()
     try:
-        response = requests.get(search_url, timeout=60, headers={"User-Agent": USER_AGENT})
+        response = requests.get(
+            search_url,
+            timeout=60,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.7",
+            },
+        )
+        if response.status_code in {401, 403}:
+            return {
+                "provider": provider,
+                "status": "unavailable",
+                "started_at": started,
+                "finished_at": _now(),
+                "search_url": search_url,
+                "query": query,
+                "http_status": response.status_code,
+                "records": 0,
+                "error": f"HTTP {response.status_code}: native public search interface does not allow this automated request",
+                "availability_note": "Provider was reported as unavailable for this run; no records were fabricated or substituted.",
+            }
         response.raise_for_status()
         html = response.text
         raw_path = run_dir / "raw" / f"{provider}.html"
@@ -194,6 +215,8 @@ def run(project_root: Path, query: str) -> dict[str, Any]:
 
     master_path = run_dir / "latin_native_records.jsonl"
     master_sha = _atomic_jsonl(master_path, master_rows)
+    unavailable = [p["provider"] for p in providers if p.get("status") == "unavailable"]
+    failed = [p["provider"] for p in providers if p.get("status") == "failed"]
     summary = {
         "schema_version": 1,
         "collection_type": COLLECTION_TYPE,
@@ -201,10 +224,12 @@ def run(project_root: Path, query: str) -> dict[str, Any]:
         "created_at": _now(),
         "query": query,
         "providers": providers,
+        "unavailable_providers": unavailable,
+        "failed_providers": failed,
         "master_records_path": str(master_path),
         "master_records_sha256": master_sha,
         "records": len(master_rows),
-        "method_note": "LILACS/BVS and SciELO use their native public search interfaces and retain provider identity.",
+        "method_note": "LILACS/BVS and SciELO use their native public search interfaces when those interfaces permit automated access. Access-denied responses are recorded as unavailable and never treated as fabricated coverage.",
     }
     summary_path = run_dir / "summary.json"
     summary_sha = _atomic_json(summary_path, summary)
@@ -224,7 +249,7 @@ def main() -> int:
     args = parser.parse_args()
     result = run(Path(args.project_root), args.query)
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0 if all(p.get("status") != "failed" for p in result["providers"]) else 1
+    return 0 if not result["failed_providers"] else 1
 
 
 if __name__ == "__main__":

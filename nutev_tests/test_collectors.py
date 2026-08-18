@@ -90,6 +90,23 @@ def test_latin_candidates_preserve_native_provider_identity() -> None:
     assert scielo["collection_type"] == "REFERENCE_COLLECTION"
 
 
+def test_latin_access_denied_is_unavailable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    class Response:
+        status_code = 403
+
+    monkeypatch.setattr(latin.requests, "get", lambda *args, **kwargs: Response())
+    result = latin._run_provider(
+        "scielo_native",
+        "https://search.scielo.org/?q=nutrition",
+        "nutrition",
+        tmp_path,
+    )
+    assert result["status"] == "unavailable"
+    assert result["records"] == 0
+    assert result["http_status"] == 403
+    assert "fabricated" in result["availability_note"]
+
+
 def test_official_manifest_loads_without_network() -> None:
     from nutev.search.official_sources import all_manifest_sources, load_official_manifest
 
@@ -100,6 +117,9 @@ def test_official_manifest_loads_without_network() -> None:
     assert all(row["url"].startswith(("http://", "https://")) for row in rows)
 
 
-def test_collection_config_does_not_claim_unavailable_provider_results() -> None:
+def test_collection_config_has_operational_and_deep_limits() -> None:
     config = json.loads((REPO_ROOT / "config" / "reference_search.json").read_text(encoding="utf-8"))
-    assert set(config["provider_limits"]).issuperset({"pubmed", "europepmc", "openalex", "crossref", "doaj", "semantic_scholar"})
+    expected = {"pubmed", "europepmc", "openalex", "crossref", "doaj", "semantic_scholar"}
+    assert set(config["provider_limits"]).issuperset(expected)
+    assert set(config["deep_provider_limits"]).issuperset(expected)
+    assert all(config["provider_limits"][name] <= config["deep_provider_limits"][name] for name in expected)
