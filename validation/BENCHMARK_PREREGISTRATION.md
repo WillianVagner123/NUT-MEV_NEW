@@ -4,6 +4,8 @@ Status: **PRE-RESULTS / NO HUMAN LABELS OBSERVED**
 Frozen NutEV runtime: `6aa7a5fe6009776e611ca3e1506486606b05f4f6`  
 Scientific verdict at pre-registration: **B — DEMOTE**
 
+Pre-results amendments, if any, are recorded in `validation/PREREGISTRATION_AMENDMENTS.md` and must never be written after observing the affected human labels.
+
 ## 1. Scope of this pre-registration
 
 This document pre-specifies the first testable claim: **prioritization within a common candidate pool**.
@@ -99,27 +101,37 @@ This does not permit changing the currently frozen candidate after seeing `exter
 
 ## 8. Common-pool construction
 
-For each question, the judgment pool is the union of the top 100 results from every common-pool system unless feasibility forces a smaller depth **before labeling begins**.
+For the **primary human judgment round**, each question uses the union of:
+
+- top 100 from `nutev_full`; and
+- top 100 from `lexical_baseline`.
 
 Default:
 
 ```text
-pool depth per system = 100
+primary systems = nutev_full,lexical_baseline
+pool depth per selected system = 100
 ```
 
-The pool is shuffled deterministically and presented without system/rank fields. A separate audit file records membership and must remain hidden from assessors until initial labels are locked.
+This pre-results operational amendment aligns the judged universe with the preregistered primary comparison and is recorded in `validation/PREREGISTRATION_AMENDMENTS.md`.
 
-If the depth is changed for feasibility, the change and rationale must be committed before any relevance label is collected for the affected benchmark round.
+The label-blind ranking harness may still generate recency, unranked and ablation rankings. Those systems do not enlarge the primary human judgment pool by default. A secondary or ablation analysis that requires documents outside the primary pool needs a separately declared supplemental pool and complete judgments for the metrics claimed.
+
+The primary pool is shuffled deterministically and presented without system/rank fields. A separate audit file records membership and must remain hidden from assessors until initial labels are locked.
+
+If depth or selected primary systems are changed again, the change and rationale must be committed **before any relevance label is collected for the affected benchmark round**.
 
 ## 9. Human labeling
 
 Benchmark-grade final labels require at least two independent assessors blind to NutEV score/rank/system origin.
 
+Each assessor receives the same primary pool with an assessor-specific deterministic order. Packets contain no system membership, NutEV score/rank or taxonomy fields, and initial assessor decisions must remain mutually hidden until locked.
+
 Scale:
 
-- 0 = irrelevant;
-- 1 = relevant/peripheral;
-- 2 = directly relevant/key reference.
+- `0` = irrelevante;
+- `1` = relevante periférico/útil;
+- `2` = diretamente relevante/referência-chave.
 
 Disagreements require human adjudication. Scripts may validate the process but may not choose the final scientific label.
 
@@ -131,6 +143,7 @@ For the preregistered primary comparison:
 
 - every candidate and baseline result through rank 20 must be judged to calculate the primary `nDCG@20` comparison;
 - every candidate and baseline result through rank 100 must be judged to calculate the `recall@100` guard;
+- the benchmark-grade gold standard must cover every row of the blinded primary pool;
 - incomplete judgment coverage at a required endpoint causes the paired comparison to fail closed;
 - evaluation output must report judgment coverage by depth and the completely judged prefix;
 - full-list AP is omitted when the list extends beyond the judged universe; `average_precision@100` is the bounded common-pool alternative when depth 100 is completely judged.
@@ -168,6 +181,8 @@ Before external-test labels are opened, do not change the frozen candidate based
 - external provider contribution;
 - external error analysis.
 
+The pool audit file, system membership, scores, ranks and other assessors' decisions must remain unavailable to an assessor until that assessor's initial judgments are locked.
+
 Any runtime change creates a new candidate and requires a new freeze.
 
 ## 13. Verdict mapping
@@ -179,4 +194,4 @@ Any runtime change creates a new candidate and requires a new freeze.
 
 ## 14. Current evidence
 
-No human relevance labels have been observed or generated in this pre-registration. All scientific performance metrics remain `NOT_TESTED`.
+No human relevance labels have been observed or generated in this pre-registration or its pre-results amendment. All scientific performance metrics remain `NOT_TESTED`.
