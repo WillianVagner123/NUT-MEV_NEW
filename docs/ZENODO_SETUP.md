@@ -26,3 +26,14 @@ After publication, verify the archive record contains:
 - a real DOI issued by the archive service.
 
 Only after the DOI is visible and verified should the repository add that DOI to current citation/documentation metadata. Such a documentation patch must not move or alter the already-published release tag.
+
+## Published v1.0.0 archive
+
+- Git tag: `v1.0.0`
+- Release commit: `5728d79b05e618897f01ba93886a17584c9f215f`
+- Zenodo record: `21998607`
+- DOI: `10.5281/zenodo.21998607`
+- Record URL: `https://zenodo.org/records/21998607`
+- DOI URL: `https://doi.org/10.5281/zenodo.21998607`
+
+The DOI patch is post-release metadata only. It must not move, recreate or otherwise modify the immutable `v1.0.0` tag. Future versions must receive their own version-specific Zenodo record and DOI.

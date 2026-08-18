@@ -40,14 +40,16 @@ project_output_reference/reference_ranking/latest.json
 ## Release metadata
 
 - Version: `1.0.0`
-- Intended tag: `v1.0.0`
+- Published tag: `v1.0.0`
+- Release commit: `5728d79b05e618897f01ba93886a17584c9f215f`
 - License: MIT
 - Archive metadata: `.zenodo.json`
 - Citation metadata: `CITATION.cff`
-- DOI: absent until a real archive record is issued and verified
+- Zenodo record: `21998607`
+- DOI: `10.5281/zenodo.21998607`
 
 ## Release validation
 
-The exact candidate SHA must pass Python 3.12 and 3.13 tests, Windows smoke, compile/lint, type checking, security scanning, dependency review, CodeQL and clean wheel/sdist validation before a release tag is created.
+The release candidate passed Python 3.12 and 3.13 tests, Windows smoke, compile/lint, type checking, security scanning, dependency review, CodeQL and clean wheel/sdist validation before the release tag was created.
 
-Published tags are immutable and must not be moved.
+The published tag `v1.0.0` points to commit `5728d79b05e618897f01ba93886a17584c9f215f` and is immutable. The subsequent DOI-documentation patch does not alter that tag or archived release snapshot.

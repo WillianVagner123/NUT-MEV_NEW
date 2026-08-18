@@ -140,7 +140,12 @@ Current documentation is indexed in `docs/README.md`. Software cleanup evidence 
 Citation metadata: `CITATION.cff`  
 Archive metadata: `.zenodo.json`
 
-No Zenodo DOI should be added until a real archive record exists and is verified.
+Version `1.0.0` is archived on Zenodo as record `21998607`.
+
+**DOI:** [10.5281/zenodo.21998607](https://doi.org/10.5281/zenodo.21998607)  
+**Zenodo record:** [zenodo.org/records/21998607](https://zenodo.org/records/21998607)
+
+The published Git tag `v1.0.0` remains immutable. Future software releases must receive their own archive record and version-specific DOI.
 
 ## License and provenance
 

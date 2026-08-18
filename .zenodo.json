@@ -27,5 +27,5 @@
       "name": "Schneider, Willian Vagner Dorneles"
     }
   ],
-  "notes": "First stable release of the NutEV Reference Engine. Version 1.0.0 establishes the reference-discovery and ranking architecture as the supported product scope. No Zenodo DOI is recorded here until a real archive DOI is issued and verified."
+  "notes": "First stable release of the NutEV Reference Engine. Version 1.0.0 establishes the reference-discovery and ranking architecture as the supported product scope. The published v1.0.0 archive is Zenodo record 21998607 with DOI 10.5281/zenodo.21998607. Future software versions must receive their own version-specific archive record and DOI."
 }
