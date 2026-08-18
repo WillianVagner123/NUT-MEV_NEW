@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -11,6 +12,7 @@ MODULE_PATH = ROOT / "tools" / "validate_gold_standard.py"
 SPEC = importlib.util.spec_from_file_location("validate_gold_standard", MODULE_PATH)
 assert SPEC and SPEC.loader
 gold_validation = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = gold_validation
 SPEC.loader.exec_module(gold_validation)
 
 
@@ -69,7 +71,7 @@ def test_conflict_with_adjudication_passes() -> None:
 
 
 def test_single_assessor_is_not_benchmark_grade() -> None:
-    assessments = {( "q1", "doi:10.1000/x"): [_assessment("a1", 2)]}
+    assessments = {("q1", "doi:10.1000/x"): [_assessment("a1", 2)]}
     gold = {
         ("q1", "doi:10.1000/x"): {
             "relevance_grade": 2,
