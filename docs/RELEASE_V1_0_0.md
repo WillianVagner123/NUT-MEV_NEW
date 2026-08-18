@@ -1,34 +1,53 @@
 # NutEV Reference Engine v1.0.0
 
-**First stable software identity of the NutEV Reference Engine.**
+**Primeira identidade estável publicada do NutEV Reference Engine.**
 
-Release date: 2026-08-18
+Data da release: `2026-08-18`
 
-## Product identity
+## Identidade do produto
 
-NutEV Reference Engine is a taxonomy-guided, multi-source reference discovery and ranking engine for Lifestyle Nutrition.
+NutEV Reference Engine é um engine de descoberta, normalização, deduplicação por identidade e priorização de referências para Nutrição do Estilo de Vida.
 
 ```text
 SEARCH -> NORMALIZE -> DEDUPLICATE -> RANK -> EXPORT
 ```
 
-The product produces a prioritized reading/reference queue. Scores and A/B/C tiers are information-retrieval priority signals, not clinical or scientific decisions.
+O produto gera uma fila priorizada de leitura. Score e faixas A/B/C são sinais de recuperação de informação; não são avaliação de qualidade metodológica, elegibilidade científica ou recomendação clínica.
 
-## Main capabilities
+## Capacidades da release
 
-- PubMed, Europe PMC, OpenAlex, Crossref, DOAJ and Semantic Scholar;
-- configured official/institutional sources;
-- native LILACS/BVS and SciELO routes;
-- optional credentialed web-search providers;
-- deterministic cross-source deduplication;
-- NutEV taxonomy matching through `keyword_taxonomy*.json`;
-- configurable focus keywords and provider weights;
-- document-type and light recency weighting;
-- Markdown, CSV and JSONL ranking exports.
+- PubMed;
+- Europe PMC;
+- OpenAlex;
+- Crossref;
+- DOAJ;
+- Semantic Scholar;
+- fontes oficiais/institucionais configuradas;
+- rotas nativas LILACS/BVS e SciELO;
+- providers web opcionais quando credenciais estão configuradas;
+- normalização de metadados;
+- regra de identidade baseada em identificadores/metadados;
+- matching de `keyword_taxonomy*.json`;
+- focus keywords e provider weights configuráveis;
+- sinais textuais de tipo documental;
+- bônus leve de recência;
+- exportação Markdown, CSV, JSONL e resumo JSON.
 
-Scopus and Web of Science are not simulated.
+Scopus e Web of Science não são simulados.
 
-## Public outputs
+## Deduplicação da release
+
+A regra do ranker utiliza, em ordem:
+
+```text
+DOI -> PMID -> URL -> título normalizado
+```
+
+Quando a identidade coincide, é preferida a versão com texto descritivo mais rico.
+
+Essa regra é determinística para os mesmos inputs, mas não deve ser interpretada como deduplicação semântica completa entre publicações relacionadas com identificadores diferentes.
+
+## Outputs públicos
 
 ```text
 project_output_reference/reference_ranking/TOP_REFERENCIAS.md
@@ -37,7 +56,7 @@ project_output_reference/reference_ranking/reference_ranking.jsonl
 project_output_reference/reference_ranking/latest.json
 ```
 
-## Release metadata
+## Metadata da release
 
 - Version: `1.0.0`
 - Published tag: `v1.0.0`
@@ -48,8 +67,24 @@ project_output_reference/reference_ranking/latest.json
 - Zenodo record: `21998607`
 - DOI: `10.5281/zenodo.21998607`
 
-## Release validation
+## Validação antes da tag
 
-The release candidate passed Python 3.12 and 3.13 tests, Windows smoke, compile/lint, type checking, security scanning, dependency review, CodeQL and clean wheel/sdist validation before the release tag was created.
+O candidato de release passou pelos checks automatizados usados no repositório para testes Python 3.12/3.13, Windows smoke, compile/lint, type checking, security scan, dependency review, CodeQL e validação de wheel/sdist antes da criação da tag.
 
-The published tag `v1.0.0` points to commit `5728d79b05e618897f01ba93886a17584c9f215f` and is immutable. The subsequent DOI-documentation patch does not alter that tag or archived release snapshot.
+## Imutabilidade
+
+A tag `v1.0.0` aponta para:
+
+```text
+5728d79b05e618897f01ba93886a17584c9f215f
+```
+
+Ela permanece imutável.
+
+Correções posteriores na `main`, incluindo ajustes de primeira execução, documentação operacional e registro do DOI real, não alteram o snapshot da release.
+
+## Nota sobre o DOI
+
+O registro Zenodo foi criado depois da publicação da GitHub Release. O DOI `10.5281/zenodo.21998607` foi então incorporado à metadata corrente sem mover a tag.
+
+Futuras versões devem receber seu próprio DOI version-specific; o DOI de `v1.0.0` não deve ser reutilizado como DOI de uma nova release.

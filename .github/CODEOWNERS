@@ -1,23 +1,26 @@
-# Code owners for NutEV/NutMEV
+# Code owners for NutEV Reference Engine
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
-#
-# The previous CODEOWNERS was inherited from Local Deep Research and pointed at
-# deleted paths and the upstream team. It has been replaced with owners for the
-# canonical NutEV tree. Adjust handles/teams as the project's governance evolves.
 
-# Default owner for everything.
+# Default owner.
 * @WillianVagner123
 
-# Canonical source, config and tests.
+# Product source, configuration, tools, tests and documentation.
 /src/nutev/ @WillianVagner123
 /config/ @WillianVagner123
+/tools/ @WillianVagner123
 /nutev_tests/ @WillianVagner123
+/docs/ @WillianVagner123
 
-# Packaging, CI and security-sensitive files.
+# Packaging, launchers, CI and repository policy.
 /pyproject.toml @WillianVagner123
+/Iniciar-NutEV-Windows.bat @WillianVagner123
+/RODAR_TUDO.cmd @WillianVagner123
+/run_everything_now.cmd @WillianVagner123
 /.github/ @WillianVagner123
 /.gitignore @WillianVagner123
 /.gitleaksignore @WillianVagner123
+/CITATION.cff @WillianVagner123
+/.zenodo.json @WillianVagner123
 
 # Repository-integrity guardrail — keep last (CODEOWNERS is last-match-wins).
 /.github/CODEOWNERS @WillianVagner123

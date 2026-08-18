@@ -1,64 +1,92 @@
 name: "Bug report"
-description: "Report a defect in the NutEV/NutMEV software"
+description: "Reportar um defeito no NutEV Reference Engine"
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a bug. Do **not** paste secrets, personal data, or
-        protected full texts. Share metadata/URLs, not protected content.
+        Obrigado por relatar o problema. Não envie segredos, dados pessoais/participantes
+        ou textos completos protegidos. Logs devem ser sanitizados.
   - type: textarea
     id: what-happened
     attributes:
-      label: What happened?
-      description: A clear description of the bug and what you expected.
+      label: O que aconteceu?
+      description: Descreva o comportamento observado e o comportamento esperado.
     validations:
       required: true
   - type: textarea
     id: repro
     attributes:
-      label: Steps to reproduce
-      description: Exact commands. Prefer the key-free demo when possible.
+      label: Passos para reproduzir
+      description: Informe os comandos exatos e em qual etapa ocorreu.
       placeholder: |
-        nutev demo-data --project-root ./project_output_demo
-        ...
+        cd %USERPROFILE%\NutEV-Evidence-Engine
+        git rev-parse HEAD
+        Iniciar-NutEV-Windows.bat
+        # erro na etapa [1/3], [2/3] ou [3/3]
     validations:
       required: true
   - type: input
-    id: version
+    id: commit
     attributes:
-      label: Version / commit
-      description: "Output of `python -c 'import nutev; print(nutev.__version__)'` and git SHA."
+      label: Commit / versão
+      description: "Cole o resultado de `git rev-parse HEAD` e, se útil, `nutev --version`."
     validations:
-      required: false
+      required: true
   - type: dropdown
-    id: install
+    id: profile
     attributes:
-      label: Install profile
+      label: Perfil de coleta
       options:
-        - core
-        - dashboard
-        - api / platform
-        - search
-        - documents
-        - llm
-        - watch
-        - legacy
-        - all
+        - operational
+        - deep
+        - não sei / não se aplica
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Etapa afetada
+      options:
+        - "[1/3] coleta multi-fonte"
+        - "[2/3] LILACS/BVS + SciELO"
+        - "[3/3] ranking"
+        - instalação / launcher
+        - CLI
+        - documentação
+        - outro
+    validations:
+      required: true
+  - type: textarea
+    id: provider
+    attributes:
+      label: Provider afetado
+      description: Se aplicável, informe PubMed, Europe PMC, OpenAlex, Crossref, DOAJ, Semantic Scholar, BVS/LILACS, SciELO ou provider opcional.
     validations:
       required: false
   - type: textarea
     id: env
     attributes:
-      label: Environment
-      description: OS, Python version. Do not include secrets or tokens.
+      label: Ambiente
+      description: Windows/OS, Python, rede/proxy relevante. Não inclua chaves ou tokens.
+      placeholder: |
+        Windows 11
+        Python 3.12.x
+    validations:
+      required: false
+  - type: textarea
+    id: final-status
+    attributes:
+      label: Resumo final do engine
+      description: Cole, se disponível, as linhas de código de saída e status. Remova dados sensíveis.
+      render: text
     validations:
       required: false
   - type: textarea
     id: logs
     attributes:
-      label: Relevant logs
-      description: Paste sanitized logs only (no signed URLs, cookies, or keys).
+      label: Logs relevantes sanitizados
+      description: Não inclua cookies, headers de autenticação, API keys ou URLs assinadas.
       render: shell
     validations:
       required: false
