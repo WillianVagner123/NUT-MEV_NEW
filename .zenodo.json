@@ -1,26 +1,31 @@
 {
-  "title": "NutEV Evidence Engine: reproducible evidence engine for lifestyle nutrition research",
-  "description": "Computational infrastructure that supports a scoping review (Article 1 of a PhD thesis in Human Nutrition) by identifying, organizing, deduplicating, classifying and auditing scientific and official documents on lifestyle nutrition, and by producing verifiable extraction matrices and human-review queues. It supports the Evidence layer of the NutEV/NutMEV project; it does NOT contain or run the separate clinical Decision Engine, and its outputs (RecommendationCandidates) are candidates that require human adjudication and are not final clinical recommendations. The project evolved from an open-source base (Local Deep Research, MIT, LearningCircuit); the inherited engine was removed from the current source tree and its attribution is preserved in NOTICE.md and the Git history.",
+  "title": "NutEV Reference Engine: taxonomy-guided reference discovery and ranking for Lifestyle Nutrition",
+  "description": "NutEV Reference Engine is an open-source software tool for multi-source discovery, normalization, deduplication and prioritization of references in Lifestyle Nutrition research. It combines bibliographic and institutional sources with the NutEV keyword taxonomy and configurable focus terms to produce a ranked reading/reference queue. Ranking reflects information-retrieval priority and does not represent scientific inclusion/exclusion or a clinical recommendation.",
   "upload_type": "software",
   "access_right": "open",
   "license": "MIT",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "keywords": [
-    "scoping review",
-    "lifestyle medicine",
     "lifestyle nutrition",
+    "lifestyle medicine",
     "nutrition",
     "dietary guidelines",
-    "evidence synthesis",
-    "PRISMA-ScR",
-    "grey literature",
-    "reproducible research",
-    "open science"
+    "reference discovery",
+    "bibliographic search",
+    "information retrieval",
+    "reference ranking",
+    "taxonomy",
+    "evidence discovery",
+    "PubMed",
+    "LILACS",
+    "SciELO",
+    "open science",
+    "reproducible research"
   ],
   "creators": [
     {
       "name": "Schneider, Willian Vagner Dorneles"
     }
   ],
-  "notes": "Citation-grade reconciled software release v0.2.0. Scientific maturity remains alpha. Historical v0.1.x tags are preserved and are not reused. Human review remains required for scientific inclusion, coding, interpretation and any recommendation-level decision."
+  "notes": "First stable release of the NutEV Reference Engine. Version 1.0.0 establishes the reference-discovery and ranking architecture as the supported product scope. No Zenodo DOI is recorded here until a real archive DOI is issued and verified."
 }
