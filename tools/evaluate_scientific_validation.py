@@ -14,6 +14,7 @@ KS = (10, 20, 50, 100)
 RECALL_TARGETS = (0.80, 0.90, 0.95)
 DEFAULT_REQUIRED_JUDGED_DEPTH = 100
 VALID_SPLITS = ("development", "validation", "external_test")
+DEFAULT_PRIMARY_SYSTEMS = ("nutev_full", "lexical_baseline")
 
 
 class ValidationDataError(RuntimeError):
@@ -31,6 +32,13 @@ class RankingItem:
 
 def _clean(value: object) -> str:
     return str(value or "").strip()
+
+
+def _parse_systems(value: str) -> tuple[str, ...]:
+    systems = tuple(dict.fromkeys(part.strip() for part in value.split(",") if part.strip()))
+    if not systems:
+        raise ValidationDataError("At least one evaluation system must be selected")
+    return systems
 
 
 def load_gold(path: Path) -> dict[str, dict[str, int]]:
@@ -78,13 +86,16 @@ def load_rankings(
     path: Path,
     *,
     split: str | None = None,
+    systems: tuple[str, ...] | None = None,
 ) -> dict[tuple[str, str], list[RankingItem]]:
     if not path.is_file():
         raise ValidationDataError(f"Rankings file not found: {path}")
+    selected_systems = set(systems) if systems is not None else None
     groups: dict[tuple[str, str], list[RankingItem]] = defaultdict(list)
     seen_refs: set[tuple[str, str, str]] = set()
     seen_ranks: set[tuple[str, str, int]] = set()
     question_splits: dict[str, str] = {}
+    scoped_questions: set[str] = set()
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         fields = set(reader.fieldnames or [])
@@ -119,6 +130,9 @@ def load_rankings(
                 question_splits[question_id] = row_split
             if split is not None and row_split != split:
                 continue
+            scoped_questions.add(question_id)
+            if selected_systems is not None and system not in selected_systems:
+                continue
             try:
                 rank = int(rank_raw)
             except ValueError as exc:
@@ -144,7 +158,14 @@ def load_rankings(
             )
     if not groups:
         scope = f" for split {split}" if split else ""
-        raise ValidationDataError(f"Rankings CSV contains no records{scope}")
+        raise ValidationDataError(f"Rankings CSV contains no selected records{scope}")
+    if systems is not None:
+        for question_id in sorted(scoped_questions):
+            for system in systems:
+                if (question_id, system) not in groups:
+                    raise ValidationDataError(
+                        f"Requested evaluation system missing for question: {question_id}/{system}"
+                    )
     for items in groups.values():
         items.sort(key=lambda item: (item.rank, item.reference_id))
     return dict(groups)
@@ -437,6 +458,14 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--systems",
+        default=",".join(DEFAULT_PRIMARY_SYSTEMS),
+        help=(
+            "Comma-separated systems to evaluate. Default is the preregistered primary candidate/baseline pair. "
+            "Secondary systems require a judgment pool that covers their requested depth."
+        ),
+    )
+    parser.add_argument(
         "--require-judged-through",
         type=int,
         default=DEFAULT_REQUIRED_JUDGED_DEPTH,
@@ -447,8 +476,13 @@ def main() -> int:
     )
     args = parser.parse_args()
     try:
+        systems = _parse_systems(args.systems)
         gold = load_gold(args.gold_standard)
-        rankings = load_rankings(args.rankings, split=args.split)
+        rankings = load_rankings(
+            args.rankings,
+            split=args.split,
+            systems=systems,
+        )
         rows = evaluate(
             gold,
             rankings,
