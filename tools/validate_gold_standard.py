@@ -40,6 +40,34 @@ def _truthy(value: object) -> bool:
     return _clean(value).casefold() in {"1", "true", "yes", "y", "sim"}
 
 
+def load_pool(path: Path) -> set[tuple[str, str]]:
+    if not path.is_file():
+        raise GoldStandardError(f"Blinded pool file not found: {path}")
+    keys: set[tuple[str, str]] = set()
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        required = {"question_id", "reference_id"}
+        missing = required - set(reader.fieldnames or [])
+        if missing:
+            raise GoldStandardError(
+                f"Blinded pool CSV missing columns: {', '.join(sorted(missing))}"
+            )
+        for line_number, row in enumerate(reader, start=2):
+            question_id = _clean(row.get("question_id"))
+            reference_id = _clean(row.get("reference_id"))
+            if not question_id or not reference_id:
+                raise GoldStandardError(f"Blank pool identity at line {line_number}")
+            key = (question_id, reference_id)
+            if key in keys:
+                raise GoldStandardError(
+                    f"Duplicate blinded-pool row for {question_id}/{reference_id}"
+                )
+            keys.add(key)
+    if not keys:
+        raise GoldStandardError("Blinded pool CSV contains no records")
+    return keys
+
+
 def load_assessments(path: Path) -> dict[tuple[str, str], list[Assessment]]:
     if not path.is_file():
         raise GoldStandardError(f"Assessments file not found: {path}")
@@ -131,20 +159,50 @@ def load_gold(path: Path) -> dict[tuple[str, str], dict[str, Any]]:
     return rows
 
 
+def _sample(keys: set[tuple[str, str]]) -> list[tuple[str, str]]:
+    return sorted(keys)[:5]
+
+
 def validate(
     assessments: dict[tuple[str, str], list[Assessment]],
     gold: dict[tuple[str, str], dict[str, Any]],
+    pool_keys: set[tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
     assessment_keys = set(assessments)
     gold_keys = set(gold)
+
+    if pool_keys is not None:
+        missing_assessments = pool_keys - assessment_keys
+        extra_assessments = assessment_keys - pool_keys
+        missing_gold = pool_keys - gold_keys
+        extra_gold = gold_keys - pool_keys
+        if missing_assessments:
+            raise GoldStandardError(
+                f"Blinded pool records missing raw assessments: {_sample(missing_assessments)}"
+            )
+        if extra_assessments:
+            raise GoldStandardError(
+                f"Raw assessments contain records outside blinded pool: {_sample(extra_assessments)}"
+            )
+        if missing_gold:
+            raise GoldStandardError(
+                f"Blinded pool records missing final gold rows: {_sample(missing_gold)}"
+            )
+        if extra_gold:
+            raise GoldStandardError(
+                f"Final gold contains records outside blinded pool: {_sample(extra_gold)}"
+            )
+
     missing_final = assessment_keys - gold_keys
     missing_raw = gold_keys - assessment_keys
     if missing_final:
-        sample = sorted(missing_final)[:5]
-        raise GoldStandardError(f"Assessed records missing final gold rows: {sample}")
+        raise GoldStandardError(
+            f"Assessed records missing final gold rows: {_sample(missing_final)}"
+        )
     if missing_raw:
-        sample = sorted(missing_raw)[:5]
-        raise GoldStandardError(f"Final gold rows missing raw assessments: {sample}")
+        raise GoldStandardError(
+            f"Final gold rows missing raw assessments: {_sample(missing_raw)}"
+        )
 
     conflicts = 0
     agreements = 0
@@ -189,7 +247,7 @@ def validate(
                 )
 
     total = len(gold_keys)
-    return {
+    result: dict[str, Any] = {
         "status": "PASS",
         "final_labels": total,
         "raw_assessment_groups": len(assessment_keys),
@@ -198,16 +256,22 @@ def validate(
         "raw_exact_agreement_fraction": round(agreements / total, 6) if total else None,
         "minimum_assessors_per_reference": min(assessor_counts) if assessor_counts else 0,
         "scientific_boundary": (
-            "PASS validates completeness/blinding/adjudication consistency only. "
+            "PASS validates pool coverage, completeness, blinding and adjudication consistency only. "
             "It does not validate the scientific correctness of human relevance judgments."
         ),
     }
+    if pool_keys is not None:
+        result["blinded_pool_rows"] = len(pool_keys)
+        result["pool_assessment_coverage_fraction"] = 1.0
+        result["pool_gold_coverage_fraction"] = 1.0
+    return result
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate blinded assessor evidence and finalized NutEV gold-standard labels."
     )
+    parser.add_argument("--pool", required=True)
     parser.add_argument("--assessments", required=True)
     parser.add_argument("--gold", required=True)
     parser.add_argument("--output", required=True)
@@ -216,6 +280,7 @@ def main() -> int:
         result = validate(
             load_assessments(Path(args.assessments)),
             load_gold(Path(args.gold)),
+            load_pool(Path(args.pool)),
         )
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
