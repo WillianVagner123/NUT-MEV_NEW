@@ -7,6 +7,14 @@
     "web": "diet dietary nutrition healthy eating dietary pattern guideline guidance recommendation consensus statement standard"
   },
   "provider_limits": {
+    "pubmed": 2000,
+    "europepmc": 3000,
+    "openalex": 3000,
+    "crossref": 1000,
+    "doaj": 1000,
+    "semantic_scholar": 1000
+  },
+  "deep_provider_limits": {
     "pubmed": 9999,
     "europepmc": 50000,
     "openalex": 50000,
