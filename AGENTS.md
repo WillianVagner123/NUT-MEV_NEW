@@ -14,6 +14,21 @@ The engine discovers references from configured bibliographic and institutional 
 
 It is not a clinical decision engine. Ranking does not mean scientific inclusion/exclusion and does not produce a clinical recommendation.
 
+## Canonical thesis governance — mandatory for A1-A4 runs
+
+The canonical thesis axis is versioned in `config/nutev_governance_manifest.json`. Any article-specific discovery or ranking run must declare exactly one scope: `A1`, `A2`, `A3`, or `A4`, and must preserve the governance version and digest in its run summary/manifest.
+
+Canonical boundaries:
+
+- **A1** — recommendations and dietary direction in normative/structuring documents: what is recommended and how recommendations are operationalized.
+- **A2** — current dietary prescriptions/interventions + their operational package + executability difficulties. Implementation, competencies/repertoires and context are explanatory dimensions, not the autonomous object of the article.
+- **A3** — development of the NutEV Dietary Protocol: reference dietary expression, individualization, progression/titration, competencies needed for executability, adaptation and sustainability. A3 is not a separate evidence-review engine.
+- **A4** — conceptual clinical-decision framework for longitudinal interpretation between prescription, conditions/repertoires, context/contingencies, execution, consequences, outcomes, care relationship and clinical revision. A4 is not CFD-I, CFD-8, a score, flag engine, algorithm or computational clinical decision engine.
+
+`CFD-I` remains a parallel manuscript product outside A1-A4. `CFD-8` remains postdoctoral Article 6.
+
+For article-aware ranking, use `tools/run_governed_rank_references.py --article A1|A2|A3|A4`. The wrapper builds an ephemeral article profile and never mutates the canonical base ranking configuration. Scientific eligibility and clinical decisions remain human-only.
+
 ## Non-negotiable product invariants
 
 1. Never fabricate provider results, counts, identifiers, URLs, metadata or full text.
@@ -28,6 +43,8 @@ It is not a clinical decision engine. Ranking does not mean scientific inclusion
 10. Every PASS claim must be traceable to the exact SHA/ref and actual executed check.
 11. Do not invent DOI, ORCID, affiliation, authorship, funding or dates.
 12. Do not redistribute protected full text or private research data without rights to do so.
+13. Article-specific A1-A4 runs must use the canonical governance manifest and an explicit article scope.
+14. Governance metadata must never be used to automate scientific inclusion/exclusion or clinical decisions.
 
 ## Supported outputs
 
@@ -46,7 +63,7 @@ When determining software truth, prefer:
 
 1. code at the exact SHA/ref;
 2. tests/workflows at the same SHA/ref;
-3. configuration;
+3. canonical governance and configuration;
 4. generated ranking artifacts;
 5. current v1 documentation;
 6. Git history;
@@ -59,12 +76,12 @@ For non-trivial changes:
 1. inspect current `main`;
 2. work on a dedicated branch;
 3. keep the change inside the supported v1 product scope unless a new product decision explicitly expands it;
-4. add/update regression tests when ranking or provider behavior changes;
+4. add/update regression tests when ranking, provider behavior or canonical governance behavior changes;
 5. run or obtain relevant CI/security/build checks;
 6. use a PR before merge;
 7. never hide failing checks with bypasses.
 
-Avoid feature creep. The v1 product is complete when it reliably discovers, normalizes, deduplicates, ranks and exports references.
+Avoid feature creep. The v1 product is complete when it reliably discovers, normalizes, deduplicates, ranks and exports references while preserving the declared A1-A4 scientific context for article-specific runs.
 
 ## Versioning and releases
 
