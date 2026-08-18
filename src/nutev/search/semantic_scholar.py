@@ -1,10 +1,8 @@
 """Semantic Scholar paper-search connector (Graph API).
 
 Broad academic coverage via the public Semantic Scholar Graph API. A key is
-optional (``S2_API_KEY``) — without one the shared rate limit applies, so the
-connector fails safe (returns ``[]``) on throttling. Same connector contract as
-the others: normalization to the shared row schema, timeout + exponential
-backoff, a reproducible single-page default and opt-in bounded pagination.
+optional (``S2_API_KEY``). Without one the shared rate limit applies and the
+connector fails safe on throttling.
 """
 from __future__ import annotations
 
@@ -16,6 +14,7 @@ import requests
 
 _S2_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
 _FIELDS = "title,abstract,year,authors,externalIds,venue,openAccessPdf,url"
+USER_AGENT = "NutEV-Reference-Engine/1.0 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
 
 
 def _clean(value: Any) -> str:
@@ -24,7 +23,7 @@ def _clean(value: Any) -> str:
 
 def _headers() -> dict:
     key = os.environ.get("S2_API_KEY")
-    headers = {"User-Agent": "NutEV Research Pipeline/1.0"}
+    headers = {"User-Agent": USER_AGENT}
     if key:
         headers["x-api-key"] = key
     return headers
@@ -32,10 +31,18 @@ def _headers() -> dict:
 
 def _normalize_paper(paper: dict, query: str) -> dict:
     ext = paper.get("externalIds", {}) or {}
-    authors = "; ".join(_clean(a.get("name")) for a in paper.get("authors", []) or [] if isinstance(a, dict) and a.get("name"))
+    authors = "; ".join(
+        _clean(a.get("name"))
+        for a in paper.get("authors", []) or []
+        if isinstance(a, dict) and a.get("name")
+    )
     doi = _clean(ext.get("DOI"))
     oa = (paper.get("openAccessPdf") or {}).get("url")
-    url = _clean(oa) or _clean(paper.get("url")) or (f"https://doi.org/{doi}" if doi else "")
+    url = (
+        _clean(oa)
+        or _clean(paper.get("url"))
+        or (f"https://doi.org/{doi}" if doi else "")
+    )
     abstract = _clean(paper.get("abstract"))
     return {
         "source": "semantic_scholar",
@@ -63,16 +70,21 @@ def _s2_get(query: str, limit: int, offset: int) -> dict | None:
     params = {"query": query, "limit": limit, "offset": offset, "fields": _FIELDS}
     for attempt in range(1, 4):
         try:
-            response = requests.get(_S2_URL, params=params, timeout=45, headers=_headers())
+            response = requests.get(
+                _S2_URL,
+                params=params,
+                timeout=45,
+                headers=_headers(),
+            )
             response.raise_for_status()
             return response.json()
         except Exception:
-            time.sleep(min(2 ** attempt, 8))
+            time.sleep(min(2**attempt, 8))
     return None
 
 
 def _resolve_max_results(page_size: int, max_results: int | None) -> int:
-    """Default (None) preserves single-page behaviour; opt into deeper recall with
+    """Default preserves single-page behaviour; opt into deeper recall with
     NUTEV_SEMANTIC_SCHOLAR_MAX_RESULTS so default runs stay reproducible."""
     if max_results is not None:
         return max(max_results, 0)
@@ -80,23 +92,27 @@ def _resolve_max_results(page_size: int, max_results: int | None) -> int:
     return int(env) if env.isdigit() and int(env) > 0 else page_size
 
 
-def search_semantic_scholar(query: str, page_size: int = 18, max_results: int | None = None) -> list[dict]:
+def search_semantic_scholar(
+    query: str,
+    page_size: int = 18,
+    max_results: int | None = None,
+) -> list[dict]:
     if os.environ.get("NUTEV_DISABLE_NETWORK") == "1":
         return []
     if os.environ.get("NUTEV_SKIP_SEMANTIC_SCHOLAR") == "1":
         return []
 
-    page_size = max(1, min(page_size, 100))  # S2 caps limit at 100
+    page_size = max(1, min(page_size, 100))
     target = _resolve_max_results(page_size, max_results)
 
-    # Single-page path — kept simple and reproducible.
     if target <= page_size:
         data = _s2_get(query, page_size, 0)
         if not data:
             return []
-        return [_normalize_paper(p, query) for p in data.get("data", []) or []]
+        return [
+            _normalize_paper(paper, query) for paper in data.get("data", []) or []
+        ]
 
-    # Paginated path — offset walk up to `target`, de-duplicating by DOI/title.
     collected: list[dict] = []
     seen: set[str] = set()
     offset = 0
@@ -108,8 +124,8 @@ def search_semantic_scholar(query: str, page_size: int = 18, max_results: int | 
         papers = data.get("data", []) or []
         if not papers:
             break
-        for p in papers:
-            row = _normalize_paper(p, query)
+        for paper in papers:
+            row = _normalize_paper(paper, query)
             key = row["doi"] or row["title"]
             if key and key in seen:
                 continue
