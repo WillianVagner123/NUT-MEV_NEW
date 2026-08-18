@@ -11,13 +11,20 @@ from typing import Any
 import requests
 
 from nutev.search.base import ProviderResult
-from nutev.search.checkpoint import checkpoint_path, load_checkpoint, query_hash, save_checkpoint
+from nutev.search.checkpoint import (
+    checkpoint_path,
+    load_checkpoint,
+    query_hash,
+    save_checkpoint,
+)
 
 DOI_RE = re.compile(r"(10\.\d{4,9}/[-._;()/:A-Z0-9]+)", re.I)
 DOI_URL_RE = re.compile(r"https?://(?:dx\.)?doi\.org/", re.I)
 PMCID_RE = re.compile(r"\bPMC\s*([0-9]+)\b", re.I)
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 RETRY_STATUSES = {429, 500, 502, 503, 504}
+USER_AGENT = "NutEV-Reference-Engine/1.0 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
+DEFAULT_NCBI_TOOL = "nutev_reference_engine"
 
 
 class PubMedUnavailable(RuntimeError):
@@ -64,7 +71,9 @@ def _pick_article_id(item: dict[str, Any], *id_types: str) -> str | None:
 
 
 def _extract_doi(item: dict[str, Any]) -> str | None:
-    return _clean_doi(_pick_article_id(item, "doi")) or _clean_doi(item.get("elocationid"))
+    return _clean_doi(_pick_article_id(item, "doi")) or _clean_doi(
+        item.get("elocationid")
+    )
 
 
 def _extract_pmcid(item: dict[str, Any]) -> str | None:
@@ -105,7 +114,7 @@ def _ncbi_email() -> str | None:
 
 def _ncbi_params(params: dict[str, Any]) -> dict[str, Any]:
     out = dict(params)
-    out["tool"] = os.environ.get("NCBI_TOOL", "nutev_pipeline")
+    out["tool"] = os.environ.get("NCBI_TOOL", DEFAULT_NCBI_TOOL)
     email = _ncbi_email()
     api_key = os.environ.get("NCBI_API_KEY")
     if email:
@@ -135,7 +144,7 @@ def _request_json(
     session = session or requests.Session()
     session.headers.update(
         {
-            "User-Agent": "NutEV/0.1 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)",
+            "User-Agent": USER_AGENT,
             "Accept": "application/json,text/plain,*/*",
         }
     )
@@ -156,16 +165,24 @@ def _request_json(
                     try:
                         return response.json()
                     except ValueError as exc:
-                        raise PubMedUnavailable(f"Invalid JSON from PubMed {endpoint}") from exc
-                except (requests.Timeout, requests.ConnectionError, requests.HTTPError, PubMedUnavailable) as exc:
+                        raise PubMedUnavailable(
+                            f"Invalid JSON from PubMed {endpoint}"
+                        ) from exc
+                except (
+                    requests.Timeout,
+                    requests.ConnectionError,
+                    requests.HTTPError,
+                    PubMedUnavailable,
+                ) as exc:
                     last_error = exc
-                    # POST is the same-attempt fallback for long URLs/GET failures.
                     continue
             time.sleep(min(2**attempt, 8))
     finally:
         if owns_session:
             session.close()
-    raise PubMedUnavailable(f"PubMed E-utilities request failed after retries: {last_error}")
+    raise PubMedUnavailable(
+        f"PubMed E-utilities request failed after retries: {last_error}"
+    )
 
 
 def _request_text(
@@ -181,25 +198,42 @@ def _request_text(
     last_error: Exception | None = None
     owns_session = session is None
     session = session or requests.Session()
-    session.headers.update({"User-Agent": "NutEV/0.1 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)", "Accept": "application/xml,text/xml,text/plain,*/*"})
+    session.headers.update(
+        {
+            "User-Agent": USER_AGENT,
+            "Accept": "application/xml,text/xml,text/plain,*/*",
+        }
+    )
     try:
         for attempt in range(1, max_attempts + 1):
             for method in ("get", "post"):
                 try:
                     _rate_limit_sleep()
-                    response = session.get(url, params=params, timeout=timeout) if method == "get" else session.post(url, data=params, timeout=timeout)
+                    response = (
+                        session.get(url, params=params, timeout=timeout)
+                        if method == "get"
+                        else session.post(url, data=params, timeout=timeout)
+                    )
                     if response.status_code in RETRY_STATUSES:
-                        raise requests.HTTPError(f"HTTP {response.status_code}", response=response)
+                        raise requests.HTTPError(
+                            f"HTTP {response.status_code}", response=response
+                        )
                     response.raise_for_status()
                     return response.text
-                except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
+                except (
+                    requests.Timeout,
+                    requests.ConnectionError,
+                    requests.HTTPError,
+                ) as exc:
                     last_error = exc
                     continue
             time.sleep(min(2**attempt, 8))
     finally:
         if owns_session:
             session.close()
-    raise PubMedUnavailable(f"PubMed E-utilities text request failed after retries: {last_error}")
+    raise PubMedUnavailable(
+        f"PubMed E-utilities text request failed after retries: {last_error}"
+    )
 
 
 def _abstracts_from_efetch_xml(xml_text: str) -> dict[str, str]:
@@ -215,7 +249,10 @@ def _abstracts_from_efetch_xml(xml_text: str) -> dict[str, str]:
             pmid = pmid_node.text.strip()
         if not pmid:
             continue
-        parts = ["".join(node.itertext()).strip() for node in article.findall(".//Abstract/AbstractText")]
+        parts = [
+            "".join(node.itertext()).strip()
+            for node in article.findall(".//Abstract/AbstractText")
+        ]
         text = "\n".join(part for part in parts if part)
         if text:
             abstracts[pmid] = text
@@ -261,19 +298,39 @@ class PubMedClient:
     ) -> ProviderResult:
         context = context or {}
         workstream = str(context.get("workstream") or "default")
-        checkpoint_dir = Path(context.get("checkpoint_dir") or Path("07_logs") / "checkpoints")
+        checkpoint_dir = Path(
+            context.get("checkpoint_dir") or Path("07_logs") / "checkpoints"
+        )
         resume = bool(context.get("resume", False))
-        batch_size = int(context.get("batch_size") or os.environ.get("NUTEV_PUBMED_BATCH_SIZE") or 200)
+        batch_size = int(
+            context.get("batch_size")
+            or os.environ.get("NUTEV_PUBMED_BATCH_SIZE")
+            or 200
+        )
         logger = context.get("logger") or logging.getLogger(__name__)
         cp_path = checkpoint_path(checkpoint_dir, self.name, workstream, query)
         qh = query_hash(self.name, workstream, query)
 
         if os.environ.get("NUTEV_DISABLE_NETWORK") == "1":
-            return ProviderResult(self.name, query, status="skipped", error="network_disabled", checkpoint_path=str(cp_path))
+            return ProviderResult(
+                self.name,
+                query,
+                status="skipped",
+                error="network_disabled",
+                checkpoint_path=str(cp_path),
+            )
         if os.environ.get("NUTEV_SKIP_PUBMED") == "1":
-            return ProviderResult(self.name, query, status="skipped", error="NUTEV_SKIP_PUBMED=1", checkpoint_path=str(cp_path))
+            return ProviderResult(
+                self.name,
+                query,
+                status="skipped",
+                error="NUTEV_SKIP_PUBMED=1",
+                checkpoint_path=str(cp_path),
+            )
         if not _ncbi_email():
-            logger.warning("NCBI_EMAIL/ENTREZ_EMAIL ausente; usando rate limit conservador para PubMed")
+            logger.warning(
+                "NCBI_EMAIL/ENTREZ_EMAIL ausente; usando rate limit conservador para PubMed"
+            )
 
         rows: list[dict[str, Any]] = []
         ids_collected: list[str] = []
@@ -317,9 +374,13 @@ class PubMedClient:
                 result = search_payload.get("esearchresult", {})
                 count = int(result.get("count") or 0)
                 webenv = str(result.get("webenv") or result.get("WebEnv") or "")
-                query_key = str(result.get("querykey") or result.get("query_key") or "")
+                query_key = str(
+                    result.get("querykey") or result.get("query_key") or ""
+                )
                 if count and (not webenv or not query_key):
-                    raise PubMedUnavailable("PubMed esearch did not return WebEnv/query_key")
+                    raise PubMedUnavailable(
+                        "PubMed esearch did not return WebEnv/query_key"
+                    )
                 save_checkpoint(
                     cp_path,
                     {
@@ -355,12 +416,22 @@ class PubMedClient:
                         "query_key": query_key,
                     },
                 )
-                batch_ids = [str(x) for x in search_payload.get("esearchresult", {}).get("idlist", [])]
-                batch_ids = [pmid for pmid in batch_ids if pmid not in set(ids_collected)]
+                batch_ids = [
+                    str(x)
+                    for x in search_payload.get("esearchresult", {}).get(
+                        "idlist", []
+                    )
+                ]
+                existing_ids = set(ids_collected)
+                batch_ids = [pmid for pmid in batch_ids if pmid not in existing_ids]
                 if batch_ids:
                     summary_payload = _request_json(
                         "esummary.fcgi",
-                        {"db": "pubmed", "retmode": "json", "id": ",".join(batch_ids)},
+                        {
+                            "db": "pubmed",
+                            "retmode": "json",
+                            "id": ",".join(batch_ids),
+                        },
                     )
                     payload = summary_payload.get("result", {})
                     batch_rows: list[dict[str, Any]] = []
@@ -368,19 +439,37 @@ class PubMedClient:
                         item = payload.get(pmid, {})
                         if item:
                             batch_rows.append(_normalize_summary(item, pmid, query))
-                    if os.environ.get("NUTEV_PUBMED_FETCH_ABSTRACTS") == "1" and batch_rows:
+                    if (
+                        os.environ.get("NUTEV_PUBMED_FETCH_ABSTRACTS") == "1"
+                        and batch_rows
+                    ):
                         try:
-                            xml_text = _request_text("efetch.fcgi", {"db": "pubmed", "retmode": "xml", "id": ",".join(batch_ids)})
+                            xml_text = _request_text(
+                                "efetch.fcgi",
+                                {
+                                    "db": "pubmed",
+                                    "retmode": "xml",
+                                    "id": ",".join(batch_ids),
+                                },
+                            )
                             abstracts = _abstracts_from_efetch_xml(xml_text)
                             for row in batch_rows:
-                                abstract = abstracts.get(str(row.get("pmid") or ""), "")
-                                if abstract and len(abstract) > len(str(row.get("abstract") or "")):
+                                abstract = abstracts.get(
+                                    str(row.get("pmid") or ""), ""
+                                )
+                                if abstract and len(abstract) > len(
+                                    str(row.get("abstract") or "")
+                                ):
                                     row["abstract"] = abstract
                                     row["summary"] = abstract
                                     row["snippet"] = abstract[:500]
                                     row["metadata_status"] = "pubmed_efetch"
                         except Exception as exc:
-                            logger.warning("PubMed efetch abstracts falhou query=%s erro=%s", query, exc)
+                            logger.warning(
+                                "PubMed efetch abstracts falhou query=%s erro=%s",
+                                query,
+                                exc,
+                            )
                     rows.extend(batch_rows)
                     ids_collected.extend(batch_ids)
                 retstart += retmax
