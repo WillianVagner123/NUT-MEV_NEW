@@ -1,10 +1,8 @@
 """DOAJ (Directory of Open Access Journals) article-search connector.
 
 Adds open-access journal coverage via the public DOAJ REST API — no key required.
-Follows the same shape as the other bibliographic connectors (europepmc/crossref/
-openalex): a reproducible single-page default, opt-in bounded pagination, and
-exponential backoff. Rows are normalized to the shared record schema so the
-orchestrator/dedup/curation layers treat DOAJ like any other provider.
+Follows the same shape as the other bibliographic connectors: a reproducible
+single-page default, opt-in bounded pagination, and exponential backoff.
 """
 from __future__ import annotations
 
@@ -16,6 +14,7 @@ from urllib.parse import quote
 import requests
 
 _DOAJ_URL = "https://doaj.org/api/search/articles/"
+USER_AGENT = "NutEV-Reference-Engine/1.0 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
 
 
 def _clean(value: Any) -> str:
@@ -40,7 +39,9 @@ def _normalize_doaj_item(item: dict, query: str) -> dict:
     bibjson = item.get("bibjson", {}) if isinstance(item, dict) else {}
     doi = _pick_doi(bibjson)
     authors = "; ".join(
-        _clean(a.get("name")) for a in bibjson.get("author", []) or [] if isinstance(a, dict) and a.get("name")
+        _clean(a.get("name"))
+        for a in bibjson.get("author", []) or []
+        if isinstance(a, dict) and a.get("name")
     )
     abstract = _clean(bibjson.get("abstract"))
     return {
@@ -74,17 +75,17 @@ def _doaj_get(query: str, page: int, page_size: int) -> dict | None:
                 url,
                 params={"page": page, "pageSize": page_size},
                 timeout=45,
-                headers={"User-Agent": "NutEV Research Pipeline/1.0"},
+                headers={"User-Agent": USER_AGENT},
             )
             response.raise_for_status()
             return response.json()
         except Exception:
-            time.sleep(min(2 ** attempt, 8))
+            time.sleep(min(2**attempt, 8))
     return None
 
 
 def _resolve_max_results(page_size: int, max_results: int | None) -> int:
-    """Default (None) preserves single-page behaviour; opt into deeper recall with
+    """Default preserves single-page behaviour; opt into deeper recall with
     NUTEV_DOAJ_MAX_RESULTS so default runs stay reproducible."""
     if max_results is not None:
         return max(max_results, 0)
@@ -92,24 +93,28 @@ def _resolve_max_results(page_size: int, max_results: int | None) -> int:
     return int(env) if env.isdigit() and int(env) > 0 else page_size
 
 
-def search_doaj(query: str, page_size: int = 18, max_results: int | None = None) -> list[dict]:
+def search_doaj(
+    query: str,
+    page_size: int = 18,
+    max_results: int | None = None,
+) -> list[dict]:
     if os.environ.get("NUTEV_DISABLE_NETWORK") == "1":
         return []
     if os.environ.get("NUTEV_SKIP_DOAJ") == "1":
         return []
 
-    # DOAJ caps pageSize at 100.
     page_size = max(1, min(page_size, 100))
     target = _resolve_max_results(page_size, max_results)
 
-    # Single-page path — kept simple and reproducible.
     if target <= page_size:
         data = _doaj_get(query, 1, page_size)
         if not data:
             return []
-        return [_normalize_doaj_item(item, query) for item in data.get("results", []) or []]
+        return [
+            _normalize_doaj_item(item, query)
+            for item in data.get("results", []) or []
+        ]
 
-    # Paginated path — walk pages up to `target`, de-duplicating by DOI/title.
     collected: list[dict] = []
     seen: set[str] = set()
     page = 1
@@ -131,7 +136,7 @@ def search_doaj(query: str, page_size: int = 18, max_results: int | None = None)
             collected.append(row)
             if len(collected) >= target:
                 break
-        if len(results) < requested:  # short page → no more results
+        if len(results) < requested:
             break
         page += 1
     return collected

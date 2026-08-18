@@ -3,6 +3,6 @@ contact_links:
   - name: Security or data-exposure report
     url: https://github.com/WillianVagner123/NutEV-Evidence-Engine/security/policy
     about: Please report vulnerabilities or accidental data/secret exposure privately (see SECURITY.md).
-  - name: Questions & discussion
-    url: https://github.com/WillianVagner123/NutEV-Evidence-Engine/discussions
-    about: Ask questions and discuss methodology or usage.
+  - name: Usage and auditability guide
+    url: https://github.com/WillianVagner123/NutEV-Evidence-Engine#guardrails-e-política-anti-fabricação
+    about: Read the supported workflow, guardrails, audit outputs, and troubleshooting guidance before opening an issue.

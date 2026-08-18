@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import csv
+from hashlib import sha256
 import importlib.util
 import json
 from pathlib import Path
+
+import pytest
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "tools" / "rank_references.py"
@@ -13,64 +16,189 @@ rank_references = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(rank_references)
 
 
-def _base_config(config: Path, *, focus: list[str] | None = None, weights: dict[str, float] | None = None) -> None:
+def _base_config(
+    config: Path,
+    *,
+    focus: list[str] | None = None,
+    weights: dict[str, float] | None = None,
+) -> None:
     config.mkdir(parents=True, exist_ok=True)
     (config / "keyword_taxonomy.json").write_text(
-        json.dumps({"global": {"nutrition": {"core": ["nutrition care", "dietary pattern", "healthy eating"]}}}),
+        json.dumps(
+            {
+                "global": {
+                    "nutrition": {
+                        "core": ["nutrition care", "dietary pattern", "healthy eating"]
+                    }
+                }
+            }
+        ),
         encoding="utf-8",
     )
     (config / "reference_mode.json").write_text(
-        json.dumps({"mode": "REFERENCE_RANKING", "focus_keywords": focus or [], "provider_weights": weights or {}}),
+        json.dumps(
+            {
+                "mode": "REFERENCE_RANKING",
+                "focus_keywords": focus or [],
+                "provider_weights": weights or {},
+                "guardrails": {
+                    "require_traceable_origin": True,
+                    "fail_on_input_hash_mismatch": True,
+                    "taxonomy_score_cap": 60,
+                    "focus_score_cap": 40,
+                    "document_type_scoring": "highest_weight_only",
+                },
+            }
+        ),
         encoding="utf-8",
     )
 
 
-def _write_collection(project: Path, rows: list[dict], *, latin: bool = False) -> None:
+def _write_collection(
+    project: Path,
+    rows: list[dict],
+    *,
+    latin: bool = False,
+) -> tuple[Path, Path]:
     run_dir = project / ("latin_run" if latin else "run")
     log_dir = project / "07_logs" / ("latin_native" if latin else "collect_everything")
     run_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
     master = run_dir / "master.jsonl"
-    master.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
-    (log_dir / "latest.json").write_text(json.dumps({"master_records_path": str(master)}), encoding="utf-8")
+    master.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+    digest = sha256(master.read_bytes()).hexdigest()
+    state = log_dir / "latest.json"
+    state.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "collection_type": "REFERENCE_COLLECTION",
+                "run_id": "latin-test" if latin else "general-test",
+                "status": "COMPLETE",
+                "master_records_path": str(master),
+                "master_records_sha256": digest,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return master, state
 
 
 def _read_ranked(project: Path) -> list[dict]:
     path = project / "reference_ranking" / "reference_ranking.jsonl"
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
 def test_taxonomy_title_match_outweighs_abstract_only_match() -> None:
     taxonomy = {"global.nutrition.core": ["dietary pattern"]}
     title_row = rank_references.score_record(
-        {"title": "Dietary pattern guidance", "abstract": "x", "source_provider": "pubmed"}, taxonomy, [], {}
+        {
+            "title": "Dietary pattern guidance",
+            "abstract": "x",
+            "source_provider": "pubmed",
+        },
+        taxonomy,
+        [],
+        {},
     )
     abstract_row = rank_references.score_record(
-        {"title": "Nutrition paper", "abstract": "Dietary pattern guidance", "source_provider": "pubmed"}, taxonomy, [], {}
+        {
+            "title": "Nutrition paper",
+            "abstract": "Dietary pattern guidance",
+            "source_provider": "pubmed",
+        },
+        taxonomy,
+        [],
+        {},
     )
     assert title_row["reference_score"] > abstract_row["reference_score"]
 
 
 def test_focus_document_type_and_provider_weights_raise_priority() -> None:
     baseline = rank_references.score_record(
-        {"title": "Nutrition care report", "abstract": "x", "source_provider": "crossref"}, {}, [], {"crossref": 1, "pubmed": 6}
+        {
+            "title": "Nutrition care report",
+            "abstract": "x",
+            "source_provider": "crossref",
+        },
+        {},
+        [],
+        {"crossref": 1, "pubmed": 6},
     )
     prioritized = rank_references.score_record(
-        {"title": "Clinical practice guideline for lifestyle medicine nutrition care", "abstract": "x", "source_provider": "pubmed", "pmid": "123"},
-        {}, ["lifestyle medicine"], {"crossref": 1, "pubmed": 6}
+        {
+            "title": "Clinical practice guideline for lifestyle medicine nutrition care",
+            "abstract": "x",
+            "source_provider": "pubmed",
+            "pmid": "123",
+        },
+        {},
+        ["lifestyle medicine"],
+        {"crossref": 1, "pubmed": 6},
     )
     assert prioritized["reference_score"] > baseline["reference_score"]
     assert "lifestyle medicine" in prioritized["focus_keyword_hits"]
     assert "clinical practice guideline" in prioritized["document_type_hits"]
 
 
+def test_document_type_terms_do_not_stack() -> None:
+    row = rank_references.score_record(
+        {
+            "title": "Clinical practice guideline for nutrition",
+            "abstract": "x",
+            "source_provider": "pubmed",
+        },
+        {},
+        [],
+        {},
+    )
+    assert {"clinical practice guideline", "practice guideline", "guideline"}.issubset(
+        set(row["document_type_hits"])
+    )
+    assert row["document_type_applied"] == "clinical practice guideline"
+    assert row["score_breakdown"]["document_type"] == 12.0
+
+
+def test_taxonomy_score_is_capped_to_reduce_group_structure_bias() -> None:
+    taxonomy = {
+        f"historical.group.{index}": ["dietary pattern"]
+        for index in range(30)
+    }
+    row = rank_references.score_record(
+        {
+            "title": "Dietary pattern guidance",
+            "abstract": "Dietary pattern",
+            "source_provider": "pubmed",
+        },
+        taxonomy,
+        [],
+        {},
+        {"taxonomy_score_cap": 60},
+    )
+    assert row["score_breakdown"]["taxonomy"] == 60.0
+    assert row["score_breakdown"]["taxonomy_raw_before_cap"] > 60.0
+
+
 def test_recency_is_secondary_to_relevance() -> None:
     taxonomy = {"global.nutrition.core": ["dietary pattern"]}
     relevant_old = rank_references.score_record(
-        {"title": "Dietary pattern recommendations", "abstract": "x", "year": 2010}, taxonomy, [], {}
+        {"title": "Dietary pattern recommendations", "abstract": "x", "year": 2010},
+        taxonomy,
+        [],
+        {},
     )
     unrelated_new = rank_references.score_record(
-        {"title": "Unrelated technical note", "abstract": "x", "year": 2026}, taxonomy, [], {}
+        {"title": "Unrelated technical note", "abstract": "x", "year": 2026},
+        taxonomy,
+        [],
+        {},
     )
     assert relevant_old["reference_score"] > unrelated_new["reference_score"]
 
@@ -78,7 +206,11 @@ def test_recency_is_secondary_to_relevance() -> None:
 def test_deduplication_prefers_richer_record() -> None:
     rows = [
         {"title": "Same", "doi": "10.1000/example", "abstract": "short"},
-        {"title": "Same elsewhere", "doi": "10.1000/example", "abstract": "a much richer abstract"},
+        {
+            "title": "Same elsewhere",
+            "doi": "10.1000/example",
+            "abstract": "a much richer abstract",
+        },
     ]
     unique = rank_references._dedupe(rows)
     assert len(unique) == 1
@@ -88,39 +220,72 @@ def test_deduplication_prefers_richer_record() -> None:
 def test_run_is_deterministic_and_exports_same_order(tmp_path: Path) -> None:
     config = tmp_path / "config"
     project = tmp_path / "project"
-    _base_config(config, focus=["lifestyle medicine"], weights={"pubmed": 6, "crossref": 1})
-    _write_collection(project, [
-        {"title": "Clinical practice guideline for nutrition care and lifestyle medicine", "abstract": "Dietary pattern recommendations", "source_provider": "pubmed", "pmid": "123", "year": 2025},
-        {"title": "Healthy eating framework", "abstract": "Dietary pattern", "source_provider": "crossref", "doi": "10.1000/example", "year": 2024},
-    ])
+    _base_config(
+        config,
+        focus=["lifestyle medicine"],
+        weights={"pubmed": 6, "crossref": 1},
+    )
+    _write_collection(
+        project,
+        [
+            {
+                "title": "Clinical practice guideline for nutrition care and lifestyle medicine",
+                "abstract": "Dietary pattern recommendations",
+                "source_provider": "pubmed",
+                "pmid": "123",
+                "year": 2025,
+            },
+            {
+                "title": "Healthy eating framework",
+                "abstract": "Dietary pattern",
+                "source_provider": "crossref",
+                "doi": "10.1000/example",
+                "year": 2024,
+            },
+        ],
+    )
     first = rank_references.run(project, config, 10)
     first_rows = _read_ranked(project)
     second = rank_references.run(project, config, 10)
     second_rows = _read_ranked(project)
     assert first["mode"] == "REFERENCE_RANKING"
     assert second["records_unique"] == first["records_unique"]
-    assert [(r["title"], r["reference_score"], r["reference_rank"]) for r in first_rows] == [
+    assert [
+        (r["title"], r["reference_score"], r["reference_rank"]) for r in first_rows
+    ] == [
         (r["title"], r["reference_score"], r["reference_rank"]) for r in second_rows
     ]
-    with (project / "reference_ranking" / "reference_ranking.csv").open(encoding="utf-8-sig", newline="") as handle:
+    with (project / "reference_ranking" / "reference_ranking.csv").open(
+        encoding="utf-8-sig", newline=""
+    ) as handle:
         csv_rows = list(csv.DictReader(handle))
     assert [row["title"] for row in csv_rows] == [row["title"] for row in second_rows]
-    markdown = (project / "reference_ranking" / "TOP_REFERENCIAS.md").read_text(encoding="utf-8")
-    assert [markdown.index(row["title"]) for row in second_rows] == sorted(markdown.index(row["title"]) for row in second_rows)
+    markdown = (project / "reference_ranking" / "TOP_REFERENCIAS.md").read_text(
+        encoding="utf-8"
+    )
+    assert [markdown.index(row["title"]) for row in second_rows] == sorted(
+        markdown.index(row["title"]) for row in second_rows
+    )
     assert (project / "reference_ranking" / "latest.json").is_file()
+    assert (project / "reference_ranking" / "AUDIT_MANIFEST.json").is_file()
 
 
 def test_public_output_uses_explicit_metadata_allowlist(tmp_path: Path) -> None:
     config = tmp_path / "config"
     project = tmp_path / "project"
     _base_config(config)
-    _write_collection(project, [{
-        "title": "Nutrition care guideline",
-        "abstract": "healthy eating",
-        "source_provider": "pubmed",
-        "pmid": "123",
-        "internal_control": "must-not-leak",
-    }])
+    _write_collection(
+        project,
+        [
+            {
+                "title": "Nutrition care guideline",
+                "abstract": "healthy eating",
+                "source_provider": "pubmed",
+                "pmid": "123",
+                "internal_control": "must-not-leak",
+            }
+        ],
+    )
     rank_references.run(project, config, 10)
     row = _read_ranked(project)[0]
     assert "internal_control" not in row
@@ -131,11 +296,118 @@ def test_latin_source_identity_is_preserved(tmp_path: Path) -> None:
     config = tmp_path / "config"
     project = tmp_path / "project"
     _base_config(config)
-    _write_collection(project, [{"title": "Nutrition baseline", "abstract": "healthy eating", "source_provider": "pubmed", "pmid": "1"}])
-    _write_collection(project, [
-        {"title": "LILACS nutrition guidance", "abstract": "healthy eating", "source_provider": "lilacs_bvs_native", "url": "https://example.org/lilacs"},
-        {"title": "SciELO dietary pattern", "abstract": "healthy eating", "source_provider": "scielo_native", "url": "https://example.org/scielo"},
-    ], latin=True)
+    _write_collection(
+        project,
+        [
+            {
+                "title": "Nutrition baseline",
+                "abstract": "healthy eating",
+                "source_provider": "pubmed",
+                "pmid": "1",
+            }
+        ],
+    )
+    _write_collection(
+        project,
+        [
+            {
+                "title": "LILACS nutrition guidance",
+                "abstract": "healthy eating",
+                "source_provider": "lilacs_bvs_native",
+                "url": "https://example.org/lilacs",
+            },
+            {
+                "title": "SciELO dietary pattern",
+                "abstract": "healthy eating",
+                "source_provider": "scielo_native",
+                "url": "https://example.org/scielo",
+            },
+        ],
+        latin=True,
+    )
     rank_references.run(project, config, 10)
     providers = {row["reference_provider"] for row in _read_ranked(project)}
     assert {"lilacs_bvs_native", "scielo_native"}.issubset(providers)
+
+
+def test_untraceable_record_is_quarantined_and_not_ranked(tmp_path: Path) -> None:
+    config = tmp_path / "config"
+    project = tmp_path / "project"
+    _base_config(config)
+    _write_collection(
+        project,
+        [
+            {
+                "title": "Traceable nutrition guideline",
+                "source_provider": "pubmed",
+                "pmid": "123",
+            },
+            {
+                "title": "Untraceable nutrition claim",
+                "source_provider": "unknown_provider",
+            },
+        ],
+    )
+    result = rank_references.run(project, config, 10)
+    assert result["records_quarantined"] == 1
+    assert [row["title"] for row in _read_ranked(project)] == [
+        "Traceable nutrition guideline"
+    ]
+    quarantine = (
+        project / "reference_ranking" / "reference_quarantine.jsonl"
+    ).read_text(encoding="utf-8")
+    assert "Untraceable nutrition claim" in quarantine
+
+
+def test_input_hash_mismatch_fails_closed(tmp_path: Path) -> None:
+    config = tmp_path / "config"
+    project = tmp_path / "project"
+    _base_config(config)
+    master, _ = _write_collection(
+        project,
+        [
+            {
+                "title": "Traceable nutrition guideline",
+                "source_provider": "pubmed",
+                "pmid": "123",
+            }
+        ],
+    )
+    master.write_text(
+        json.dumps(
+            {
+                "title": "Tampered record",
+                "source_provider": "pubmed",
+                "pmid": "999",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(rank_references.IntegrityError, match="SHA-256 mismatch"):
+        rank_references.run(project, config, 10)
+
+
+def test_audit_manifest_hashes_outputs_and_sources(tmp_path: Path) -> None:
+    config = tmp_path / "config"
+    project = tmp_path / "project"
+    _base_config(config)
+    _write_collection(
+        project,
+        [
+            {
+                "title": "Traceable nutrition guideline",
+                "source_provider": "pubmed",
+                "pmid": "123",
+            }
+        ],
+    )
+    result = rank_references.run(project, config, 10)
+    audit_path = Path(result["outputs"]["audit_manifest"])
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert audit["status"] == "PASS"
+    assert audit["counts"]["records_traceable"] == 1
+    assert audit["source_integrity"][0]["master_records_sha256"]
+    for output in audit["outputs"].values():
+        path = Path(output["path"])
+        assert sha256(path.read_bytes()).hexdigest() == output["sha256"]

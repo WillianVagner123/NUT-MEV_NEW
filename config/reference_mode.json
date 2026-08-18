@@ -24,5 +24,12 @@
     "crossref": 2,
     "doaj": 2,
     "semantic": 2
+  },
+  "guardrails": {
+    "require_traceable_origin": true,
+    "fail_on_input_hash_mismatch": true,
+    "taxonomy_score_cap": 60,
+    "focus_score_cap": 40,
+    "document_type_scoring": "highest_weight_only"
   }
 }

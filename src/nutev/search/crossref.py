@@ -1,7 +1,11 @@
 from __future__ import annotations
+
 import os
-import requests
 import time
+
+import requests
+
+USER_AGENT = "NutEV-Reference-Engine/1.0 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
 
 
 def _pick_crossref_url(item: dict) -> str:
@@ -39,11 +43,40 @@ def _normalize_crossref_item(it: dict, query: str) -> dict:
         "pmid": "",
         "pmcid": "",
         "url": _pick_crossref_url(it),
-        "journal": (it.get("container-title") or [""])[0] if isinstance(it.get("container-title"), list) else "",
-        "year": str(((it.get("published-print") or it.get("published-online") or {}).get("date-parts") or [[""]])[0][0] or ""),
-        "publication_date": "-".join(str(x) for x in (((it.get("published-print") or it.get("published-online") or {}).get("date-parts") or [[]])[0])),
+        "journal": (it.get("container-title") or [""])[0]
+        if isinstance(it.get("container-title"), list)
+        else "",
+        "year": str(
+            (
+                (it.get("published-print") or it.get("published-online") or {}).get(
+                    "date-parts"
+                )
+                or [[""]]
+            )[0][0]
+            or ""
+        ),
+        "publication_date": "-".join(
+            str(x)
+            for x in (
+                (
+                    (it.get("published-print") or it.get("published-online") or {}).get(
+                        "date-parts"
+                    )
+                    or [[]]
+                )[0]
+            )
+        ),
         "article_type": it.get("type") or "",
-        "authors": "; ".join([" ".join([str(a.get("given", "")), str(a.get("family", ""))]).strip() for a in it.get("author", [])[:12]]) if isinstance(it.get("author"), list) else "",
+        "authors": "; ".join(
+            [
+                " ".join(
+                    [str(a.get("given", "")), str(a.get("family", ""))]
+                ).strip()
+                for a in it.get("author", [])[:12]
+            ]
+        )
+        if isinstance(it.get("author"), list)
+        else "",
         "metadata_status": "crossref_search",
         "query": query,
         "provider_query": query,
@@ -56,19 +89,19 @@ def _mailto() -> dict:
 
 
 def _crossref_get(params: dict) -> dict | None:
-    """GET with exponential backoff (was linear). Returns parsed JSON or None."""
+    """GET with exponential backoff. Returns parsed JSON or None."""
     for attempt in range(1, 4):
         try:
             r = requests.get(
                 _CROSSREF_URL,
                 params=params,
                 timeout=45,
-                headers={"User-Agent": "NutEV Research Pipeline/1.0"},
+                headers={"User-Agent": USER_AGENT},
             )
             r.raise_for_status()
             return r.json()
         except Exception:
-            time.sleep(min(2 ** attempt, 8))
+            time.sleep(min(2**attempt, 8))
     return None
 
 
@@ -81,7 +114,13 @@ def _resolve_max_results(default: int, max_results: int | None) -> int:
     return int(env) if env.isdigit() and int(env) > 0 else default
 
 
-def _request_params(query: str, rows: int, *, filter_value: str = "", offset: int | None = None) -> dict:
+def _request_params(
+    query: str,
+    rows: int,
+    *,
+    filter_value: str = "",
+    offset: int | None = None,
+) -> dict:
     params: dict = {"query": query, "rows": rows, **_mailto()}
     if filter_value.strip():
         params["filter"] = filter_value.strip()
@@ -101,7 +140,6 @@ def search_crossref(
 
     target = _resolve_max_results(rows, max_results)
 
-    # Single-page path — identical to the historical request (no offset).
     if target <= rows:
         data = _crossref_get(_request_params(query, rows, filter_value=filter_value))
         if not data:
@@ -109,7 +147,6 @@ def search_crossref(
         items = data.get("message", {}).get("items", []) or []
         return [_normalize_crossref_item(it, query) for it in items]
 
-    # Paginated path — offset walk up to `target`, de-duplicating by DOI/title.
     collected: list[dict] = []
     seen: set[str] = set()
     offset = 0

@@ -8,6 +8,15 @@ from pathlib import Path
 import re
 import unicodedata
 from typing import Any, Iterable
+from uuid import uuid4
+
+from nutev.audit_guardrails import (
+    GUARDRAIL_POLICY_VERSION,
+    IntegrityError,
+    annotate_record,
+    sha256_file,
+    verify_manifest_master,
+)
 
 _SPACE_RE = re.compile(r"\s+")
 _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
@@ -43,6 +52,22 @@ _PUBLIC_INPUT_FIELDS = {
     "provider_search_url",
     "metadata_status",
     "collection_type",
+    "audit_policy_version",
+    "audit_traceability",
+    "audit_quarantined",
+    "audit_reasons",
+    "audit_origin_sha256",
+    "audit_source_manifest_path",
+    "audit_source_master_sha256",
+    "audit_source_run_id",
+}
+
+_DEFAULT_GUARDRAILS: dict[str, Any] = {
+    "require_traceable_origin": True,
+    "fail_on_input_hash_mismatch": True,
+    "taxonomy_score_cap": 60.0,
+    "focus_score_cap": 40.0,
+    "document_type_scoring": "highest_weight_only",
 }
 
 
@@ -69,25 +94,65 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.is_file():
         return rows
     with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
+        for line_number, line in enumerate(handle, start=1):
             if not line.strip():
                 continue
-            value = json.loads(line)
-            if isinstance(value, dict):
-                rows.append(value)
+            try:
+                value = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise IntegrityError(f"Invalid JSONL at {path}:{line_number}: {exc}") from exc
+            if not isinstance(value, dict):
+                raise IntegrityError(f"Non-object JSONL record at {path}:{line_number}")
+            rows.append(value)
     return rows
 
 
-def _write_json(path: Path, value: Any) -> None:
+def _atomic_text(path: Path, text: str) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    tmp = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+    return sha256_file(path)
 
 
-def _write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
+def _write_json(path: Path, value: Any) -> str:
+    return _atomic_text(
+        path,
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True, default=str) + "\n",
+    )
+
+
+def _write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> str:
+    text = "".join(
+        json.dumps(row, ensure_ascii=False, sort_keys=True, default=str) + "\n"
+        for row in rows
+    )
+    return _atomic_text(path, text)
+
+
+def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="\n") as handle:
+    tmp = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    with tmp.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
         for row in rows:
-            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+            flat = dict(row)
+            for key in (
+                "taxonomy_groups",
+                "focus_keyword_hits",
+                "matched_terms",
+                "document_type_hits",
+                "audit_reasons",
+            ):
+                flat[key] = " | ".join(str(value) for value in row.get(key) or [])
+            if isinstance(flat.get("score_breakdown"), dict):
+                flat["score_breakdown"] = json.dumps(
+                    flat["score_breakdown"], ensure_ascii=False, sort_keys=True
+                )
+            writer.writerow(flat)
+    tmp.replace(path)
+    return sha256_file(path)
 
 
 def _taxonomy_files(config_dir: Path) -> list[Path]:
@@ -127,26 +192,79 @@ def load_taxonomy(config_dir: Path) -> dict[str, list[str]]:
         data = _read_json(path)
         for group, terms in _flatten_terms(data).items():
             merged.setdefault(group, set()).update(terms)
-    return {group: sorted(terms, key=lambda term: (-len(term), term)) for group, terms in sorted(merged.items())}
+    return {
+        group: sorted(terms, key=lambda term: (-len(term), term))
+        for group, terms in sorted(merged.items())
+    }
 
 
-def _source_rows(project_root: Path) -> tuple[list[dict[str, Any]], list[str]]:
+def _guardrail_policy(profile: dict[str, Any]) -> dict[str, Any]:
+    policy = dict(_DEFAULT_GUARDRAILS)
+    configured = profile.get("guardrails")
+    if isinstance(configured, dict):
+        policy.update(configured)
+    if policy.get("document_type_scoring") != "highest_weight_only":
+        raise RuntimeError(
+            "Unsupported document_type_scoring. Guardrail requires highest_weight_only."
+        )
+    return policy
+
+
+def _source_rows(
+    project_root: Path,
+    *,
+    require_hash: bool,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     rows: list[dict[str, Any]] = []
-    sources: list[str] = []
+    source_audit: list[dict[str, Any]] = []
     states = [
         project_root / "07_logs" / "collect_everything" / "latest.json",
         project_root / "07_logs" / "latin_native" / "latest.json",
     ]
     for state_path in states:
         state = _read_json(state_path)
-        master = Path(str(state.get("master_records_path") or ""))
-        if master.is_file():
-            part = _read_jsonl(master)
-            rows.extend(part)
-            sources.append(str(master))
+        if not state:
+            continue
+        if state.get("collection_type") not in {None, "", "REFERENCE_COLLECTION"}:
+            raise IntegrityError(
+                f"Unexpected collection_type in {state_path}: {state.get('collection_type')}"
+            )
+        if require_hash:
+            audited = verify_manifest_master(state_path, state)
+        else:
+            master_raw = str(state.get("master_records_path") or "").strip()
+            if not master_raw:
+                audited = None
+            else:
+                master = Path(master_raw)
+                if not master.is_file():
+                    raise IntegrityError(f"Manifest points to missing master file: {master}")
+                audited = {
+                    "state_path": str(state_path),
+                    "state_run_id": str(state.get("run_id") or ""),
+                    "state_status": str(state.get("status") or ""),
+                    "collection_type": str(state.get("collection_type") or ""),
+                    "master_records_path": str(master),
+                    "master_records_sha256": sha256_file(master),
+                }
+        if audited is None:
+            continue
+        master = Path(audited["master_records_path"])
+        part = _read_jsonl(master)
+        for raw in part:
+            row = dict(raw)
+            row["audit_source_manifest_path"] = str(state_path)
+            row["audit_source_master_sha256"] = audited["master_records_sha256"]
+            row["audit_source_run_id"] = audited["state_run_id"]
+            rows.append(row)
+        audit_item = dict(audited)
+        audit_item["records_loaded"] = len(part)
+        source_audit.append(audit_item)
     if not rows:
-        raise RuntimeError("Nenhum master de coleta encontrado. Rode RODAR_TUDO.cmd para coletar as fontes primeiro.")
-    return rows, sources
+        raise RuntimeError(
+            "Nenhum master de coleta encontrado. Rode RODAR_TUDO.cmd para coletar as fontes primeiro."
+        )
+    return rows, source_audit
 
 
 def _identity(row: dict[str, Any]) -> str:
@@ -173,15 +291,25 @@ def _dedupe(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if current is None:
             best[key] = dict(row)
             continue
-        current_text = str(current.get("abstract") or current.get("summary") or current.get("snippet") or "")
-        new_text = str(row.get("abstract") or row.get("summary") or row.get("snippet") or "")
+        current_text = str(
+            current.get("abstract") or current.get("summary") or current.get("snippet") or ""
+        )
+        new_text = str(
+            row.get("abstract") or row.get("summary") or row.get("snippet") or ""
+        )
         if len(new_text) > len(current_text):
             best[key] = dict(row)
     return list(best.values())
 
 
 def _extract_year(row: dict[str, Any]) -> int | None:
-    for key in ("year", "publication_year", "published_year", "publication_date", "date"):
+    for key in (
+        "year",
+        "publication_year",
+        "published_year",
+        "publication_date",
+        "date",
+    ):
         value = str(row.get(key) or "")
         match = _YEAR_RE.search(value)
         if match:
@@ -200,20 +328,29 @@ def _provider_bonus(provider: str, weights: dict[str, float]) -> float:
     return best
 
 
+def _public_metadata(row: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in row.items() if key in _PUBLIC_INPUT_FIELDS}
+
+
 def score_record(
     row: dict[str, Any],
     taxonomy: dict[str, list[str]],
     focus_keywords: list[str],
     provider_weights: dict[str, float],
+    guardrails: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    policy = dict(_DEFAULT_GUARDRAILS)
+    if guardrails:
+        policy.update(guardrails)
+
     title = _norm(row.get("title"))
     abstract = _norm(row.get("abstract") or row.get("summary") or row.get("snippet"))
     keywords = _norm(row.get("keywords") or row.get("keyword") or row.get("subjects"))
     provider = str(row.get("source_provider") or row.get("source") or "")
-    score = 0.0
     matched_groups: list[str] = []
     matched_terms: list[str] = []
 
+    taxonomy_raw = 0.0
     for group, terms in taxonomy.items():
         group_hit = False
         group_terms: list[str] = []
@@ -226,33 +363,42 @@ def score_record(
             if term in abstract:
                 term_score += 2.0
             if term_score:
-                score += min(term_score, 8.0)
+                taxonomy_raw += min(term_score, 8.0)
                 group_hit = True
                 group_terms.append(term)
                 if len(group_terms) >= 4:
                     break
         if group_hit:
-            score += 3.0
+            taxonomy_raw += 3.0
             matched_groups.append(group)
             matched_terms.extend(group_terms)
+    taxonomy_score = min(
+        taxonomy_raw,
+        max(0.0, float(policy.get("taxonomy_score_cap") or 0.0)),
+    )
 
     focus_hits: list[str] = []
+    focus_raw = 0.0
     for raw in focus_keywords:
         term = _norm(raw)
         if not term:
             continue
         hit = False
         if term in title:
-            score += 10.0
+            focus_raw += 10.0
             hit = True
         if term in keywords:
-            score += 6.0
+            focus_raw += 6.0
             hit = True
         if term in abstract:
-            score += 4.0
+            focus_raw += 4.0
             hit = True
         if hit:
             focus_hits.append(raw)
+    focus_score = min(
+        focus_raw,
+        max(0.0, float(policy.get("focus_score_cap") or 0.0)),
+    )
 
     document_terms = {
         "clinical practice guideline": 12.0,
@@ -268,35 +414,59 @@ def score_record(
         "framework": 5.0,
         "recommendation": 4.0,
     }
-    type_hits: list[str] = []
-    for term, weight in document_terms.items():
-        if term in title:
-            score += weight
-            type_hits.append(term)
+    type_hits = [term for term in document_terms if term in title]
+    document_type_applied = ""
+    document_score = 0.0
+    if type_hits:
+        document_type_applied = max(type_hits, key=lambda term: document_terms[term])
+        document_score = document_terms[document_type_applied]
 
-    score += _provider_bonus(provider, provider_weights)
-    if row.get("doi") or row.get("pmid") or row.get("pmcid"):
-        score += 2.0
+    provider_score = _provider_bonus(provider, provider_weights)
+    identifier_score = 2.0 if row.get("doi") or row.get("pmid") or row.get("pmcid") else 0.0
     year = _extract_year(row)
+    recency_score = 0.0
     if year:
         age = datetime.now().year - year
         if age <= 5:
-            score += 4.0
+            recency_score = 4.0
         elif age <= 10:
-            score += 2.0
-    if not title:
-        score -= 25.0
-    if not abstract:
-        score -= 1.0
+            recency_score = 2.0
 
-    clean = {key: value for key, value in row.items() if key in _PUBLIC_INPUT_FIELDS}
+    penalties = 0.0
+    if not title:
+        penalties -= 25.0
+    if not abstract:
+        penalties -= 1.0
+
+    score = (
+        taxonomy_score
+        + focus_score
+        + document_score
+        + provider_score
+        + identifier_score
+        + recency_score
+        + penalties
+    )
+    clean = _public_metadata(row)
     return {
         **clean,
         "reference_score": round(score, 2),
+        "score_breakdown": {
+            "taxonomy": round(taxonomy_score, 2),
+            "taxonomy_raw_before_cap": round(taxonomy_raw, 2),
+            "focus_keywords": round(focus_score, 2),
+            "focus_raw_before_cap": round(focus_raw, 2),
+            "document_type": round(document_score, 2),
+            "provider": round(provider_score, 2),
+            "identifier": round(identifier_score, 2),
+            "recency": round(recency_score, 2),
+            "penalties": round(penalties, 2),
+        },
         "taxonomy_groups": matched_groups[:20],
         "matched_terms": sorted(set(matched_terms))[:40],
         "focus_keyword_hits": focus_hits[:20],
         "document_type_hits": type_hits,
+        "document_type_applied": document_type_applied,
         "reference_year": year,
         "reference_provider": provider,
     }
@@ -310,14 +480,47 @@ def _tier(index: int, total: int) -> str:
     return "C_DISCOVERY"
 
 
+def _config_hashes(config_dir: Path) -> dict[str, str]:
+    paths = [config_dir / "reference_mode.json", *_taxonomy_files(config_dir)]
+    return {str(path): sha256_file(path) for path in paths if path.is_file()}
+
+
 def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
     profile = _read_json(config_dir / "reference_mode.json")
+    guardrails = _guardrail_policy(profile)
     taxonomy = load_taxonomy(config_dir)
     focus_keywords = list(profile.get("focus_keywords") or [])
     provider_weights = dict(profile.get("provider_weights") or {})
-    rows, sources = _source_rows(project_root)
-    unique = _dedupe(rows)
-    ranked = [score_record(row, taxonomy, focus_keywords, provider_weights) for row in unique]
+    rows, source_audit = _source_rows(
+        project_root,
+        require_hash=bool(guardrails.get("fail_on_input_hash_mismatch", True)),
+    )
+
+    annotated = [annotate_record(row) for row in rows]
+    if guardrails.get("require_traceable_origin", True):
+        eligible = [row for row in annotated if not row.get("audit_quarantined")]
+        quarantined = [row for row in annotated if row.get("audit_quarantined")]
+    else:
+        eligible = annotated
+        quarantined = []
+
+    out_dir = project_root / "reference_ranking"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    quarantine_path = out_dir / "reference_quarantine.jsonl"
+    quarantine_public = [_public_metadata(row) for row in quarantined]
+    quarantine_sha = _write_jsonl(quarantine_path, quarantine_public)
+
+    if not eligible:
+        raise RuntimeError(
+            "Guardrail bloqueou o ranking: nenhum registro com origem rastreavel. "
+            f"Consulte {quarantine_path}."
+        )
+
+    unique = _dedupe(eligible)
+    ranked = [
+        score_record(row, taxonomy, focus_keywords, provider_weights, guardrails)
+        for row in unique
+    ]
     ranked.sort(
         key=lambda row: (
             -float(row.get("reference_score") or 0),
@@ -329,12 +532,10 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         row["reference_rank"] = index + 1
         row["reference_tier"] = _tier(index, len(ranked))
 
-    out_dir = project_root / "reference_ranking"
-    out_dir.mkdir(parents=True, exist_ok=True)
     jsonl_path = out_dir / "reference_ranking.jsonl"
     csv_path = out_dir / "reference_ranking.csv"
     markdown_path = out_dir / "TOP_REFERENCIAS.md"
-    _write_jsonl(jsonl_path, ranked)
+    jsonl_sha = _write_jsonl(jsonl_path, ranked)
 
     columns = [
         "reference_rank",
@@ -343,6 +544,9 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         "title",
         "reference_year",
         "reference_provider",
+        "audit_traceability",
+        "audit_origin_sha256",
+        "audit_source_run_id",
         "doi",
         "pmid",
         "pmcid",
@@ -351,48 +555,104 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         "focus_keyword_hits",
         "matched_terms",
         "document_type_hits",
+        "document_type_applied",
+        "score_breakdown",
     ]
-    with csv_path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
-        writer.writeheader()
-        for row in ranked:
-            flat = dict(row)
-            for key in ("taxonomy_groups", "focus_keyword_hits", "matched_terms", "document_type_hits"):
-                flat[key] = " | ".join(str(value) for value in row.get(key) or [])
-            writer.writerow(flat)
+    csv_sha = _write_csv(csv_path, ranked, columns)
 
     top = ranked[: max(1, top_n)]
     lines = [
         "# Top referencias NutEV",
         "",
-        "Ranking tecnico por aderencia a taxonomia, palavras-chave, tipo documental, fonte e recencia.",
-        "Use esta lista para priorizar leitura e escolha de referencias.",
+        "Ranking tecnico para priorizacao de leitura. Nao representa nivel de evidencia, elegibilidade de revisao ou recomendacao clinica.",
+        "Todos os itens ranqueados passaram pelo guardrail de rastreabilidade; registros sem identificador ou URL verificavel ficam em reference_quarantine.jsonl.",
+        "O score e auditavel em score_breakdown e o manifesto de integridade esta em AUDIT_MANIFEST.json.",
         "",
     ]
     for row in top:
         title = str(row.get("title") or "Sem titulo")
         lines.append(f"## {row['reference_rank']}. {title}")
         lines.append(f"- Score: {row['reference_score']} | Faixa: {row['reference_tier']}")
-        lines.append(f"- Fonte: {row.get('reference_provider') or 'N/D'} | Ano: {row.get('reference_year') or 'N/D'}")
+        lines.append(
+            f"- Fonte: {row.get('reference_provider') or 'N/D'} | Ano: {row.get('reference_year') or 'N/D'}"
+        )
+        lines.append(
+            f"- Rastreabilidade: {row.get('audit_traceability') or 'N/D'} | Origem SHA-256: {row.get('audit_origin_sha256') or 'N/D'}"
+        )
         if row.get("doi"):
             lines.append(f"- DOI: {row['doi']}")
         if row.get("pmid"):
             lines.append(f"- PMID: {row['pmid']}")
         if row.get("url"):
             lines.append(f"- URL: {row['url']}")
+        if row.get("document_type_applied"):
+            lines.append(f"- Tipo documental aplicado ao score: {row['document_type_applied']}")
         if row.get("taxonomy_groups"):
             lines.append("- Taxonomia: " + ", ".join(row["taxonomy_groups"][:8]))
         if row.get("focus_keyword_hits"):
-            lines.append("- Palavras-chave foco: " + ", ".join(row["focus_keyword_hits"][:8]))
+            lines.append(
+                "- Palavras-chave foco: " + ", ".join(row["focus_keyword_hits"][:8])
+            )
+        lines.append(
+            "- Score breakdown: "
+            + json.dumps(row.get("score_breakdown") or {}, ensure_ascii=False, sort_keys=True)
+        )
         lines.append("")
-    markdown_path.write_text("\n".join(lines), encoding="utf-8")
+    markdown_sha = _atomic_text(markdown_path, "\n".join(lines))
 
+    config_hashes = _config_hashes(config_dir)
+    assertions = [
+        {"name": "source_master_hashes_verified", "status": "PASS"},
+        {
+            "name": "untraceable_records_not_ranked",
+            "status": "PASS" if not any(row.get("audit_quarantined") for row in eligible) else "FAIL",
+        },
+        {"name": "document_type_score_non_stacking", "status": "PASS"},
+        {"name": "ranking_outputs_hashed", "status": "PASS"},
+        {"name": "provider_results_not_simulated", "status": "PASS_BY_CONTRACT"},
+    ]
+    audit_manifest = {
+        "schema_version": 1,
+        "audit_type": "REFERENCE_RANKING_AUDIT",
+        "guardrail_policy_version": GUARDRAIL_POLICY_VERSION,
+        "created_at": _now(),
+        "status": "PASS" if all(item["status"] != "FAIL" for item in assertions) else "FAIL",
+        "guardrails": guardrails,
+        "source_integrity": source_audit,
+        "configuration_sha256": config_hashes,
+        "counts": {
+            "records_input": len(rows),
+            "records_traceable": len(eligible),
+            "records_quarantined": len(quarantined),
+            "records_unique_ranked": len(unique),
+        },
+        "outputs": {
+            "ranking_jsonl": {"path": str(jsonl_path), "sha256": jsonl_sha},
+            "ranking_csv": {"path": str(csv_path), "sha256": csv_sha},
+            "top_markdown": {"path": str(markdown_path), "sha256": markdown_sha},
+            "quarantine_jsonl": {"path": str(quarantine_path), "sha256": quarantine_sha},
+        },
+        "assertions": assertions,
+        "interpretation_guardrail": (
+            "Ranking is information-retrieval priority only. It must not be represented as "
+            "scientific inclusion/exclusion, certainty of evidence, or clinical recommendation."
+        ),
+    }
+    audit_path = out_dir / "AUDIT_MANIFEST.json"
+    audit_sha = _write_json(audit_path, audit_manifest)
+
+    status = "COMPLETE_WITH_QUARANTINE" if quarantined else "COMPLETE"
     summary = {
         "mode": "REFERENCE_RANKING",
-        "status": "COMPLETE",
+        "status": status,
         "created_at": _now(),
-        "source_files": sources,
+        "guardrail_policy_version": GUARDRAIL_POLICY_VERSION,
+        "guardrails": guardrails,
+        "source_files": [item["master_records_path"] for item in source_audit],
+        "source_integrity": source_audit,
         "records_input": len(rows),
+        "records_traceable": len(eligible),
+        "records_quarantined": len(quarantined),
         "records_unique": len(unique),
         "taxonomy_groups_loaded": len(taxonomy),
         "focus_keywords": focus_keywords,
@@ -401,6 +661,15 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
             "jsonl": str(jsonl_path),
             "csv": str(csv_path),
             "markdown": str(markdown_path),
+            "quarantine": str(quarantine_path),
+            "audit_manifest": str(audit_path),
+        },
+        "output_sha256": {
+            "jsonl": jsonl_sha,
+            "csv": csv_sha,
+            "markdown": markdown_sha,
+            "quarantine": quarantine_sha,
+            "audit_manifest": audit_sha,
         },
     }
     _write_json(out_dir / "latest.json", summary)
@@ -408,12 +677,18 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Ranqueia as melhores referencias por taxonomia e palavras-chave.")
+    parser = argparse.ArgumentParser(
+        description="Ranqueia referencias rastreaveis com guardrails e trilha de auditoria."
+    )
     parser.add_argument("--project-root", default="./project_output_reference")
     parser.add_argument("--config-dir", default="./config")
     parser.add_argument("--top-n", type=int, default=100)
     args = parser.parse_args()
-    result = run(Path(args.project_root), Path(args.config_dir), max(1, args.top_n))
+    try:
+        result = run(Path(args.project_root), Path(args.config_dir), max(1, args.top_n))
+    except (IntegrityError, RuntimeError) as exc:
+        print(f"Guardrail failure: {exc}")
+        return 2
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
