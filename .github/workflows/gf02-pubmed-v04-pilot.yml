@@ -1,0 +1,52 @@
+name: gf02-pubmed-v04-pilot
+
+on:
+  push:
+    branches:
+      - evidence/pubmed-pilot-20260818
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pubmed-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NCBI_TOOL: nutev_gf02_pubmed_v04_pilot
+      NUTEV_PUBMED_BATCH_SIZE: "200"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/nutev-ci.txt
+          python -m pip install --no-deps -e .
+      - name: Execute GF-02 PubMed v0.4 PILOT
+        run: >-
+          PYTHONPATH=src python scripts/run_gf02_pubmed_pilot.py
+          --project-root project_output_scientific
+          --limit 10000
+          --noise-sample-size 20
+          --noise-seed 20260812
+      - name: Show audit summary
+        if: always()
+        run: |
+          find project_output_scientific/07_logs/gf02/pubmed -type f -maxdepth 3 -print 2>/dev/null || true
+          manifest=$(find project_output_scientific/07_logs/gf02/pubmed -name run_manifest.json -print 2>/dev/null | sort | tail -n 1)
+          if [ -n "$manifest" ]; then
+            echo "Manifest: $manifest"
+            cat "$manifest"
+          fi
+      - name: Upload GF-02 evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gf02-pubmed-v04-${{ github.sha }}
+          path: project_output_scientific/07_logs/gf02/pubmed/**
+          if-no-files-found: warn
+          retention-days: 30
