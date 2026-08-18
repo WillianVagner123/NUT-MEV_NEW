@@ -1,33 +1,34 @@
-# AGENTS.md - NutEV Reference Engine
+# AGENTS.md — NutEV Reference Engine
 
-This repository contains the NutEV Reference Engine, a focused multi-source reference discovery and ranking product for Lifestyle Nutrition.
+Este arquivo define o escopo e as invariantes que agentes automatizados devem preservar ao modificar este repositório.
 
-## Product scope
-
-The supported flow is:
+## Produto suportado
 
 ```text
 SEARCH -> NORMALIZE -> DEDUPLICATE -> RANK -> EXPORT
 ```
 
-The engine collects bibliographic and official-source metadata, preserves provider identity, deduplicates records, matches the NutEV taxonomy and configurable focus terms, applies transparent ranking signals and exports a prioritized reading queue.
+O NutEV Reference Engine coleta metadados de referências, preserva identidade de provider, normaliza registros, aplica deduplicação por identidade, cruza taxonomia/focus terms, calcula prioridade de leitura e exporta resultados estruturados.
 
-## Non-negotiable invariants
+## Invariantes não negociáveis
 
-1. Never fabricate provider results, counts, identifiers, URLs or metadata.
-2. Provider failures, rate limits, credential gaps and interface changes remain explicit.
-3. Scopus and Web of Science are never simulated.
-4. Ranking is reading/reference priority only; it is not a clinical recommendation or scientific eligibility decision.
-5. Provider/source identity must survive collection and ranking.
-6. Taxonomy and search configuration must remain inspectable and versioned in the repository.
-7. Ranking must be deterministic for identical inputs and configuration.
-8. Public ranking outputs use an explicit metadata allowlist.
-9. Published tags/releases are immutable.
-10. Never invent DOI, ORCID, affiliation, funding, authorship or execution evidence.
-11. Do not commit secrets, private research data or protected full text without redistribution rights.
+1. Nunca fabricar provider results, contagens, identificadores, URLs, DOIs, PMIDs ou evidência de execução.
+2. Falhas, rate limits, ausência de credenciais e mudanças de interface devem permanecer explícitos.
+3. Scopus e Web of Science nunca devem ser simulados.
+4. Ranking é prioridade de leitura; não é recomendação clínica, elegibilidade científica ou qualidade metodológica.
+5. `source`/`source_provider` deve sobreviver ao fluxo até os outputs.
+6. Queries, limites, taxonomia e pesos devem permanecer versionados e inspecionáveis.
+7. Não descrever a regra atual como deduplicação semântica completa.
+8. Mudanças no scoring devem atualizar testes e `docs/ARCHITECTURE.md`.
+9. Mudanças no comportamento do usuário devem atualizar README/POP/documentação correspondente.
+10. Outputs públicos devem respeitar a allowlist do ranker.
+11. Nunca inventar DOI, ORCID, afiliação, funding, autoria ou resultado de teste.
+12. Não versionar segredos, dados privados ou texto completo protegido sem direito de redistribuição.
+13. Tags e releases publicadas são imutáveis.
 
-## Canonical runtime
+## Runtime canônico
 
+- `Iniciar-NutEV-Windows.bat`
 - `RODAR_TUDO.cmd`
 - `run_everything_now.cmd`
 - `tools/run_everything_now.py`
@@ -38,27 +39,68 @@ The engine collects bibliographic and official-source metadata, preserves provid
 - `config/keyword_taxonomy*.json`
 - `src/nutev/search/`
 
-Primary outputs:
+## Outputs canônicos
 
 - `project_output_reference/reference_ranking/TOP_REFERENCIAS.md`
 - `project_output_reference/reference_ranking/reference_ranking.csv`
 - `project_output_reference/reference_ranking/reference_ranking.jsonl`
 - `project_output_reference/reference_ranking/latest.json`
 
-## Change workflow
+## Regra de identidade atual
 
-For non-trivial changes:
+```text
+DOI -> PMID -> URL -> título normalizado
+```
 
-1. inspect the current `main` SHA;
-2. use a dedicated branch;
-3. keep changes inside the Reference Engine scope unless the product scope is explicitly changed;
-4. add regression tests for ranking/provider/output-contract changes;
-5. run or obtain CI/security/build evidence at the exact candidate SHA;
-6. use a PR before merge;
-7. do not bypass failing required checks.
+Quando a identidade coincide, é preferida a versão com texto descritivo mais rico.
 
-Avoid feature creep. The supported product ends at reference discovery, normalization, deduplication, ranking and export.
+Registros semanticamente equivalentes com identificadores diferentes podem permanecer separados.
 
-## Releases
+## Workflow de mudança
 
-Package version, Git tag, GitHub Release, `CITATION.cff`, `.zenodo.json`, changelog and release notes must refer to one exact release identity. A DOI is recorded only after the actual Zenodo archive exists and has been verified.
+Para alterações não triviais:
+
+1. verificar o SHA atual de `main`;
+2. criar branch dedicada;
+3. limitar o diff ao escopo declarado;
+4. adicionar/ajustar testes para mudança de contrato;
+5. atualizar documentação quando houver comportamento público afetado;
+6. obter CI/security/build no SHA candidato;
+7. abrir PR;
+8. não fazer merge com checks necessários falhando;
+9. não mover tags publicadas.
+
+## Mudanças de provider
+
+Exigir:
+
+- identidade preservada;
+- falha explícita;
+- nenhum fallback silencioso rotulado como outro provider;
+- nenhum bypass de controle de acesso;
+- documentação de credenciais/limites/status atualizada.
+
+## Mudanças de ranking
+
+Se alterar taxonomia, pesos, focus terms, tipo documental, recência, identidade/deduplicação, tiers ou schema:
+
+- atualizar `docs/ARCHITECTURE.md`;
+- revisar `docs/KNOWN_LIMITATIONS.md`;
+- adicionar regressão em `nutev_tests`;
+- documentar impacto no README/POP quando visível ao operador.
+
+## Release atual
+
+- versão publicada: `1.0.0`;
+- tag: `v1.0.0`;
+- release commit: `5728d79b05e618897f01ba93886a17584c9f215f`;
+- Zenodo record: `21998607`;
+- DOI: `10.5281/zenodo.21998607`.
+
+A `main` contém correções pós-release e documentação. Isso não altera o snapshot arquivado.
+
+## Futuras releases
+
+Versão, tag, GitHub Release, `CITATION.cff`, `.zenodo.json`, changelog e release notes devem referir-se à mesma identidade de release.
+
+Um novo DOI version-specific só deve ser registrado depois que o serviço de arquivo realmente o emitir. Nunca reutilizar o DOI de `v1.0.0` como DOI de depósito de uma versão futura.

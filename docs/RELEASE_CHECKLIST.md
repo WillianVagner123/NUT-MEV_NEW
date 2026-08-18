@@ -1,45 +1,101 @@
-# Release checklist
+# Checklist de release
 
-Use this checklist against the exact candidate SHA.
+Use este checklist no **SHA exato** candidato à release. Não valide uma versão usando checks executados em outro commit.
 
-## Identity
+## 1. Identidade
 
-- [ ] `src/nutev/__version__.py` matches the intended release version.
-- [ ] `CITATION.cff` matches the same version and product title.
-- [ ] `.zenodo.json` matches the same version and product title.
-- [ ] `README.md` describes the current Reference Engine scope.
-- [ ] No DOI is present unless an actual archive record has issued it.
+- [ ] `src/nutev/__version__.py` contém a versão pretendida.
+- [ ] `pyproject.toml` continua apontando a versão para esse arquivo.
+- [ ] `README.md` descreve o escopo real da versão.
+- [ ] `CITATION.cff` usa título, versão, data e criador corretos.
+- [ ] `.zenodo.json` usa título, versão e criador corretos.
+- [ ] `CHANGELOG.md` contém a nova versão.
+- [ ] release notes foram preparadas.
+- [ ] nenhum DOI novo foi inventado antecipadamente.
 
-## Product validation
+## 2. Produto
 
-- [ ] Python 3.12 test job passes.
-- [ ] Python 3.13 test job passes.
-- [ ] Windows smoke passes.
-- [ ] `python -m compileall -q src tools nutev_tests` passes.
-- [ ] blocking Ruff checks pass.
-- [ ] repository type-check job passes.
-- [ ] ranking tests confirm taxonomy, focus, provider weight, recency, deduplication and deterministic export behavior.
-- [ ] provider failures are explicit and do not fabricate records.
-- [ ] LILACS/BVS and SciELO provider identity is preserved.
+- [ ] fluxo suportado continua documentado corretamente;
+- [ ] providers implementados correspondem à documentação;
+- [ ] Scopus/Web of Science não são simulados;
+- [ ] falhas/indisponibilidades permanecem explícitas;
+- [ ] provider identity é preservada;
+- [ ] queries e limites configurados estão revisados;
+- [ ] regra de identidade/deduplicação está documentada;
+- [ ] scoring e tiers estão documentados em `docs/ARCHITECTURE.md`;
+- [ ] limitações relevantes estão em `docs/KNOWN_LIMITATIONS.md`;
+- [ ] outputs continuam dentro do contrato público esperado.
 
-## Security and dependency gates
+## 3. Testes e qualidade
 
-- [ ] secret scan passes.
-- [ ] dependency review passes.
-- [ ] CodeQL passes.
+- [ ] testes Python 3.12 passam;
+- [ ] testes Python 3.13 passam;
+- [ ] Windows smoke passa;
+- [ ] `python -m compileall -q src tools nutev_tests` passa;
+- [ ] Ruff blocking checks passam;
+- [ ] typecheck passa;
+- [ ] regressões de provider/ranking/output foram adicionadas quando necessárias.
 
-## Distribution
+## 4. Segurança e dependências
 
-- [ ] `python -m build` produces wheel and sdist.
-- [ ] `twine check` passes.
-- [ ] clean wheel installation passes `pip check`.
-- [ ] installed `nutev --version` reports the intended version.
+- [ ] secret/security scan passa;
+- [ ] dependency review passa;
+- [ ] CodeQL passa;
+- [ ] não há secrets, dados privados ou conteúdo protegido indevido no diff;
+- [ ] `.env.example` contém somente placeholders/documentação.
 
-## GitHub and archive
+## 5. Distribuição
 
-- [ ] release PR is merged without bypassing required checks.
-- [ ] exact final `main` SHA is recorded.
-- [ ] tag points exactly to that SHA and is not moved afterward.
-- [ ] GitHub Release uses the same tag/version/title.
-- [ ] archive ingestion is verified after GitHub Release publication.
-- [ ] archive metadata and files are checked before claiming an archive DOI.
+- [ ] `python -m build` produz wheel e sdist;
+- [ ] `twine check` passa;
+- [ ] instalação limpa do wheel passa;
+- [ ] `pip check` passa;
+- [ ] `nutev --version` retorna a versão pretendida;
+- [ ] artefatos não incluem outputs locais indevidos.
+
+## 6. GitHub
+
+- [ ] PR de release está mergeado sem ignorar checks necessários;
+- [ ] SHA final de `main` foi registrado;
+- [ ] tag nova aponta exatamente para esse SHA;
+- [ ] tag antiga não foi movida;
+- [ ] GitHub Release usa a mesma versão/tag/título;
+- [ ] release notes correspondem ao código publicado.
+
+## 7. Zenodo
+
+- [ ] integração GitHub/Zenodo está pronta;
+- [ ] release foi ingerida pelo Zenodo;
+- [ ] título/criador/licença/versão foram conferidos no registro;
+- [ ] arquivos arquivados correspondem ao snapshot da tag;
+- [ ] DOI version-specific foi efetivamente emitido;
+- [ ] somente depois da emissão real o DOI foi adicionado à metadata corrente;
+- [ ] patch de DOI não move a tag publicada.
+
+## 8. Pós-release
+
+- [ ] comparar tag com o SHA registrado e confirmar identidade;
+- [ ] verificar URL da GitHub Release;
+- [ ] verificar DOI/record URL;
+- [ ] atualizar README/CITATION/docs sem reescrever o snapshot publicado;
+- [ ] registrar limitações ou bugs descobertos em execução real como mudanças pós-release, não como se estivessem presentes na tag original.
+
+## Referência v1.0.0
+
+A release `v1.0.0` foi publicada em 18/08/2026 no commit:
+
+```text
+5728d79b05e618897f01ba93886a17584c9f215f
+```
+
+Zenodo record:
+
+```text
+21998607
+```
+
+DOI:
+
+```text
+10.5281/zenodo.21998607
+```

@@ -1,48 +1,64 @@
-name: "New source"
-description: "Propose a new official source, guideline body, or search provider"
+name: "New source / provider"
+description: "Propor nova fonte oficial, base ou provider para o Reference Engine"
 labels: ["new-source"]
 body:
   - type: markdown
     attributes:
       value: |
-        Propose a source to include (official dietary guides, clinical guideline
-        bodies, databases, providers). Share references/URLs, not protected files.
+        Proponha apenas fontes que possam ser integradas mantendo identidade do provider,
+        termos de uso e comportamento de falha explícitos. Compartilhe URLs/metadados,
+        não PDFs protegidos.
   - type: input
     id: name
     attributes:
-      label: Source name / organization
+      label: Nome da fonte / organização / provider
     validations:
       required: true
   - type: dropdown
-    id: corpus
+    id: source-type
     attributes:
-      label: Corpus / workstream
+      label: Tipo
       options:
-        - "busca1 — official dietary guides"
-        - "busca2a — clinical guidelines / consensus / statements"
-        - "busca2b — interventions / efficacy (outside Article 1 core)"
-        - "search provider / database"
-        - "other"
+        - base bibliográfica pública
+        - fonte oficial / institucional
+        - guideline body / sociedade científica
+        - provider web opcional
+        - base licenciada
+        - outro
     validations:
       required: true
   - type: input
     id: url
     attributes:
-      label: Official URL / DOI
+      label: URL oficial / documentação da API
     validations:
       required: true
   - type: textarea
-    id: scope
+    id: access
     attributes:
-      label: Scope & relevance
-      description: Why is this source in scope for NutEV? Country/region, language, coverage.
+      label: Forma de acesso
+      description: API, página pública, credencial, licença, rate limit e paginação conhecidos.
     validations:
       required: true
   - type: textarea
-    id: license
+    id: relevance
     attributes:
-      label: License / access terms
-      description: Is content redistributable? If unsure, say so — we will share references only.
+      label: Relevância para Nutrição do Estilo de Vida
+      description: Explique que cobertura essa fonte acrescenta e por que ela pertence ao Reference Engine.
+    validations:
+      required: true
+  - type: textarea
+    id: metadata
+    attributes:
+      label: Metadados disponíveis
+      description: Título, abstract, DOI, PMID, autores, ano, URL, keywords, tipo documental etc.
+    validations:
+      required: false
+  - type: textarea
+    id: terms
+    attributes:
+      label: Termos de uso / redistribuição
+      description: Informe o que pode ser consultado e o que pode ser armazenado/redistribuído. Se não souber, diga explicitamente.
     validations:
       required: true
   - type: checkboxes
@@ -50,5 +66,9 @@ body:
     attributes:
       label: Guardrails
       options:
-        - label: I will not upload protected full texts / PDFs; only metadata/URLs.
-        - label: The source is public/official or its terms permit the intended use.
+        - label: A integração proposta preservará a identidade real do provider.
+          required: true
+        - label: Resultados não serão simulados se o provider estiver indisponível.
+          required: true
+        - label: Não estou anexando texto completo protegido sem direito de redistribuição.
+          required: true

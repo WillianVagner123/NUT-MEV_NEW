@@ -1,46 +1,79 @@
 # NOTICE
 
-This repository contains the **NutEV Reference Engine** (`nutev-nutmev`) and retains licensing/provenance information from an inherited open-source codebase.
+Este repositório contém o **NutEV Reference Engine** (`nutev-nutmev`) e preserva informações de licença/proveniência de um projeto open source anterior.
 
-## Inherited project
+## Projeto upstream
 
-- Upstream project: Local Deep Research (LDR)
-- Original copyright: Copyright (c) 2025 LearningCircuit
-- Original license: MIT License, retained in `LICENSE`
-- Upstream repository: `https://github.com/LearningCircuit/local-deep-research`
-- Exact derivation commit: not asserted; do not invent one
+- Projeto: Local Deep Research (LDR)
+- Organização upstream: LearningCircuit
+- Copyright upstream preservado: Copyright (c) 2025 LearningCircuit
+- Licença upstream: MIT License
+- Repositório upstream: `https://github.com/LearningCircuit/local-deep-research`
+- Commit exato de derivação: não estabelecido de forma independente neste repositório; não deve ser inventado.
 
-The inherited LDR runtime is not present in the current working tree. Historical material remains available through Git history, while the upstream MIT attribution remains preserved.
+O runtime original de LDR não está presente na árvore operacional atual. Material histórico permanece no histórico Git, enquanto a atribuição MIT upstream continua preservada.
 
-## Current NutEV tree
+## Produto atual
 
-The current product consists of:
+O produto suportado é o NutEV Reference Engine:
 
-- `src/nutev/search/` - supported provider connectors and reference-search helpers;
-- `tools/` - canonical collection and ranking tools;
-- `config/` - search configuration, ranking configuration and NutEV taxonomy;
-- `nutev_tests/` - current product tests;
-- `docs/` - current product, release, provider and provenance documentation;
-- `RODAR_TUDO.cmd` and Windows launchers - supported execution path.
+```text
+SEARCH -> NORMALIZE -> DEDUPLICATE -> RANK -> EXPORT
+```
 
-The current `src/nutev/` runtime does not depend on the removed `src/local_deep_research/` tree.
+Componentes principais:
 
-## Creator metadata
+- `src/nutev/search/` — conectores e helpers de busca;
+- `tools/` — coleta e ranking;
+- `config/` — queries, limites, ranking e taxonomia;
+- `nutev_tests/` — testes atuais;
+- `docs/` — documentação operacional, técnica, release e proveniência;
+- `Iniciar-NutEV-Windows.bat`, `RODAR_TUDO.cmd` e `run_everything_now.cmd` — caminho operacional no Windows.
 
-Current release metadata identifies **Willian Vagner Dorneles Schneider** as the creator of the NutEV Reference Engine release metadata. ORCID and institutional affiliation are not asserted unless independently confirmed.
+A árvore atual de `src/nutev/` não depende do runtime removido `src/local_deep_research/`.
 
-## Third-party dependencies
+## Criador e release atual
 
-Runtime dependencies are declared in `pyproject.toml`. Each dependency and external provider retains its own terms, licenses and service conditions.
+A metadata da release `v1.0.0` identifica **Willian Vagner Dorneles Schneider** como criador do NutEV Reference Engine.
 
-## Release provenance checks
+ORCID e afiliação institucional não são afirmados sem confirmação independente.
 
-Before a citable archive:
+Release publicada:
 
-1. preserve the LearningCircuit MIT attribution;
-2. confirm creator metadata in `.zenodo.json` and `CITATION.cff`;
-3. confirm that no private data, secrets, protected full text or non-redistributable generated outputs are included;
-4. verify the exact release SHA/tag;
-5. add a DOI only after the archive service has actually issued and exposed it.
+- versão: `1.0.0`;
+- tag: `v1.0.0`;
+- release commit: `5728d79b05e618897f01ba93886a17584c9f215f`;
+- Zenodo record: `21998607`;
+- DOI: `10.5281/zenodo.21998607`.
 
-This NOTICE records provenance; it does not claim that current NutEV source code was authored by the upstream project.
+O DOI foi adicionado à documentação/citação corrente somente depois da criação real do registro Zenodo. A tag publicada permaneceu imutável.
+
+## Dependências e serviços externos
+
+Dependências Python são declaradas em `pyproject.toml`.
+
+Cada provider, serviço externo e dependência mantém seus próprios termos, licenças e políticas de uso. O fato de o engine preservar uma URL externa não transfere ao repositório direitos sobre o conteúdo remoto.
+
+## Fronteira de distribuição
+
+Não devem ser incluídos no repositório público sem direito apropriado:
+
+- textos completos protegidos;
+- dados privados de pesquisa;
+- dados pessoais/participantes;
+- credenciais;
+- outputs locais não destinados à distribuição.
+
+## Futuras releases
+
+Antes de uma nova release citable:
+
+1. preservar a atribuição MIT upstream;
+2. sincronizar versão/título/criador em `CITATION.cff`, `.zenodo.json`, README e release notes;
+3. validar o SHA exato com CI/security/build;
+4. confirmar ausência de segredos e conteúdo não redistribuível;
+5. criar uma nova tag sem mover tags antigas;
+6. verificar a ingestão do arquivo no Zenodo;
+7. registrar somente o DOI realmente emitido para aquela versão.
+
+Este NOTICE registra proveniência e fronteiras de atribuição; ele não afirma que todo o código atual tenha sido escrito pelo upstream nem que o repositório não possua proveniência upstream.

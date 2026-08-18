@@ -1,36 +1,65 @@
 name: "Feature request"
-description: "Suggest a software feature or enhancement"
+description: "Sugerir melhoria dentro do escopo do NutEV Reference Engine"
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Software feature requests only. For methodology/scoring/ontology changes
-        use the "Methodology change" template; for adding a source use the
-        "New source" template.
+        O produto suportado termina em descoberta, normalização, deduplicação, ranking e exportação.
+        Solicitações fora desse escopo devem justificar por que pertencem ao Reference Engine.
   - type: textarea
     id: problem
     attributes:
-      label: Problem / motivation
-      description: What are you trying to do that is hard today?
+      label: Problema / necessidade
+      description: O que hoje é difícil, incompleto ou inadequado?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - provider / busca
+        - normalização
+        - deduplicação / identidade
+        - taxonomia
+        - scoring / ranking
+        - outputs / exportação
+        - launcher / operação Windows
+        - CLI
+        - documentação
+        - CI / desenvolvimento
+        - outro
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed solution
+      label: Solução proposta
+      description: Descreva o comportamento desejado e, se possível, como seria validado.
     validations:
       required: true
   - type: textarea
+    id: evidence
+    attributes:
+      label: Evidência / exemplos
+      description: Forneça referências, casos reais, logs sanitizados ou exemplos de outputs. Não envie conteúdo protegido.
+    validations:
+      required: false
+  - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives considered
+      label: Alternativas consideradas
     validations:
       required: false
   - type: checkboxes
     id: scope
     attributes:
-      label: Scope check
+      label: Guardrails
       options:
-        - label: This does not present automated output as a final clinical recommendation.
-        - label: This does not require committing secrets, personal data, or protected full texts.
+        - label: A proposta não depende de fabricar resultados de providers indisponíveis.
+          required: true
+        - label: A proposta não transforma automaticamente score em recomendação clínica ou elegibilidade científica.
+          required: true
+        - label: A proposta não exige versionar segredos, dados privados ou texto completo protegido.
+          required: true

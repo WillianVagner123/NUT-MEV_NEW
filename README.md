@@ -1,19 +1,23 @@
 # NutEV Reference Engine
 
-**Stable software identity: 1.0.0**  
-**Zenodo DOI:** `10.5281/zenodo.21998607`
+**Descoberta, normalização, deduplicação e priorização de referências para Nutrição do Estilo de Vida.**
 
-NutEV Reference Engine is a multi-source discovery, normalization, deduplication and ranking tool for Lifestyle Nutrition references. It combines bibliographic providers, configured official sources, the NutEV keyword taxonomy, focus terms, document-type signals, provider weights and a light recency bonus to produce a prioritized reading queue.
+> Stable software release: **v1.0.0**  
+> DOI da versão: **10.5281/zenodo.21998607**  
+> Python: **3.12–3.13**  
+> Licença: **MIT**
 
-The score is an information-retrieval priority. It does **not** determine scientific eligibility, methodological quality or clinical recommendations. Licensed databases such as Scopus and Web of Science are not simulated when access is unavailable.
+O **NutEV Reference Engine** é um software de recuperação de informação que coleta referências em múltiplas fontes, normaliza os metadados, aplica uma regra explícita de identidade/deduplicação, cruza os registros com a taxonomia NutEV e gera uma fila priorizada de leitura.
 
-## Canonical flow
+Ele foi desenhado para ajudar a **encontrar e ordenar referências candidatas**. O score não representa qualidade metodológica, elegibilidade científica, força de evidência nem recomendação clínica.
+
+## Fluxo oficial
 
 ```text
 SEARCH -> NORMALIZE -> DEDUPLICATE -> RANK -> EXPORT
 ```
 
-On Windows the supported one-command path is:
+No Windows, o caminho operacional suportado é:
 
 ```text
 Iniciar-NutEV-Windows.bat
@@ -24,11 +28,11 @@ Iniciar-NutEV-Windows.bat
      -> tools/rank_references.py
 ```
 
-For the complete Portuguese operating procedure, see [`docs/POP_USO_NUTEV_REFERENCE_ENGINE.md`](docs/POP_USO_NUTEV_REFERENCE_ENGINE.md).
+## Comece aqui
 
-## Quick start — Windows
+### 1. Primeira instalação no Windows
 
-Requires Python `>=3.12,<3.14`.
+Requer Git e Python 3.12 ou 3.13.
 
 ```bat
 git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
@@ -36,9 +40,9 @@ cd NutEV-Evidence-Engine
 Iniciar-NutEV-Windows.bat
 ```
 
-The first run creates `.venv`, upgrades `pip`, installs the project in editable mode and starts collection/ranking automatically.
+Na primeira execução, o launcher cria `.venv`, atualiza `pip`, instala o projeto em modo editável e inicia a coleta e o ranking.
 
-If the repository is already cloned, update it first:
+### 2. Se o repositório já está instalado
 
 ```bat
 cd %USERPROFILE%\NutEV-Evidence-Engine
@@ -48,11 +52,17 @@ git rev-parse HEAD
 Iniciar-NutEV-Windows.bat
 ```
 
-If the repository was cloned elsewhere, `cd` to that directory instead. `git rev-parse HEAD` is optional for normal use but recommended when an execution must be auditable or cited.
+Se o clone estiver em outra pasta, entre nela em vez de usar `%USERPROFILE%\NutEV-Evidence-Engine`.
 
-## What a successful run looks like
+Para uma execução auditável, guarde o SHA mostrado por:
 
-The launcher executes three stages:
+```bat
+git rev-parse HEAD
+```
+
+### 3. Como saber se funcionou
+
+Uma execução completa passa pelas três etapas:
 
 ```text
 [1/3] COLETA MULTI-FONTE
@@ -60,7 +70,7 @@ The launcher executes three stages:
 [3/3] RANKING DE REFERENCIAS
 ```
 
-A complete run ends with:
+O final esperado é:
 
 ```text
 Coleta geral: codigo 0
@@ -69,157 +79,19 @@ Ranking: codigo 0
 SUCESSO: ranking de referencias gerado.
 ```
 
-The operator's validated Windows run on 2026-08-18 completed with `8,702` ranking inputs, `8,702` unique records under the current identity rule, `115` taxonomy groups loaded and `top_n = 100`. Full observed details are recorded in [`docs/VALIDATED_WINDOWS_RUN_2026-08-18.md`](docs/VALIDATED_WINDOWS_RUN_2026-08-18.md).
-
-## Collection profiles
-
-The default profile is `operational`:
-
-| Provider | Operational limit |
-|---|---:|
-| PubMed | 2,000 |
-| Europe PMC | 3,000 |
-| OpenAlex | 3,000 |
-| Crossref | 1,000 |
-| DOAJ | 1,000 |
-| Semantic Scholar | 1,000 |
-
-The configured deep limits are preserved for explicit opt-in. On Windows CMD:
-
-```bat
-set NUTEV_DEEP_COLLECTION=1
-Iniciar-NutEV-Windows.bat
-```
-
-To return to the normal profile in the same CMD session:
-
-```bat
-set NUTEV_DEEP_COLLECTION=
-```
-
-The active profile and provider limits are printed before network collection begins.
-
-## Sources
-
-The canonical collector supports:
-
-- PubMed;
-- Europe PMC;
-- OpenAlex;
-- Crossref;
-- DOAJ;
-- Semantic Scholar;
-- configured official/institutional web sources;
-- native LILACS/BVS;
-- native SciELO;
-- Google Programmable Search, Brave and SerpAPI when credentials are configured.
-
-Provider failures and missing credentials are explicit. A missing or blocked provider never becomes fabricated output.
-
-LILACS/BVS and SciELO use public native interfaces. If those interfaces reject automated access with HTTP `401`/`403`, the provider is recorded as `unavailable` and the pipeline can continue with available sources.
-
-Scopus and Web of Science are reported as unavailable when licensed access is not configured; they are never simulated.
-
-## Optional credentials and contact metadata
-
-`.env.example` documents supported variable names, but the current runtime does **not** automatically load a `.env` file. Set variables in the shell before running.
-
-CMD examples:
-
-```bat
-set NCBI_EMAIL=you@example.com
-set NCBI_API_KEY=...
-set CROSSREF_MAILTO=you@example.com
-set OPENALEX_MAILTO=you@example.com
-set S2_API_KEY=...
-```
-
-Optional web-search providers:
-
-```bat
-set GOOGLE_API_KEY=...
-set GOOGLE_CSE_ID=...
-set BRAVE_API_KEY=...
-set SERPAPI_API_KEY=...
-```
-
-The absence of `NCBI_EMAIL`/`ENTREZ_EMAIL` does not stop PubMed collection; the client uses a conservative rate limit when no email/API key is configured.
-
-Never commit real secrets.
-
-## Resume behavior
-
-PubMed checkpoints are saved under the output/log tree and collection is configured to resume when possible. If a run is interrupted, rerun:
-
-```bat
-Iniciar-NutEV-Windows.bat
-```
-
-Do not delete `project_output_reference` or checkpoints by default. Exit code `130` normally indicates a user interruption such as `Ctrl+C`.
-
-## Configuration
-
-Search configuration:
+Em 18/08/2026 foi registrada uma execução real no Windows com:
 
 ```text
-config/reference_search.json
+status: COMPLETE
+records_input: 8702
+records_unique: 8702
+taxonomy_groups_loaded: 115
+top_n: 100
 ```
 
-It contains canonical queries plus `provider_limits` and `deep_provider_limits`.
+Esse registro está preservado em [`docs/VALIDATED_WINDOWS_RUN_2026-08-18.md`](docs/VALIDATED_WINDOWS_RUN_2026-08-18.md). Esses números descrevem aquela execução específica e não são uma promessa de volume para execuções futuras.
 
-Ranking configuration:
-
-```text
-config/reference_mode.json
-config/keyword_taxonomy.json
-config/keyword_taxonomy_supplement*.json
-```
-
-Every `keyword_taxonomy*.json` file is loaded by the ranker.
-
-The current focus keywords are:
-
-```text
-lifestyle medicine
-lifestyle nutrition
-nutrition care
-dietary pattern
-food-based dietary guideline
-behavior change
-food literacy
-culinary
-shared decision making
-social determinants of health
-```
-
-## Ranking model
-
-Ranking uses:
-
-- taxonomy terms, with stronger title matches than abstract/snippet matches;
-- configurable focus keywords;
-- document-type signals;
-- provider/source weights;
-- DOI/PMID/PMCID presence;
-- a light recency bonus that does not dominate topical relevance.
-
-Provider weights are configured in `config/reference_mode.json`.
-
-### Priority tiers
-
-- `A_TOP_REFERENCE` — highest reading priority;
-- `B_STRONG_REFERENCE` — strong complementary references;
-- `C_DISCOVERY` — discovery set with lower relative priority.
-
-These tiers are reading-priority labels only.
-
-### Deduplication boundary
-
-The current deduplication/identity logic is identifier- and metadata-driven. Parallel publications, closely related versions or semantically equivalent records with different persistent identifiers can remain as separate ranked items. Human inspection remains required before final scientific use.
-
-`records_unique == records_input` means no duplicate was removed by the active identity rule in that run; it does not prove that every record is semantically distinct.
-
-## Outputs
+## Saídas principais
 
 ```text
 project_output_reference/reference_ranking/TOP_REFERENCIAS.md
@@ -228,41 +100,238 @@ project_output_reference/reference_ranking/reference_ranking.jsonl
 project_output_reference/reference_ranking/latest.json
 ```
 
-- `TOP_REFERENCIAS.md` — human-readable TOP N queue with score, priority tier, source, year, identifiers, taxonomy matches and focus terms.
-- `reference_ranking.csv` — tabular export for spreadsheet/statistical inspection.
-- `reference_ranking.jsonl` — structured one-record-per-line export for automation.
-- `latest.json` — run summary with status, source files, counts, loaded taxonomy groups, focus keywords, TOP N and output paths.
+| Arquivo | Uso |
+|---|---|
+| `TOP_REFERENCIAS.md` | TOP N em formato humano para priorização de leitura. |
+| `reference_ranking.csv` | Tabela completa para planilha, inspeção e curadoria. |
+| `reference_ranking.jsonl` | Saída estruturada, um registro JSON por linha. |
+| `latest.json` | Resumo da execução, fontes de entrada, contagens e caminhos gerados. |
 
-## Common troubleshooting
+O launcher do Windows tenta abrir `TOP_REFERENCIAS.md` automaticamente ao final.
 
-### `Nenhum master de coleta encontrado`
+## Fontes suportadas
 
-The collection stage did not finalize a usable master. Rerun the launcher and allow stage `[1/3]` to finish. A previous `Ctrl+C` commonly produces exit code `130`.
+O coletor atual integra:
 
-### BVS/SciELO HTTP 401 or 403
+| Fonte | Tipo | Perfil operacional |
+|---|---|---:|
+| PubMed | API pública | até 2.000 registros |
+| Europe PMC | API pública | até 3.000 |
+| OpenAlex | API pública | até 3.000 |
+| Crossref | API pública | até 1.000 |
+| DOAJ | API pública | até 1.000 |
+| Semantic Scholar | API pública | até 1.000 |
+| Fontes oficiais configuradas | manifesto local | conforme configuração |
+| LILACS/BVS | interface pública nativa | tentativa nativa |
+| SciELO | interface pública nativa | tentativa nativa |
+| Google Programmable Search | opcional | somente com credenciais |
+| Brave | opcional | somente com credenciais |
+| SerpAPI | opcional | somente com credenciais |
 
-The public native interface refused automated access. Current `main` records that provider as unavailable instead of treating the access denial as a fatal pipeline failure.
+**Scopus e Web of Science não são simulados.** Se o acesso licenciado não estiver configurado, o sistema não inventa resultados equivalentes.
 
-### VS Code prints `StorageMainService`, `Unknown channel` or Node `DeprecationWarning`
+Detalhes: [`docs/SEARCH_PROVIDERS.md`](docs/SEARCH_PROVIDERS.md).
 
-Those messages can appear after Windows opens `TOP_REFERENCIAS.md` in VS Code. They are VS Code messages, not NutEV Reference Engine runtime failures. Check the NutEV exit-code summary printed before the file opens.
+## Perfil operacional e perfil profundo
 
-### `Deseja finalizar o arquivo em lotes (S/N)?`
+O padrão é o perfil `operational`, com limites adequados para uma execução comum.
 
-This is a Windows CMD prompt normally triggered by `Ctrl+C` during a batch file. If `SUCESSO: ranking de referencias gerado.` was already printed, the ranking output has already been produced.
+Para ativar o perfil de coleta profunda no CMD:
+
+```bat
+set NUTEV_DEEP_COLLECTION=1
+Iniciar-NutEV-Windows.bat
+```
+
+Limites configurados para o perfil profundo:
+
+| Fonte | Deep limit |
+|---|---:|
+| PubMed | 9.999 |
+| Europe PMC | 50.000 |
+| OpenAlex | 50.000 |
+| Crossref | 10.000 |
+| DOAJ | 10.000 |
+| Semantic Scholar | 10.000 |
+
+Para voltar ao perfil normal na mesma sessão:
+
+```bat
+set NUTEV_DEEP_COLLECTION=
+```
+
+Os limites são **tetos de coleta**, não garantias de cobertura exaustiva.
+
+## Variáveis opcionais
+
+O arquivo `.env.example` documenta os nomes suportados. O runtime atual **não carrega `.env` automaticamente**. Defina as variáveis no ambiente antes de executar.
+
+Exemplo no CMD:
+
+```bat
+set NCBI_EMAIL=seu-email@exemplo.com
+set NCBI_API_KEY=...
+set CROSSREF_MAILTO=seu-email@exemplo.com
+set OPENALEX_MAILTO=seu-email@exemplo.com
+set S2_API_KEY=...
+set GOOGLE_API_KEY=...
+set GOOGLE_CSE_ID=...
+set BRAVE_API_KEY=...
+set SERPAPI_API_KEY=...
+```
+
+A ausência de `NCBI_EMAIL`/`ENTREZ_EMAIL` não bloqueia o PubMed; o cliente usa um rate limit mais conservador.
+
+Nunca versione chaves, tokens ou outros segredos.
+
+## Retomada após interrupção
+
+O PubMed usa checkpoints e tenta retomar o trabalho quando possível.
+
+Se uma execução for interrompida:
+
+```bat
+Iniciar-NutEV-Windows.bat
+```
+
+Não apague `project_output_reference` ou os checkpoints por padrão.
+
+Código `130` normalmente significa interrupção pelo usuário, como `Ctrl+C`.
+
+## Como o ranking funciona
+
+O ranker carrega:
+
+```text
+config/reference_mode.json
+config/keyword_taxonomy.json
+config/keyword_taxonomy_supplement*.json
+```
+
+Todos os arquivos que correspondem a `keyword_taxonomy*.json` são carregados.
+
+O score combina, de forma aditiva:
+
+- termos da taxonomia em título, palavras-chave e resumo/snippet;
+- palavras-chave foco configuradas;
+- sinais de tipo documental no título;
+- peso do provider;
+- presença de DOI/PMID/PMCID;
+- bônus leve de recência;
+- penalidade por ausência de título e, em menor grau, de resumo.
+
+A descrição exata dos pesos atuais e do fluxo interno está em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+### Faixas de prioridade
+
+- `A_TOP_REFERENCE`: posições 1–20;
+- `B_STRONG_REFERENCE`: posições 21–100;
+- `C_DISCOVERY`: posições seguintes.
+
+Essas faixas refletem **posição de leitura**, não nível de evidência.
+
+## Deduplicação: o que ela faz e o que ela não faz
+
+A identidade atual é definida nesta ordem:
+
+1. DOI;
+2. PMID;
+3. URL;
+4. título normalizado, quando não há os identificadores anteriores.
+
+Quando dois registros têm a mesma identidade, o engine mantém preferencialmente a versão com texto descritivo mais rico.
+
+Isso **não é deduplicação semântica completa**. O mesmo documento, versões paralelas, publicações associadas ou registros equivalentes com identificadores diferentes podem permanecer separados.
+
+Por isso:
+
+```text
+records_unique == records_input
+```
+
+significa apenas que nenhuma duplicata foi removida pela regra ativa naquela execução. Não prova que todos os documentos sejam semanticamente distintos.
+
+Veja [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md).
+
+## Configuração
+
+### Busca
+
+```text
+config/reference_search.json
+```
+
+Contém as consultas canônicas e os limites `provider_limits` e `deep_provider_limits`.
+
+### Ranking
+
+```text
+config/reference_mode.json
+```
+
+Contém `top_n`, palavras-chave foco e pesos dos providers.
+
+### Taxonomia
+
+```text
+config/keyword_taxonomy*.json
+```
+
+Os nomes dos grupos de taxonomia aparecem nos outputs para tornar o matching auditável. O nome de um grupo é apenas um caminho de classificação; não representa força de evidência.
 
 ## CLI
 
-The packaged CLI is intentionally small:
+O CLI empacotado é deliberadamente pequeno:
 
 ```bash
 nutev --version
 nutev providers
 ```
 
-Collection and ranking remain explicit repository tools so configuration and output locations are visible.
+A coleta e o ranking permanecem expostos como ferramentas do repositório para manter configuração, entradas e outputs visíveis.
 
-## Development and validation
+## Solução de problemas
+
+### `Nenhum master de coleta encontrado`
+
+A coleta geral não terminou com um master utilizável. Rode novamente e deixe `[1/3]` concluir.
+
+### HTTP `401`/`403` no LILACS/BVS ou SciELO
+
+A interface pública recusou a automação. A `main` atual registra esse estado como `unavailable` e pode continuar com as demais fontes.
+
+Isso não significa que a base não contenha literatura relevante.
+
+### Mensagens do VS Code após o sucesso
+
+Mensagens como:
+
+```text
+StorageMainService
+Unknown channel
+DeprecationWarning
+```
+
+podem aparecer porque o Windows abriu o Markdown no VS Code. Elas não são, por si só, erros do NutEV Reference Engine.
+
+Leia primeiro o resumo dos três códigos de saída mostrado pelo engine.
+
+### `Deseja finalizar o arquivo em lotes (S/N)?`
+
+É uma mensagem do CMD normalmente provocada por `Ctrl+C` durante um `.bat/.cmd`. Se `SUCESSO: ranking de referencias gerado.` já apareceu, o ranking daquela execução já foi produzido.
+
+## O que este projeto não é
+
+O NutEV Reference Engine não é:
+
+- um sistema automático de revisão sistemática, scoping review ou PRISMA;
+- um avaliador de risco de viés ou qualidade metodológica;
+- um mecanismo de recomendação clínica;
+- um substituto para triagem, leitura crítica ou julgamento do pesquisador;
+- uma simulação de bases licenciadas indisponíveis;
+- um distribuidor de textos completos protegidos.
+
+## Desenvolvimento
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -271,41 +340,51 @@ python -m compileall -q src tools nutev_tests
 ruff check src tools nutev_tests --select F,E9
 ```
 
-CI validates Python 3.12, Python 3.13, Windows smoke, type checking, security checks, dependency review, CodeQL and clean wheel/sdist installation.
+O CI atual inclui testes em Python 3.12 e 3.13, Windows smoke, type checking, lint/compile, security scan, dependency review, CodeQL e validação de artefatos de release.
 
-## Limitations
+Veja [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-- provider availability, rate limits and credentials affect coverage;
-- public web interfaces can change or block automated access;
-- provider coverage differs by language, geography and document type;
-- ranking is metadata- and text-signal-driven and requires human judgment;
-- identifier-based deduplication does not guarantee semantic uniqueness;
-- optional credentials increase provider availability but do not convert ranking into scientific screening;
-- licensed providers are reported as unavailable rather than replaced or simulated.
+## Documentação
 
-## Documentation
+- [`docs/POP_USO_NUTEV_REFERENCE_ENGINE.md`](docs/POP_USO_NUTEV_REFERENCE_ENGINE.md) — procedimento operacional padrão completo.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arquitetura, fluxo de dados e pesos reais do ranking.
+- [`docs/SEARCH_PROVIDERS.md`](docs/SEARCH_PROVIDERS.md) — providers, limites, credenciais e estados de falha.
+- [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) — limitações conhecidas e fronteiras de interpretação.
+- [`docs/VALIDATED_WINDOWS_RUN_2026-08-18.md`](docs/VALIDATED_WINDOWS_RUN_2026-08-18.md) — evidência de uma execução real bem-sucedida.
+- [`docs/PROVENANCE_AND_LICENSE.md`](docs/PROVENANCE_AND_LICENSE.md) — proveniência e fronteira de licenciamento.
+- [`docs/RELEASE_V1_0_0.md`](docs/RELEASE_V1_0_0.md) — release estável v1.0.0.
+- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) — checklist para futuras releases.
+- [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md) — regra GitHub/Zenodo/DOI.
+- [`docs/REFERENCE_ENGINE_CLEANUP_AUDIT.md`](docs/REFERENCE_ENGINE_CLEANUP_AUDIT.md) — auditoria histórica da limpeza do repositório.
 
-- [`docs/POP_USO_NUTEV_REFERENCE_ENGINE.md`](docs/POP_USO_NUTEV_REFERENCE_ENGINE.md) — Portuguese Standard Operating Procedure for day-to-day use.
-- [`docs/VALIDATED_WINDOWS_RUN_2026-08-18.md`](docs/VALIDATED_WINDOWS_RUN_2026-08-18.md) — real successful Windows run evidence.
-- [`docs/SEARCH_PROVIDERS.md`](docs/SEARCH_PROVIDERS.md) — provider access, limits and failure behavior.
-- [`docs/PROVENANCE_AND_LICENSE.md`](docs/PROVENANCE_AND_LICENSE.md) — provenance and licensing boundary.
-- [`docs/RELEASE_V1_0_0.md`](docs/RELEASE_V1_0_0.md) — v1.0.0 stable release notes.
-- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) — release validation gates.
-- [`docs/ZENODO_SETUP.md`](docs/ZENODO_SETUP.md) — archive/DOI publication record.
-- [`docs/REFERENCE_ENGINE_CLEANUP_AUDIT.md`](docs/REFERENCE_ENGINE_CLEANUP_AUDIT.md) — cleanup scope and evidence.
+## Release, DOI e citação
 
-## Citation and release metadata
+A versão estável publicada é **v1.0.0**, lançada em 18/08/2026.
 
-Citation metadata: `CITATION.cff`  
-Archive metadata: `.zenodo.json`
+- Release commit: `5728d79b05e618897f01ba93886a17584c9f215f`
+- Git tag: `v1.0.0`
+- Zenodo record: `21998607`
+- DOI: [`10.5281/zenodo.21998607`](https://doi.org/10.5281/zenodo.21998607)
+- Citation metadata: `CITATION.cff`
+- Archive metadata: `.zenodo.json`
 
-Version `1.0.0` is archived on Zenodo as record `21998607`.
+A tag `v1.0.0` é imutável. A branch `main` contém correções e documentação pós-release; isso não altera o snapshot arquivado da versão 1.0.0.
 
-**DOI:** [10.5281/zenodo.21998607](https://doi.org/10.5281/zenodo.21998607)  
-**Zenodo record:** [zenodo.org/records/21998607](https://zenodo.org/records/21998607)
+Para reproduzir especificamente o snapshot publicado:
 
-The published Git tag `v1.0.0` remains immutable. Current `main` may contain post-release fixes and documentation; those changes do not rewrite the archived `v1.0.0` snapshot.
+```bash
+git checkout v1.0.0
+```
 
-## License and provenance
+Para usar as correções pós-release mais recentes:
 
-MIT. See `LICENSE`, `NOTICE.md` and `docs/PROVENANCE_AND_LICENSE.md`.
+```bash
+git checkout main
+git pull --ff-only origin main
+```
+
+## Licença e proveniência
+
+MIT. Consulte `LICENSE`, `NOTICE.md` e [`docs/PROVENANCE_AND_LICENSE.md`](docs/PROVENANCE_AND_LICENSE.md).
+
+A árvore atual preserva a atribuição de proveniência do projeto upstream descrito nesses arquivos, sem afirmar um commit de derivação que não foi independentemente estabelecido.
