@@ -31,7 +31,9 @@ def test_governed_run_requires_explicit_thesis_article(tmp_path: Path) -> None:
         governed.build_effective_config(Path("config"), "all_articles", tmp_path / "effective")
 
 
-def test_a2_governed_run_records_scope_governance_and_profile(tmp_path: Path) -> None:
+def test_a2_governed_run_records_scope_governance_profile_and_durable_artifacts(
+    tmp_path: Path,
+) -> None:
     project = tmp_path / "project"
     _write_collection(
         project,
@@ -46,10 +48,15 @@ def test_a2_governed_run_records_scope_governance_and_profile(tmp_path: Path) ->
         ],
     )
     summary = governed.run(project, Path("config"), "A2", 10)
-    persisted = json.loads(
+    root_latest = json.loads(
         (project / "reference_ranking" / "latest.json").read_text(encoding="utf-8")
     )
-    assert summary == persisted
+    article_latest = json.loads(
+        (project / "reference_ranking" / "by_article" / "A2" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert summary == root_latest == article_latest
     assert summary["article_scope"] == "A2"
     assert summary["governance"]["governance_version"] == "2026-08-18.a1-a4"
     assert (
@@ -58,6 +65,58 @@ def test_a2_governed_run_records_scope_governance_and_profile(tmp_path: Path) ->
     )
     assert summary["governance"]["scientific_decision_policy"] == "human_only"
     assert summary["article_profile_purpose"].startswith("discover_and_rank_current_dietary")
+    assert summary["article_interpretation_rule"].startswith("implementation_competencies")
+
+    run_dir = Path(summary["durable_run_dir"])
+    assert run_dir.is_dir()
+    assert (run_dir / "run_manifest.json").is_file()
+    assert (run_dir / "nutev_governance_manifest.json").is_file()
+    assert (run_dir / "effective_reference_mode.json").is_file()
+    for name in ("TOP_REFERENCIAS.md", "reference_ranking.csv", "reference_ranking.jsonl"):
+        assert (run_dir / name).is_file()
+        assert summary["artifacts"][name]["sha256"]
+
+
+def test_article_runs_do_not_overwrite_each_others_durable_outputs(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    _write_collection(
+        project,
+        [
+            {
+                "title": "Dietary guideline and dietary intervention",
+                "abstract": "Healthy eating recommendation and prescription feasibility",
+                "source_provider": "pubmed",
+                "pmid": "456",
+                "year": 2026,
+            }
+        ],
+    )
+
+    a1 = governed.run(project, Path("config"), "A1", 10)
+    a1_manifest = Path(a1["run_manifest"])
+    a1_jsonl = Path(a1["outputs"]["jsonl"])
+    assert a1_manifest.is_file()
+    assert a1_jsonl.is_file()
+
+    a2 = governed.run(project, Path("config"), "A2", 10)
+    assert a2["run_id"] != a1["run_id"]
+    assert Path(a2["run_manifest"]).is_file()
+    assert Path(a2["outputs"]["jsonl"]).is_file()
+    assert a1_manifest.is_file()
+    assert a1_jsonl.is_file()
+
+    a1_latest = json.loads(
+        (project / "reference_ranking" / "by_article" / "A1" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    a2_latest = json.loads(
+        (project / "reference_ranking" / "by_article" / "A2" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert a1_latest["article_scope"] == "A1"
+    assert a2_latest["article_scope"] == "A2"
 
 
 def test_a4_profile_remains_conceptual_not_cfd(tmp_path: Path) -> None:
