@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - evidence/pubmed-pilot-20260818
+  pull_request:
   workflow_dispatch:
 
 permissions:
