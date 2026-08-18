@@ -67,7 +67,7 @@ def test_blinded_order_is_deterministic() -> None:
 
 
 def test_missing_metadata_fails_closed() -> None:
-    groups = {( "q1", "nutev_full"): [(1, "doi:10.1000/missing")]}
+    groups = {("q1", "nutev_full"): [(1, "doi:10.1000/missing")]}
     with pytest.raises(pool.PoolBuildError, match="no frozen metadata"):
         pool.build_pool(groups, _metadata())
 
@@ -84,9 +84,79 @@ def test_pool_depth_filters_rankings_on_load(tmp_path: Path) -> None:
     assert groups[("q1", "nutev_full")] == [(1, "doi:10.1000/a")]
 
 
+def test_primary_system_filter_excludes_secondary_rankings(tmp_path: Path) -> None:
+    path = tmp_path / "rankings.csv"
+    path.write_text(
+        "question_id,system,rank,reference_id\n"
+        "q1,nutev_full,1,doi:10.1000/a\n"
+        "q1,lexical_baseline,1,doi:10.1000/b\n"
+        "q1,nutev_no_taxonomy,1,doi:10.1000/c\n",
+        encoding="utf-8",
+    )
+    groups = pool.load_rankings(
+        path,
+        depth=100,
+        systems=pool.DEFAULT_PRIMARY_SYSTEMS,
+    )
+    assert set(groups) == {
+        ("q1", "nutev_full"),
+        ("q1", "lexical_baseline"),
+    }
+
+
+def test_missing_requested_system_for_question_fails_closed(tmp_path: Path) -> None:
+    path = tmp_path / "rankings.csv"
+    path.write_text(
+        "question_id,system,rank,reference_id\n"
+        "q1,nutev_full,1,doi:10.1000/a\n"
+        "q2,nutev_full,1,doi:10.1000/b\n"
+        "q2,lexical_baseline,1,doi:10.1000/c\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(pool.PoolBuildError, match="q1/lexical_baseline"):
+        pool.load_rankings(
+            path,
+            depth=100,
+            systems=pool.DEFAULT_PRIMARY_SYSTEMS,
+        )
+
+
+def test_split_filter_physically_excludes_external_questions(tmp_path: Path) -> None:
+    path = tmp_path / "rankings.csv"
+    path.write_text(
+        "question_id,split,system,rank,reference_id\n"
+        "qv,validation,nutev_full,1,doi:10.1000/a\n"
+        "qv,validation,lexical_baseline,1,doi:10.1000/b\n"
+        "qe,external_test,nutev_full,1,doi:10.1000/b\n"
+        "qe,external_test,lexical_baseline,1,doi:10.1000/c\n",
+        encoding="utf-8",
+    )
+    groups = pool.load_rankings(
+        path,
+        depth=100,
+        systems=pool.DEFAULT_PRIMARY_SYSTEMS,
+        split="validation",
+    )
+    assert set(groups) == {
+        ("qv", "nutev_full"),
+        ("qv", "lexical_baseline"),
+    }
+
+
+def test_split_filter_requires_split_column(tmp_path: Path) -> None:
+    path = tmp_path / "rankings.csv"
+    path.write_text(
+        "question_id,system,rank,reference_id\n"
+        "q1,nutev_full,1,doi:10.1000/a\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(pool.PoolBuildError, match="split column"):
+        pool.load_rankings(path, depth=100, split="validation")
+
+
 def test_blinded_csv_has_no_system_or_rank_columns(tmp_path: Path) -> None:
     blinded, _ = pool.build_pool(
-        {( "q1", "nutev_full"): [(1, "doi:10.1000/a")]},
+        {("q1", "nutev_full"): [(1, "doi:10.1000/a")]},
         _metadata(),
     )
     path = tmp_path / "blinded.csv"

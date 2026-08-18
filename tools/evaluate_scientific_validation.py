@@ -13,6 +13,8 @@ from typing import Iterable
 KS = (10, 20, 50, 100)
 RECALL_TARGETS = (0.80, 0.90, 0.95)
 DEFAULT_REQUIRED_JUDGED_DEPTH = 100
+VALID_SPLITS = ("development", "validation", "external_test")
+DEFAULT_PRIMARY_SYSTEMS = ("nutev_full", "lexical_baseline")
 
 
 class ValidationDataError(RuntimeError):
@@ -30,6 +32,13 @@ class RankingItem:
 
 def _clean(value: object) -> str:
     return str(value or "").strip()
+
+
+def _parse_systems(value: str) -> tuple[str, ...]:
+    systems = tuple(dict.fromkeys(part.strip() for part in value.split(",") if part.strip()))
+    if not systems:
+        raise ValidationDataError("At least one evaluation system must be selected")
+    return systems
 
 
 def load_gold(path: Path) -> dict[str, dict[str, int]]:
@@ -73,40 +82,57 @@ def load_gold(path: Path) -> dict[str, dict[str, int]]:
     return dict(gold)
 
 
-def load_rankings(path: Path) -> dict[tuple[str, str], list[RankingItem]]:
+def load_rankings(
+    path: Path,
+    *,
+    split: str | None = None,
+    systems: tuple[str, ...] | None = None,
+) -> dict[tuple[str, str], list[RankingItem]]:
     if not path.is_file():
         raise ValidationDataError(f"Rankings file not found: {path}")
+    selected_systems = set(systems) if systems is not None else None
     groups: dict[tuple[str, str], list[RankingItem]] = defaultdict(list)
     seen_refs: set[tuple[str, str, str]] = set()
     seen_ranks: set[tuple[str, str, int]] = set()
     question_splits: dict[str, str] = {}
+    scoped_questions: set[str] = set()
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
+        fields = set(reader.fieldnames or [])
         required = {"question_id", "system", "rank", "reference_id"}
-        missing = required - set(reader.fieldnames or [])
+        missing = required - fields
         if missing:
             raise ValidationDataError(
                 f"Rankings CSV missing columns: {', '.join(sorted(missing))}"
             )
-        has_split = "split" in set(reader.fieldnames or [])
+        has_split = "split" in fields
+        if split is not None and not has_split:
+            raise ValidationDataError(
+                "Split-specific evaluation requires a split column in rankings"
+            )
         for line_number, row in enumerate(reader, start=2):
             question_id = _clean(row.get("question_id"))
             system = _clean(row.get("system"))
             reference_id = _clean(row.get("reference_id"))
-            split = _clean(row.get("split")) if has_split else ""
+            row_split = _clean(row.get("split")).casefold() if has_split else ""
             rank_raw = _clean(row.get("rank"))
             if not question_id or not system or not reference_id:
                 raise ValidationDataError(
                     f"Blank question_id/system/reference_id at line {line_number}"
                 )
-            if split:
+            if row_split:
                 previous_split = question_splits.get(question_id)
-                if previous_split and previous_split != split:
+                if previous_split and previous_split != row_split:
                     raise ValidationDataError(
                         f"Question appears in multiple splits: {question_id} -> "
-                        f"{previous_split}, {split}"
+                        f"{previous_split}, {row_split}"
                     )
-                question_splits[question_id] = split
+                question_splits[question_id] = row_split
+            if split is not None and row_split != split:
+                continue
+            scoped_questions.add(question_id)
+            if selected_systems is not None and system not in selected_systems:
+                continue
             try:
                 rank = int(rank_raw)
             except ValueError as exc:
@@ -128,10 +154,18 @@ def load_rankings(path: Path) -> dict[tuple[str, str], list[RankingItem]]:
             seen_refs.add(ref_key)
             seen_ranks.add(rank_key)
             groups[(question_id, system)].append(
-                RankingItem(question_id, system, rank, reference_id, split)
+                RankingItem(question_id, system, rank, reference_id, row_split)
             )
     if not groups:
-        raise ValidationDataError("Rankings CSV contains no records")
+        scope = f" for split {split}" if split else ""
+        raise ValidationDataError(f"Rankings CSV contains no selected records{scope}")
+    if systems is not None:
+        for question_id in sorted(scoped_questions):
+            for system in systems:
+                if (question_id, system) not in groups:
+                    raise ValidationDataError(
+                        f"Requested evaluation system missing for question: {question_id}/{system}"
+                    )
     for items in groups.values():
         items.sort(key=lambda item: (item.rank, item.reference_id))
     return dict(groups)
@@ -259,7 +293,11 @@ def evaluate_group(
     split = items[0].split if items else ""
 
     first_relevant_index = next(
-        (index for index, grade in enumerate(judged_grades, start=1) if _binary_relevant(grade)),
+        (
+            index
+            for index, grade in enumerate(judged_grades, start=1)
+            if _binary_relevant(grade)
+        ),
         None,
     )
     if first_relevant_index is not None:
@@ -299,7 +337,9 @@ def evaluate_group(
         )
         safe_grades = judged_grades[:effective_k]
         row[f"precision_at_{k}"] = round(_precision_at(safe_grades, k), 6)
-        row[f"recall_at_{k}"] = round(_recall_at(safe_grades, total_relevant, k), 6)
+        row[f"recall_at_{k}"] = round(
+            _recall_at(safe_grades, total_relevant, k), 6
+        )
         row[f"ndcg_at_{k}"] = round(
             _ndcg_at(safe_grades, gold_for_question.values(), k), 6
         )
@@ -341,9 +381,11 @@ def evaluate(
         members = [row for row in rows if row["system"] == system]
         if not members:
             continue
+        member_splits = {str(row.get("split") or "") for row in members}
+        aggregate_split = next(iter(member_splits)) if len(member_splits) == 1 else "__ALL__"
         aggregate: dict[str, object] = {
             "question_id": "__MACRO__",
-            "split": "__ALL__",
+            "split": aggregate_split,
             "system": system,
             "retrieved_total": sum(int(row["retrieved_total"]) for row in members),
             "gold_total": sum(int(row["gold_total"]) for row in members),
@@ -408,6 +450,22 @@ def main() -> int:
     parser.add_argument("--rankings", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument(
+        "--split",
+        choices=VALID_SPLITS,
+        help=(
+            "Evaluate only one benchmark split. Use this to keep external-test labels/results "
+            "physically sealed until the validation continuation decision is locked."
+        ),
+    )
+    parser.add_argument(
+        "--systems",
+        default=",".join(DEFAULT_PRIMARY_SYSTEMS),
+        help=(
+            "Comma-separated systems to evaluate. Default is the preregistered primary candidate/baseline pair. "
+            "Secondary systems require a judgment pool that covers their requested depth."
+        ),
+    )
+    parser.add_argument(
         "--require-judged-through",
         type=int,
         default=DEFAULT_REQUIRED_JUDGED_DEPTH,
@@ -418,8 +476,13 @@ def main() -> int:
     )
     args = parser.parse_args()
     try:
+        systems = _parse_systems(args.systems)
         gold = load_gold(args.gold_standard)
-        rankings = load_rankings(args.rankings)
+        rankings = load_rankings(
+            args.rankings,
+            split=args.split,
+            systems=systems,
+        )
         rows = evaluate(
             gold,
             rankings,
