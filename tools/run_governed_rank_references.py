@@ -10,10 +10,12 @@ import shutil
 import tempfile
 from typing import Any
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from nutev.governance import governance_context, load_governance_manifest, normalize_article_scope
 
 
+LOCAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
 RANKER_PATH = Path(__file__).resolve().with_name("rank_references.py")
 SPEC = importlib.util.spec_from_file_location("rank_references", RANKER_PATH)
 assert SPEC and SPEC.loader
@@ -38,7 +40,7 @@ def _file_sha256(path: Path) -> str:
 
 
 def _new_run_id(scope: str) -> str:
-    timestamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
+    timestamp = datetime.now(LOCAL_TIMEZONE).strftime("%Y%m%dT%H%M%S%z")
     return f"{scope}_{timestamp}_{uuid4().hex[:8]}"
 
 
