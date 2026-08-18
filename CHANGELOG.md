@@ -1,149 +1,84 @@
 # Changelog
 
-All notable changes to this project are documented here. The format is based on Keep a Changelog and the project uses Semantic Versioning for public software releases. Methodological changes are additionally tracked in `docs/CHANGELOG_METODOLOGICO.md`.
+All notable public product changes are documented here. Historical pre-v1 research-workflow details remain available in Git history and archived release notes.
 
 ## [Unreleased]
 
-Current source-tree package identity: **`0.3.0.dev1`**. A `0.3.0` release candidate was validated on 2026-08-10, but no `v0.3.0` tag or GitHub Release was published. Publication is deliberately deferred while development, backlog cleanup and scientific workflow validation continue. The latest public/citable release therefore remains **`v0.2.0`**.
+No product-scope expansion is planned before publication of the stable v1 line. Post-v1 changes should remain inside the supported reference-engine scope unless a new product decision is explicitly documented.
 
-### One-command orchestration
+## [1.0.0] — 2026-08-18
 
-- Added `nutev play` as the canonical one-command **PILOT** computational orchestrator.
-- Reused the immutable registered-strategy executor, provider snapshots/ledgers and existing master-corpus builder rather than creating a second search/corpus pipeline.
-- Connected the PILOT path to lawful open-access full-text resolution, public download, native-text extraction and OCR-on-demand.
-- Added a `12_play/<play_id>/` audit package with state, provider report, full-text/download/extraction ledgers, human-readable summary and verifiable `play_summary.sha256`.
-- Made provider truncation explicit by comparing provider-reported totals with returned rows; capped retrieval is not silently described as exhaustive.
-- Added a hard guard that refuses PRISMA-eligible/FORMAL PLAY until GF-02/GF-03/GF-06/GF-07/GF-10 authorization is implemented and recorded.
-- Added regression tests for PILOT/formal separation, truncation reporting, latest-strategy selection and immutable summary checksums.
+### Stable product identity
 
-### Scientific architecture and provenance
+- Renamed the supported product identity from **NutEV Evidence Engine** to **NutEV Reference Engine**.
+- Established `1.0.0` / `v1.0.0` as the first stable Reference Engine release identity.
+- Defined the supported product boundary as `SEARCH -> NORMALIZE -> DEDUPLICATE -> RANK -> EXPORT`.
 
-- Made the merged one-global-search architecture the canonical scientific workflow: one article-independent frozen strategy, provider-specific rendering, one `run_id`, one master corpus, deduplication once, then article-specific screening/eligibility/extraction.
-- Separated generated query space from expressions actually attempted.
-- Added canonical `query_execution_ledger.json/.csv` derived from real provider-attempt records.
-- Finalized compatibility `*_executed` artifacts only from actual attempts and preserved pre-execution space as `*_generated`.
-- Made query-audit finalization idempotent per run.
-- Made manuscript methods consume actual execution evidence rather than generated querypacks.
-- Separated computational `execution_status` from `scientific_readiness`.
-- Reserved `manuscript_ready` for explicit human-review and manuscript-gate completion rather than provider/pipeline success alone.
-- Added `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` with distinct indexed-database, official/institutional and supplementary-discovery tracks.
-- Clarified that the current SciELO connector is Crossref retrieval scoped to DOI prefix `10.1590`, not a comprehensive native SciELO platform free-text search.
-- Added explicit provenance/license documentation separating the inherited Local Deep Research MIT history from current NutEV contributions without erasing upstream attribution.
+### Search
 
-### Precision and current-main hardening
+- Multi-source bibliographic and institutional discovery.
+- PubMed.
+- Europe PMC.
+- OpenAlex.
+- Crossref.
+- DOAJ.
+- Semantic Scholar.
+- Configured official/institutional sources.
+- Native LILACS/BVS route.
+- Native SciELO route.
+- Optional configured web-search routes when credentials are available.
+- Scopus and Web of Science are not simulated.
 
-- Added boundary-aware matching in classifier, relevance/scoring and curation paths to avoid short-term substring false positives such as `dash` inside `dashboard`.
-- Required a real NutEV/NutMEV thematic anchor before operational curated priority; evidence type alone cannot prioritize unrelated clinical content.
-- Reconciled UPF/NOVA, adherence/access and dietary-pattern signals in downstream curation/ontology without turning them into automatic inclusion criteria.
-- Aligned Global Watch CKM scope and lexical precision.
-- Expanded the downstream NutEV ontology to match current evidence domains without widening the frozen global search.
-- Hardened metadata-only versus full-text status handling and preserved explicit failure states.
-- Made checkpoint JSON deterministic.
-- Hardened schema-bound CSV exports, Global Watch zero-row exports and operational empty manifests.
+### Ranking
 
-### Repository hygiene
+- NutEV taxonomy matching through `keyword_taxonomy*.json`.
+- Configurable focus keywords through `config/reference_mode.json`.
+- Title, keyword/subject and abstract/snippet weighting.
+- Document-type weighting.
+- Provider/source weighting.
+- Strong-identifier bonus.
+- Light recency weighting.
+- Deterministic ranking exports for identical inputs/configuration.
 
-- Converted stale Local Deep Research migration/cleanup plans into current-state provenance records.
-- Removed the unreferenced superseded `docs/AUDIT_COMPLETE_PIPELINE_2026.md` from the active tree; history remains recoverable in Git.
-- Added a controlled retirement plan for remaining compatibility surfaces such as `master_pipeline.py` and historical `busca*` workstream modules; they are not blind-deleted while runtime/tests still depend on them.
-- Added a prospective `v0.3.0` release plan that blocks tag/Zenodo publication on PLAY validation, license/provenance resolution and exact-SHA release checks.
+### Outputs
 
-### Validation, build and supply chain
+- `TOP_REFERENCIAS.md`.
+- `reference_ranking.csv`.
+- `reference_ranking.jsonl`.
+- `latest.json`.
 
-- Added branch-aware coverage measurement with a blocking floor of 70%; the validated 0.3.0 candidate measured 73.19% on Python 3.12.
-- Added Windows Python 3.12 installation/CLI/zero-key-demo smoke validation.
-- Added incremental mypy checking for critical provenance modules.
-- Added an explicit `compileall` syntax gate for `src/nutev` and blocking Ruff objective-error checks.
-- Added `release-artifact-validation` for wheel/sdist build, metadata checking, clean-wheel installation, CLI startup and zero-key demo from the installed artifact.
-- Kept dependency review blocking and required it to execute successfully with GitHub Dependency Graph enabled.
-- Refreshed GitHub Actions to reviewed Node 24-compatible releases while preserving full-SHA pinning.
-- Reconciled the current Python dependency boundary, removed an unused third-party arXiv client and raised the `pypdf` security floor.
-- Validated the merged PLAY implementation on its PR head with canonical Python 3.12/3.13 CI, Windows smoke, Ruff/compile, type-check provenance core, dependency review, security scan, CodeQL and release-artifact validation before merge.
+### Removed from the supported v1 workflow
 
-### Governance and documentation
+- Systematic/scoping-review orchestration.
+- PRISMA output as a product goal.
+- PRESS/FREEZE scientific gates.
+- GF scientific-gate workflow.
+- Automatic scientific INCLUDE/EXCLUDE decisions.
+- Clinical recommendation claims from ranking scores.
 
-- Added durable root `AGENTS.md` scientific-agent governance and current scientific governance documentation.
-- Closed the P0 infrastructure audit after generated/executed provenance, readiness semantics and dependency-review gates were fixed.
-- Made README and local-run documentation canonical for the one-global-search workflow; legacy `--workstreams` execution is explicitly non-canonical for definitive scientific review.
-- Reconciled provider, reproducibility, code-availability, validation and release documentation with the immutable `v0.2.0` history and current development state.
-- Historical thematic PRs were consolidated into the canonical Article 1 scientific path and downstream codebook rather than merged into the old workstream architecture.
-- Added a dedicated release blocker for final MIT/upstream-provenance reconciliation before the next Zenodo archive.
+Historical code/documents for earlier research workflows may remain for provenance or compatibility, but they are outside the supported v1 runtime and public output contract.
 
-### Development boundary
+### Release metadata
 
-- `RecommendationCandidate` remains a candidate requiring human adjudication, not a clinical recommendation.
-- NutEV Evidence Engine remains separate from any clinical Decision Engine.
-- Definitive Article 1 scientific executions remain governed by `docs/ARTICLE1_SEARCH_EXECUTION_CONTRACT.md` and may be only `computationally_ready_for_human_review` until human/manuscript gates are explicitly completed.
-- `nutev play` currently remains PILOT-only; a successful PLAY does not imply GF-02/PRESS/FREEZE completion.
-- ORCID, affiliation and DOI remain omitted unless independently confirmed.
-- Published historical tags/releases, especially `v0.2.0`, remain immutable.
-- The previously validated `0.3.0` release candidate is historical validation evidence only; it is not a published release and does not freeze current development.
+- Package version synchronized to `1.0.0`.
+- `CITATION.cff` synchronized to v1 identity.
+- `.zenodo.json` synchronized to v1 identity without inventing a DOI.
+- README and agent guidance rewritten around the stable Reference Engine product.
 
-## [0.2.0] — first citable reconciled NutEV Evidence Engine release (alpha maturity)
+## Historical releases
 
-This release consolidates the NutEV Evidence Engine as a reproducible, auditable research-software object supporting the evidence layer of the NutEV project. It is **not** the separate clinical Decision Engine and does not produce final clinical recommendations.
+### [0.2.0] — 2026-08-09
 
-### Release identity and history
+The `v0.2.0` release is preserved as immutable historical research-software history. Its Evidence Engine/scoping-review/PRISMA-oriented scope is not the supported v1 product scope.
 
-- The citable release identity is **`0.2.0` / `v0.2.0`**.
-- Scientific/software maturity remains **alpha**; alpha is a maturity label, not a competing version suffix.
-- The repository already contains historical tags `v0.1.0` through `v0.1.8`. Those tags are preserved as immutable history and are **not** reused or moved.
-- Historical tag/version alignment was not reliable: for example, the `v0.1.8` tree still declared the NutEV package version as `0.1.0`. `v0.2.0` starts the reconciled citation-grade release line without rewriting that history.
+Detailed historical release evidence remains available in:
 
-### Added
+- `docs/RELEASE_NOTES_v0.2.0.md`
+- `docs/RELEASE_RECORD_v0.2.0.md`
+- Git history and immutable tag `v0.2.0`
 
-- Canonical NutEV package and CLI under `src/nutev/`.
-- Reproducible search, normalization, deduplication, retrieval, extraction and audit pipelines.
-- Article 1 support for guideline/document discovery, A/B/C/D domain coding, page-linked evidence snippets, document/version/family registries and denominator handling.
-- Two-reviewer screening structures, conflict/adjudication logic and screening-agreement reporting.
-- PRISMA-oriented exports, evidence matrices, reference exports (BibTeX/RIS) and audit/convergence artifacts.
-- Configuration provenance with per-file hashes and `config_digest` records.
-- Zero-key synthetic demonstration data and documented local dashboard/API paths.
-- Scientific governance, copyright/full-text policy, AI/human-oversight policy, data governance and reproducibility documentation.
-- `CITATION.cff`, `.zenodo.json`, `NOTICE.md`, code-availability and Zenodo release documentation.
-- Canonical CI on Python 3.12 and 3.13, plus blocking Ruff F/E9 checks.
-- Security workflows including gitleaks and repository-hygiene checks.
-- Dedicated release-validation workflow covering identity, tag collision, tests, build, `twine check`, clean-wheel demo, documentation links and environment snapshot.
-- Article 1 software traceability matrix linking method claims to implementation, tests, outputs and human-decision boundaries.
+Historical `0.3.0.dev1` development work was never published as a `v0.3.0` release and is superseded by the stable v1 product identity.
 
-### Changed
-
-- Package identity and runtime were decoupled from the inherited Local Deep Research codebase.
-- Inherited `local_deep_research` runtime code and legacy test tree were removed from the current working tree; provenance remains in Git history and attribution is preserved in `LICENSE`/`NOTICE.md`.
-- The runtime compatibility monkey-patch layer was retired and its behavior moved into first-class modules with parity gates.
-- Provider configuration was centralized and reconciled with implemented connectors.
-- Retrieval connectors gained bounded/explicit deeper pagination options while retaining reproducible default behavior.
-- Scientific output failures and coverage loss are surfaced in structured telemetry rather than silently swallowed.
-- Audit CSV location and UI/read contracts were reconciled; derived convergence/gap/readiness matrices are produced on real runs.
-- Python support declaration was tightened to match tested CI versions (`>=3.12,<3.14`).
-- Release metadata, citation metadata, README, validation and Zenodo instructions were reconciled around one citation-grade release identity.
-
-### Removed
-
-- Inherited `src/local_deep_research/**` runtime tree and legacy `tests/**` tree from the current source tree.
-- Legacy frontend/Docker/cookiecutter and other unused inherited infrastructure.
-- Dead/orphan LLM and compatibility modules that were not part of the canonical NutEV execution path.
-- Dependabot configuration from the current tree after the earlier public-release setup phase.
-
-### Scientific safeguards
-
-- `RecommendationCandidate` is never equivalent to a final recommendation.
-- Machine coding and extraction remain assistive and require human review where defined by protocol.
-- Missing full text/OCR limitations are surfaced rather than treated as evidence absence.
-- Protected third-party PDFs/full texts and personal/clinical data are not intended for redistribution in the repository or release artifacts.
-
-### Validation evidence
-
-The release-reconciliation flow passed canonical CI on Python 3.12 and 3.13 with **703 passed, 8 skipped and 1 xpassed** on each interpreter, together with successful blocking lint, security-scan/gitleaks, CodeQL, build/distribution and zero-key release validation. A post-release audit established that the dependency-review action had **not actually executed** because GitHub Dependency Graph was disabled and the workflow allowed the error to continue. Dependency review for `v0.2.0` is therefore **NOT VALIDATED**, not PASS; see `docs/RELEASE_RECORD_v0.2.0.md`.
-
-### Known limitations / pending after publication
-
-- ORCID and exact institutional affiliation remain human-confirmed metadata and must not be invented.
-- The exact upstream derivation point should be confirmed if it is to be stated publicly in release metadata/provenance.
-- Full scientific pipeline reproduction is canonical from a repository checkout while `config/` remains repository-root configuration; do not claim a wheel-only full-pipeline path unless separately verified.
-- Development dependencies are version-ranged; the release workflow captures a release-specific environment snapshot.
-- The software remains at **alpha maturity** despite the semantic software version `0.2.0`.
-- Zenodo DOI metadata remains pending until a real public archive record is verified.
-
-[Unreleased]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/releases/tag/v1.0.0
 [0.2.0]: https://github.com/WillianVagner123/NutEV-Evidence-Engine/releases/tag/v0.2.0
