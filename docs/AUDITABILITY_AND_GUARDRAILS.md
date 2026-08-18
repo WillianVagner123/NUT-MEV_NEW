@@ -1,7 +1,7 @@
 # Auditabilidade e guardrails do NutEV Reference Engine
 
 Data da política: 2026-08-18  
-Versão da política: `2026-08-18.1`
+Versão da política: `2026-08-18.2`
 
 ## Objetivo
 
@@ -32,10 +32,13 @@ Se o arquivo foi alterado, corrompido ou substituído depois da coleta, o rankin
 
 Cada registro recebe uma classificação determinística:
 
-- `A_IDENTIFIER`: possui DOI, PMID ou PMCID;
-- `B_TRACEABLE_URL`: não possui identificador primário, mas possui URL HTTP/HTTPS rastreável;
+- `A_IDENTIFIER`: possui DOI, PMID ou PMCID com formato sintaticamente plausível;
+- `B_TRACEABLE_URL`: não possui identificador válido, mas possui URL HTTP/HTTPS rastreável;
 - `Q_INCOMPLETE_ORIGIN`: falta provider ou título;
-- `Q_UNTRACEABLE`: possui título/provider, mas não possui identificador nem URL rastreável.
+- `Q_INVALID_IDENTIFIER`: apresenta identificador, mas nenhum identificador tem formato válido e não existe URL HTTP/HTTPS rastreável;
+- `Q_UNTRACEABLE`: não possui identificador válido nem URL HTTP/HTTPS rastreável.
+
+O gate reconhece DOI mesmo quando fornecido no formato de URL `https://doi.org/...`; PMID precisa ser numérico; PMCID precisa seguir o padrão `PMC` + dígitos. O engine não corrige um identificador malformado por adivinhação.
 
 Por padrão, classes `Q_*` não entram no ranking. Elas são gravadas em:
 
@@ -153,6 +156,7 @@ reference_ranking/AUDIT_MANIFEST.json
 5. Para uma referência específica, use:
 
 - `audit_traceability`;
+- `audit_reasons`;
 - `audit_origin_sha256`;
 - `audit_source_run_id`;
 - `audit_source_master_sha256`;
@@ -167,6 +171,8 @@ Auditabilidade de software não equivale a validação científica do documento.
 
 O guardrail não prova:
 
+- que um DOI sintaticamente válido realmente foi registrado pela agência DOI;
+- que um PMID/PMCID sintaticamente válido resolve para o documento esperado;
 - que o estudo é metodologicamente bom;
 - que o abstract está correto;
 - que o provider não contém erro bibliográfico;
@@ -174,7 +180,7 @@ O guardrail não prova:
 - que o item deve ser incluído em revisão sistemática;
 - que existe recomendação clínica.
 
-Essas decisões continuam exigindo leitura crítica e critérios científicos externos ao ranking.
+A validação sintática reduz a aceitação de lixo/corrupção, mas não substitui resolução do identificador no provider nem leitura crítica.
 
 ## Regra para futuras funções com IA generativa
 
