@@ -1,17 +1,15 @@
-# Rodar o NutEV Evidence Engine no PC
+# Run NutEV Reference Engine locally
 
-Este guia cobre apenas o runtime canônico atual. O antigo modo genérico `--workstreams` foi aposentado; a pesquisa científica usa estratégia global versionada e o orquestrador `nutev play`.
+This guide covers the supported NutEV Reference Engine v1.0.0 path.
 
-## 1. Pré-requisitos
+## Requirements
 
 - Git;
-- Python **3.12 ou 3.13** (`>=3.12,<3.14`);
-- navegador atualizado;
-- Tesseract opcional, mas necessário para OCR de PDFs escaneados.
+- Python **3.12 or 3.13** (`>=3.12,<3.14`);
+- network access for live providers;
+- Tesseract only when OCR of scanned documents is needed by optional document utilities.
 
-## 2. Instalação
-
-### Windows PowerShell
+## Windows PowerShell
 
 ```powershell
 git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
@@ -19,137 +17,47 @@ cd NutEV-Evidence-Engine
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -e ".[dashboard,platform,documents]"
+python -m pip install -e ".[documents,search]"
+.\RODAR_TUDO.cmd
 ```
 
-### macOS/Linux
-
-```bash
-git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git
-cd NutEV-Evidence-Engine
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dashboard,platform,documents]"
-```
-
-Verificação local:
-
-```bash
-python scripts/check_local.py
-```
-
-## 3. Demo sintética
-
-```bash
-nutev demo-data --project-root ./project_output_demo
-nutev dashboard --project-root ./project_output_demo --port 8501
-```
-
-A demo é sintética e **não é evidência científica**.
-
-## 4. Projeto científico
-
-```bash
-nutev dashboard --project-root ./project_output_scientific --port 8501
-```
-
-No dashboard, abra **Search Strategy**, registre uma versão imutável e execute somente o estado científico autorizado.
-
-Fluxo canônico:
+The supported one-command flow is:
 
 ```text
-estratégia global versionada
-        ↓
-renderização por provider
-        ↓
-execução + ledger + snapshots
-        ↓
-corpus mestre
-        ↓
-normalização/deduplicação
-        ↓
-full text / OCR
-        ↓
-revisão humana
-        ↓
-extração / qualidade / síntese
+multi-source collection
+      ↓
+native LILACS/BVS + SciELO
+      ↓
+technical deduplication
+      ↓
+NutEV taxonomy + focus-keyword ranking
+      ↓
+reference exports
 ```
 
-## 5. PLAY — um comando
-
-PILOT completo:
-
-```bash
-nutev play --project-root ./project_output_scientific
-```
-
-Teste apenas de busca + corpus:
-
-```bash
-nutev play --project-root ./project_output_scientific --metadata-only
-```
-
-Versão específica:
-
-```bash
-nutev play \
-  --project-root ./project_output_scientific \
-  --version-id STRATEGY_VERSION_ID \
-  --breadth specific \
-  --limit 10000 \
-  --providers pubmed europepmc crossref openalex
-```
-
-O PLAY atual é deliberadamente **PILOT-only** para o caminho automático completo. Ele não cria decisões humanas de `INCLUDE`/`EXCLUDE`, não aprova PRESS, não autoriza FREEZE e não transforma um piloto em contagens formais do PRISMA.
-
-Saída principal:
+## Outputs
 
 ```text
-project_output_scientific/
-└── 12_play/
-    ├── latest_summary.json
-    └── play_<id>/
-        ├── play_state.json
-        ├── play_summary.json
-        ├── play_summary.sha256
-        ├── play_summary.md
-        ├── search_providers.csv
-        ├── fulltext_ledger.jsonl
-        ├── download_manifest.jsonl
-        ├── download_failures.jsonl
-        └── extraction_manifest.jsonl
+project_output_reference/reference_ranking/TOP_REFERENCIAS.md
+project_output_reference/reference_ranking/reference_ranking.csv
+project_output_reference/reference_ranking/reference_ranking.jsonl
+project_output_reference/reference_ranking/latest.json
 ```
 
-## 6. OCR
+## Run only the ranker
 
-Teste no Windows:
-
-```powershell
-tesseract --version
-```
-
-O NutEV extrai texto nativo quando disponível e usa OCR quando necessário. Falha ou ausência de OCR deve permanecer registrada; não deve virar documento vazio ou evidência ausente.
-
-## 7. Construtor de estratégia
+If collection output already exists:
 
 ```bash
-nutev strategy --spec examples/picos.json --out project_output_scientific/07_logs/search_strategy.json
+python tools/rank_references.py \
+  --project-root ./project_output_reference \
+  --config-dir ./config \
+  --top-n 100
 ```
 
-Esse comando **gera** expressões. Uma expressão gerada só pode ser descrita como executada quando existir tentativa correspondente no execution ledger.
+## Provider credentials
 
-## 8. Guias e fontes oficiais
-
-```bash
-nutev guides --project-root ./project_output_scientific --workers 4 --rate 1.0
-```
-
-Descoberta ao vivo não substitui o marco amostral/manifesto congelado de uma execução definitiva. Preserve data, fonte, URL, status, artefato e hash conforme o protocolo.
-
-## 9. Variáveis locais
-
-### Windows PowerShell
+Optional provider variables may include:
 
 ```powershell
 $env:NCBI_EMAIL="seu-email@exemplo.com"
@@ -158,23 +66,18 @@ $env:CROSSREF_MAILTO="seu-email@exemplo.com"
 $env:OPENALEX_MAILTO="seu-email@exemplo.com"
 ```
 
-Nunca comite secrets. Falha de credencial, timeout ou rate limit não deve ser convertida em “zero resultados”.
+Never commit secrets. Provider failures, missing credentials, rate limits or interface changes must remain explicit and must not be converted into fabricated zero-result claims.
 
-## 10. Testes
+## Tests
 
 ```bash
 PYTHONPATH=src python -m pytest -q nutev_tests
 ```
 
-A CI canônica valida Python 3.12/3.13, Windows smoke, compileall/Ruff, mypy crítico, segurança, dependency review e artefatos de release.
+The canonical CI covers Python 3.12/3.13, Windows smoke, compile/Ruff, type checking, security, dependency review, CodeQL and release artifact validation.
 
-## 11. Contrato científico
+## Product boundary
 
-- `generated` ≠ `executed`;
-- `execution_status` ≠ `scientific_readiness`;
-- PILOT ≠ busca formal/PRISMA;
-- software não inventa revisão PRESS, FREEZE ou decisão humana;
-- texto integral só é recuperado por rotas legalmente acessíveis;
-- `RecommendationCandidate` não é recomendação clínica final.
+Ranking is a reading/reference-priority signal. It is not scientific inclusion/exclusion and is not a clinical recommendation.
 
-Ver [`ARTICLE1_SEARCH_EXECUTION_CONTRACT.md`](ARTICLE1_SEARCH_EXECUTION_CONTRACT.md), [`SCIENTIFIC_GOVERNANCE.md`](SCIENTIFIC_GOVERNANCE.md) e [`PLAY.md`](PLAY.md).
+Historical systematic/scoping-review, screening and scientific-gate commands or documents may remain for compatibility/provenance. They are not the supported v1 path. See `README.md`, `RELEASE_V1_AUDIT.md` and `legacy/README.md`.
