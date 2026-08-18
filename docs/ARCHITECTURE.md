@@ -1,11 +1,11 @@
 # Arquitetura do NutEV Reference Engine
 
-Este documento descreve o comportamento implementado atualmente no repositório. Ele deve ser atualizado sempre que o contrato de coleta, integridade, deduplicação, scoring, quarentena ou exportação mudar.
+Este documento descreve o comportamento implementado na `main`. Ele deve ser atualizado sempre que mudar o contrato de coleta, integridade, taxonomia, deduplicação, scoring, ranking ou exportação.
 
-## 1. Fluxo
+## 1. Fluxo canônico
 
 ```text
-SEARCH -> NORMALIZE -> DEDUPLICATE -> TRACEABILITY GATE -> RANK -> EXPORT -> AUDIT
+SEARCH -> NORMALIZE -> TRACEABILITY GATE -> DEDUPLICATE -> CLASSIFY -> RANK -> EXPORT -> AUDIT
 ```
 
 No Windows:
@@ -21,122 +21,90 @@ Iniciar-NutEV-Windows.bat
 
 ## 2. Componentes principais
 
-### Coleta geral
-
-`tools/run_everything_now.py`
+### Coleta geral — `tools/run_everything_now.py`
 
 Responsabilidades:
 
 - carregar `config/reference_search.json`;
 - selecionar perfil `operational` ou `deep`;
-- executar PubMed e demais providers suportados;
-- preservar identidade do provider;
-- registrar falhas/indisponibilidades explicitamente;
-- normalizar e deduplicar registros da coleta geral;
-- salvar outputs por provider e `master_records.jsonl`;
-- calcular SHA-256 do master e registrá-lo no manifesto;
-- atualizar o estado de execução usado pelo ranker.
+- executar os providers suportados;
+- preservar a identidade do provider;
+- registrar falha ou indisponibilidade sem fabricar substitutos;
+- normalizar e deduplicar a coleta geral;
+- gerar `master_records.jsonl`;
+- calcular e registrar SHA-256 do master.
 
-### Fontes latino-americanas nativas
-
-`tools/run_latin_sources.py`
+### Fontes latino-americanas — `tools/run_latin_sources.py`
 
 Responsabilidades:
 
-- tentar LILACS/BVS e SciELO pelas interfaces públicas nativas configuradas;
+- tentar LILACS/BVS e SciELO pelas rotas configuradas;
 - preservar `source_provider`;
-- registrar `401`/`403` como indisponibilidade de acesso automatizado;
-- nunca substituir a fonte por outra silenciosamente;
-- reter evidência HTML quando a interface permite coleta;
+- registrar `401`/`403` como indisponibilidade de automação;
+- não simular conteúdo de provider indisponível;
 - gerar `latin_native_records.jsonl` e SHA-256 do master.
 
-### Guardrails
-
-`src/nutev/audit_guardrails.py`
+### Guardrails — `src/nutev/audit_guardrails.py`
 
 Responsabilidades:
 
 - calcular hashes de arquivos e payloads canônicos;
-- verificar `master_records_sha256` antes de o ranker consumir um master;
-- classificar rastreabilidade de cada registro;
-- marcar registros que devem ser colocados em quarentena;
-- gerar `audit_origin_sha256` determinístico;
-- falhar quando a integridade declarada não pode ser comprovada.
+- verificar `master_records_sha256` antes do consumo;
+- classificar rastreabilidade por registro;
+- colocar registros insuficientemente rastreáveis em quarentena;
+- gerar `audit_origin_sha256`;
+- falhar quando a integridade declarada não puder ser comprovada.
 
-### Ranking
-
-`tools/rank_references.py`
+### Taxonomia — `src/nutev/taxonomy.py`
 
 Responsabilidades:
 
-- localizar os masters mais recentes registrados nos estados de coleta;
-- verificar SHA-256 dos masters antes da leitura;
-- carregar todas as taxonomias `config/keyword_taxonomy*.json`;
-- carregar `config/reference_mode.json` e a política de guardrails;
+- ler o vocabulário acumulado em `config/keyword_taxonomy*.json`;
+- ler `config/taxonomy_registry.json`;
+- normalizar e deduplicar termos;
+- mapear leaf paths históricos para IDs canônicos estáveis;
+- excluir `workstreams.*` e `global.document_types.*` do score taxonômico;
+- falhar com `TaxonomyError` se surgir um novo caminho semântico não registrado;
+- devolver metadados de versão, cobertura e configuração para auditoria.
+
+### Ranking — `tools/rank_references.py`
+
+Responsabilidades:
+
+- localizar os masters declarados pelos estados de coleta;
+- verificar sua integridade;
 - aplicar gate de rastreabilidade;
-- exportar registros bloqueados para quarentena;
-- aplicar deduplicação somente aos registros elegíveis;
-- calcular score explicável e com caps;
-- ordenar registros e atribuir faixa A/B/C;
-- exportar JSONL, CSV, Markdown, quarentena e manifesto de auditoria.
+- exportar a quarentena;
+- deduplicar os registros elegíveis;
+- compilar a taxonomia canônica;
+- classificar cada referência em taxonomia primária e secundárias;
+- calcular score explicável;
+- gerar rank global e rank dentro de cada grupo taxonômico;
+- exportar JSONL, CSV, Markdown e manifesto de auditoria.
 
-## 3. Configuração de busca
+## 3. Configuração
 
-Arquivo:
+### Busca
 
 ```text
 config/reference_search.json
 ```
 
-Contém:
+Contém queries e limites operacionais/profundos de providers.
 
-- query específica para PubMed;
-- query genérica para APIs bibliográficas;
-- query web;
-- `provider_limits` para o perfil operacional;
-- `deep_provider_limits` para o perfil profundo.
-
-O perfil profundo só é ativado quando:
+O perfil profundo é ativado por:
 
 ```text
 NUTEV_DEEP_COLLECTION=1
 ```
 
-## 4. Configuração do ranking e guardrails
-
-Arquivo:
+### Ranking e guardrails
 
 ```text
 config/reference_mode.json
 ```
 
-Valores atuais:
-
-- `top_n = 100`;
-- focus keywords configuradas;
-- pesos por provider;
-- política de rastreabilidade e integridade;
-- caps de score para taxonomia e focus keywords;
-- modo de scoring de tipo documental.
-
-Pesos atuais por provider:
-
-| Token de provider | Peso |
-|---|---:|
-| `official` | 8 |
-| `pubmed` | 6 |
-| `lilacs` | 5 |
-| `bvs` | 5 |
-| `scielo` | 4 |
-| `europepmc` | 4 |
-| `openalex` | 3 |
-| `crossref` | 2 |
-| `doaj` | 2 |
-| `semantic` | 2 |
-
-O ranker normaliza o nome do provider e usa o maior peso cujo token apareça no nome normalizado.
-
-Política canônica:
+Contém `top_n`, focus keywords, pesos de provider e política de guardrails. A política atual inclui:
 
 ```json
 {
@@ -150,44 +118,74 @@ Política canônica:
 }
 ```
 
-## 5. Integridade de entrada
+Pesos atuais por provider:
 
-Para cada `latest.json` de coleta, o ranker lê:
+| Token | Peso |
+|---|---:|
+| `official` | 8 |
+| `pubmed` | 6 |
+| `lilacs` | 5 |
+| `bvs` | 5 |
+| `scielo` | 4 |
+| `europepmc` | 4 |
+| `openalex` | 3 |
+| `crossref` | 2 |
+| `doaj` | 2 |
+| `semantic` | 2 |
 
-```text
-master_records_path
-master_records_sha256
-```
-
-Quando um master é declarado:
-
-1. o arquivo deve existir;
-2. o SHA-256 declarado deve existir;
-3. o SHA-256 real deve ser idêntico ao declarado;
-4. cada linha JSONL deve ser um objeto JSON válido.
-
-Falha em qualquer uma dessas verificações interrompe o ranking. Não há reparo silencioso nem fallback para um arquivo não verificado.
-
-## 6. Gate de rastreabilidade
-
-Antes do scoring, cada registro recebe uma classe:
-
-| Classe | Regra |
-|---|---|
-| `A_IDENTIFIER` | possui DOI, PMID ou PMCID |
-| `B_TRACEABLE_URL` | possui URL HTTP/HTTPS válida |
-| `Q_INCOMPLETE_ORIGIN` | falta provider ou título |
-| `Q_UNTRACEABLE` | provider/título presentes, mas sem identificador nem URL |
-
-Por padrão, classes `Q_*` não entram no ranking e são exportadas em:
+### Taxonomia
 
 ```text
-reference_quarantine.jsonl
+config/taxonomy_registry.json
+config/keyword_taxonomy.json
+config/keyword_taxonomy_supplement*.json
 ```
 
-O engine não cria identificadores, URLs, autores, anos ou abstracts para fazer um registro passar pelo gate.
+Os `keyword_taxonomy*.json` são a camada de **vocabulário/proveniência**. O `taxonomy_registry.json` é a camada **canônica de classificação**.
 
-Cada registro recebe ainda:
+A versão canônica atual é:
+
+```text
+2026-08-v2
+```
+
+As dimensões são:
+
+```text
+domain -> context -> condition -> outcome
+```
+
+- `domain`: tema/intervenção;
+- `context`: comportamento, implementação, cuidado e contexto social/alimentar;
+- `condition`: condição clínica;
+- `outcome`: desfecho ou construto.
+
+Detalhes completos: [`TAXONOMY.md`](TAXONOMY.md).
+
+## 4. Integridade de entrada
+
+Para cada master declarado, o ranker exige:
+
+1. `master_records_path` existente;
+2. `master_records_sha256` presente;
+3. SHA-256 real idêntico ao declarado;
+4. JSONL sintaticamente válido e composto por objetos.
+
+Qualquer divergência interrompe o ranking. Não há reparo silencioso.
+
+## 5. Gate de rastreabilidade
+
+Cada registro recebe classificação de rastreabilidade antes do scoring. Por padrão, um registro precisa de provider, título e identificador ou URL HTTP/HTTPS rastreável para entrar no ranking.
+
+Registros bloqueados vão para:
+
+```text
+project_output_reference/reference_ranking/reference_quarantine.jsonl
+```
+
+O runtime não cria DOI, PMID, PMCID, URL, autor, ano ou abstract para promover um item.
+
+Campos de auditoria incluem:
 
 - `audit_policy_version`;
 - `audit_traceability`;
@@ -198,50 +196,71 @@ Cada registro recebe ainda:
 - `audit_source_master_sha256`;
 - `audit_source_run_id`.
 
-## 7. Carregamento da taxonomia
+## 6. Compilação da taxonomia
 
-O ranker carrega, em ordem de nome de arquivo:
+O compilador percorre os leaf paths dos arquivos `keyword_taxonomy*.json`.
+
+Em modo canônico:
 
 ```text
-config/keyword_taxonomy*.json
+leaf path
+   ↓
+root permitido? (global / clinical / outcomes)
+   ├─ não -> excluído do score
+   ↓ sim
+é global.document_types.*?
+   ├─ sim -> excluído do score
+   ↓ não
+está mapeado no taxonomy_registry.json?
+   ├─ não -> TaxonomyError / FAIL CLOSED
+   ↓ sim
+merge + deduplicação de termos
+   ↓
+grupo canônico
 ```
 
-A taxonomia é achatada em grupos nomeados pelo caminho das chaves JSON.
+Consequências:
 
-Termos são:
+- `workstreams.busca1`, `busca2a`, `busca2b`, `a3`, `artigo3_framework` e equivalentes não pontuam;
+- tipo documental não é tratado como assunto;
+- múltiplos supplements podem contribuir vocabulário para um único grupo canônico;
+- um supplement novo não pode criar silenciosamente um grupo de score.
 
-- convertidos para minúsculas;
-- normalizados sem acentos;
-- reduzidos a caracteres alfanuméricos e espaços;
-- ignorados quando têm menos de três caracteres.
+## 7. Classificação taxonômica
 
-Os grupos e termos correspondentes são preservados nos outputs para auditoria.
+Cada grupo produz um score local baseado nos termos encontrados. O ranker registra:
 
-## 8. Regra de identidade e deduplicação
+- `taxonomy_primary`;
+- `taxonomy_primary_rank`;
+- `taxonomy_secondary`;
+- `taxonomy_dimensions`;
+- `taxonomy_groups`;
+- `taxonomy_group_scores`;
+- `taxonomy_ranks`.
 
-A identidade de cada registro elegível é determinada na seguinte ordem:
+A taxonomia principal é escolhida na primeira dimensão disponível segundo:
+
+```text
+domain -> context -> condition -> outcome
+```
+
+Dentro dessa dimensão, vence o grupo com maior score local; empates são resolvidos deterministicamente pelo ID canônico.
+
+## 8. Identidade e deduplicação
+
+A identidade atual é determinada por:
 
 ```text
 DOI -> PMID -> URL -> título normalizado
 ```
 
-Se dois registros têm a mesma identidade, permanece a versão com maior quantidade de texto descritivo entre `abstract`, `summary` e `snippet`.
+Quando duas linhas têm a mesma identidade, o engine prefere a versão com texto descritivo mais rico em `abstract`, `summary` ou `snippet`.
 
-Consequências:
+Isso não é deduplicação semântica completa. Publicações relacionadas com identificadores distintos podem permanecer separadas.
 
-- registros com o mesmo DOI tendem a ser unidos;
-- registros com o mesmo PMID tendem a ser unidos quando não há DOI;
-- registros com a mesma URL tendem a ser unidos quando não há DOI/PMID;
-- título é fallback de identidade;
-- publicações semanticamente equivalentes com identificadores diferentes podem permanecer separadas.
+## 9. Scoring global
 
-Esta regra não é deduplicação semântica completa.
-
-## 9. Scoring atual
-
-O score final é a soma de componentes explicitamente registrados em `score_breakdown`.
-
-### 9.1 Termos da taxonomia
+### Taxonomia
 
 Para cada termo correspondente:
 
@@ -251,21 +270,11 @@ Para cada termo correspondente:
 | keywords/subjects | +4 |
 | abstract/summary/snippet | +2 |
 
-A soma de um mesmo termo é limitada a `8` pontos.
+A contribuição de um termo é limitada a 8 pontos; são usados no máximo quatro termos por grupo; um grupo com hit recebe +3. O total taxonômico é limitado por `taxonomy_score_cap = 60`.
 
-O ranker considera no máximo quatro termos correspondentes por grupo. Quando um grupo tem pelo menos um hit, o grupo recebe ainda `+3` pontos.
+O valor bruto permanece em `score_breakdown.taxonomy_raw_before_cap`.
 
-Para reduzir inflação decorrente de fragmentação histórica em muitos grupos, o total da taxonomia é limitado por:
-
-```text
-taxonomy_score_cap = 60
-```
-
-O valor anterior ao cap permanece disponível em `score_breakdown.taxonomy_raw_before_cap`.
-
-### 9.2 Focus keywords
-
-Para cada palavra-chave foco:
+### Focus keywords
 
 | Campo | Pontos |
 |---|---:|
@@ -273,214 +282,99 @@ Para cada palavra-chave foco:
 | keywords/subjects | +6 |
 | abstract/summary/snippet | +4 |
 
-O total deste componente é limitado por:
+O total é limitado por `focus_score_cap = 40`.
 
-```text
-focus_score_cap = 40
-```
+### Tipo documental
 
-O valor bruto permanece em `score_breakdown.focus_raw_before_cap`.
+O tipo documental é calculado fora da taxonomia. Quando expressões se sobrepõem, todas podem aparecer em `document_type_hits`, mas somente o maior peso entra no score via `document_type_applied`.
 
-### 9.3 Tipo documental no título
+Pesos principais:
 
-Pesos implementados:
-
-| Expressão normalizada | Pontos |
+| Sinal | Pontos |
 |---|---:|
-| `clinical practice guideline` | +12 |
-| `practice guideline` | +11 |
-| `guideline` | +10 |
-| `consensus statement` | +9 |
-| `consensus` | +7 |
-| `position statement` | +8 |
-| `scientific statement` | +8 |
-| `standards of care` | +8 |
-| `systematic review` | +7 |
-| `meta analysis` | +7 |
-| `framework` | +5 |
-| `recommendation` | +4 |
+| clinical practice guideline | 12 |
+| practice guideline | 11 |
+| guideline | 10 |
+| consensus statement | 9 |
+| position/scientific statement | 8 |
+| systematic review/meta analysis | 7 |
+| framework | 5 |
+| recommendation | 4 |
 
-Todas as expressões encontradas aparecem em `document_type_hits`, mas somente a de maior peso entra no score. O termo efetivamente aplicado fica em `document_type_applied`.
+### Outros componentes
 
-Isso evita o antigo empilhamento de `clinical practice guideline` + `practice guideline` + `guideline`.
+- provider: peso configurado em `reference_mode.json`;
+- identificador DOI/PMID/PMCID: +2;
+- recência até 5 anos: +4;
+- recência de 6 a 10 anos: +2;
+- ausência de título: -25;
+- ausência de abstract/summary/snippet: -1.
 
-### 9.4 Provider
+Cada linha inclui `score_breakdown` com todos os componentes e valores brutos antes dos caps.
 
-É adicionado o bônus definido em `provider_weights`.
+## 10. Ordenação e ranks
 
-### 9.5 Identificadores
+### Rank global
 
-Se o registro tiver pelo menos um entre DOI, PMID ou PMCID:
+Ordem:
 
-```text
-+2 pontos
-```
-
-### 9.6 Recência
-
-Usando o ano encontrado nos campos de data/ano:
-
-- idade de até 5 anos: `+4`;
-- idade de 6 a 10 anos: `+2`;
-- mais de 10 anos: sem bônus de recência.
-
-O ano válido é limitado ao intervalo de 1900 até o ano atual + 1.
-
-### 9.7 Penalidades
-
-- sem título: `-25`;
-- sem abstract/summary/snippet: `-1`.
-
-Na execução estrita, um registro sem título já terá sido colocado em quarentena antes do scoring.
-
-### 9.8 Score breakdown
-
-Cada linha ranqueada contém:
-
-```json
-{
-  "score_breakdown": {
-    "taxonomy": 0,
-    "taxonomy_raw_before_cap": 0,
-    "focus_keywords": 0,
-    "focus_raw_before_cap": 0,
-    "document_type": 0,
-    "provider": 0,
-    "identifier": 0,
-    "recency": 0,
-    "penalties": 0
-  }
-}
-```
-
-A soma dos componentes aplicados corresponde ao `reference_score`.
-
-## 10. Ordenação
-
-Após o scoring, os registros são ordenados por:
-
-1. score decrescente;
+1. `reference_score` decrescente;
 2. ano decrescente;
-3. título em ordem lexical.
+3. título lexical.
 
-## 11. Faixas de prioridade
+Faixas:
 
-A faixa é definida pela posição, e não por um ponto de corte absoluto do score:
+- 1–20: `A_TOP_REFERENCE`;
+- 21–100: `B_STRONG_REFERENCE`;
+- demais: `C_DISCOVERY`.
 
-- posições 1–20: `A_TOP_REFERENCE`;
-- posições 21–100: `B_STRONG_REFERENCE`;
-- demais posições: `C_DISCOVERY`.
+### Rank dentro da taxonomia
 
-Uma faixa A ou B não é uma classificação metodológica da evidência.
+Para cada grupo taxonômico, os membros são ordenados por:
 
-## 12. Campos públicos do ranking
+1. score local do grupo;
+2. score global;
+3. ano;
+4. título.
 
-Antes de exportar, o ranker aplica uma allowlist aos campos de entrada. Entre os campos preservados estão:
+Assim uma referência pode ser, por exemplo, 40ª globalmente e 2ª dentro de `domain.dietary_patterns.mediterranean`.
 
-- source/provider;
-- title;
-- abstract/summary/snippet;
-- DOI/PMID/PMCID;
-- URL;
-- journal;
-- ano/data;
-- article type;
-- authors;
-- keywords/subjects;
-- queries e metadados de coleta suportados;
-- campos de rastreabilidade `audit_*` explicitamente permitidos.
-
-O ranker acrescenta:
-
-- `reference_score`;
-- `score_breakdown`;
-- `taxonomy_groups`;
-- `matched_terms`;
-- `focus_keyword_hits`;
-- `document_type_hits`;
-- `document_type_applied`;
-- `reference_year`;
-- `reference_provider`;
-- `reference_rank`;
-- `reference_tier`.
-
-## 13. Exports
-
-### JSONL ranqueado
+## 11. Outputs
 
 ```text
 project_output_reference/reference_ranking/reference_ranking.jsonl
-```
-
-Contém todo o conjunto elegível ranqueado, um objeto JSON por linha.
-
-### CSV
-
-```text
 project_output_reference/reference_ranking/reference_ranking.csv
-```
-
-Usa UTF-8 com BOM e achata listas com separador ` | `.
-
-### Markdown
-
-```text
 project_output_reference/reference_ranking/TOP_REFERENCIAS.md
-```
-
-Contém o TOP N configurado e apresenta rastreabilidade, origem SHA-256, score breakdown e sinais de ranking.
-
-### Quarentena
-
-```text
 project_output_reference/reference_ranking/reference_quarantine.jsonl
-```
-
-Contém registros que não passam o gate de rastreabilidade. Esses itens não entram no ranking padrão.
-
-### Manifesto de auditoria
-
-```text
 project_output_reference/reference_ranking/AUDIT_MANIFEST.json
-```
-
-Registra:
-
-- versão da política;
-- política ativa;
-- integridade dos masters de entrada;
-- SHA-256 das configurações;
-- contagens de entrada/rastreabilidade/quarentena;
-- SHA-256 dos outputs;
-- assertions de guardrail.
-
-### Resumo da execução
-
-```text
 project_output_reference/reference_ranking/latest.json
 ```
 
-Registra status, hashes, fontes, contagens, política e caminhos dos outputs.
+O CSV inclui os campos de taxonomia/ranking e é a saída tabular para inspeção, planilha e curadoria.
 
-## 14. Estado e checkpoints
+`AUDIT_MANIFEST.json` registra:
 
-O PubMed salva checkpoints para permitir retomada. O ranker lê os masters registrados nos arquivos `latest.json` das coletas geral e latino-americana e verifica seus hashes.
+- política de guardrails;
+- versão/modo da taxonomia;
+- integridade dos masters;
+- SHA-256 das configurações, incluindo `taxonomy_registry.json`;
+- contagens de entrada, rastreabilidade e quarentena;
+- hashes dos outputs;
+- assertions de integridade e taxonomia.
 
-Apagar a árvore de output pode remover estado útil de retomada e rastreabilidade.
+## 12. Fronteira científica
 
-## 15. Fronteira científica
+O engine organiza e prioriza referências rastreáveis. Ele não executa, por si só:
 
-O engine não executa, por si só:
-
-- critérios de inclusão/exclusão;
-- screening de título/resumo;
+- critérios formais de inclusão/exclusão;
+- screening científico;
 - avaliação de risco de viés;
 - GRADE;
 - PRISMA;
-- síntese qualitativa ou quantitativa;
+- síntese científica;
 - recomendação clínica;
 - geração de referências por modelo de linguagem.
 
-O output é uma **fila priorizada de candidatos rastreáveis para leitura humana**.
+**Taxonomia descreve sobre o que o documento parece tratar. Ranking descreve prioridade técnica de leitura. Nenhum dos dois é sinônimo de qualidade científica.**
 
-Para o contrato completo de auditoria, consulte [`AUDITABILITY_AND_GUARDRAILS.md`](AUDITABILITY_AND_GUARDRAILS.md).
+Para auditoria, consulte [`AUDITABILITY_AND_GUARDRAILS.md`](AUDITABILITY_AND_GUARDRAILS.md). Para a taxonomia completa, consulte [`TAXONOMY.md`](TAXONOMY.md).
