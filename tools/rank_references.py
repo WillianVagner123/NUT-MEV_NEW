@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import csv
 from datetime import datetime
-from hashlib import sha256
 import json
 from pathlib import Path
 import re
