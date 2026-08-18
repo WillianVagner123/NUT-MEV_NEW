@@ -17,6 +17,11 @@ from nutev.audit_guardrails import (
     sha256_file,
     verify_manifest_master,
 )
+from nutev.taxonomy import (
+    TaxonomyError,
+    load_canonical_taxonomy,
+    taxonomy_config_paths,
+)
 
 _SPACE_RE = re.compile(r"\s+")
 _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
@@ -140,62 +145,27 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> st
             flat = dict(row)
             for key in (
                 "taxonomy_groups",
+                "taxonomy_secondary",
+                "taxonomy_dimensions",
                 "focus_keyword_hits",
                 "matched_terms",
                 "document_type_hits",
                 "audit_reasons",
             ):
                 flat[key] = " | ".join(str(value) for value in row.get(key) or [])
-            if isinstance(flat.get("score_breakdown"), dict):
-                flat["score_breakdown"] = json.dumps(
-                    flat["score_breakdown"], ensure_ascii=False, sort_keys=True
-                )
+            for key in ("score_breakdown", "taxonomy_group_scores", "taxonomy_ranks"):
+                if isinstance(flat.get(key), dict):
+                    flat[key] = json.dumps(flat[key], ensure_ascii=False, sort_keys=True)
             writer.writerow(flat)
     tmp.replace(path)
     return sha256_file(path)
 
 
-def _taxonomy_files(config_dir: Path) -> list[Path]:
-    return sorted(config_dir.glob("keyword_taxonomy*.json"))
-
-
-def _flatten_terms(value: Any, path: tuple[str, ...] = ()) -> dict[str, set[str]]:
-    out: dict[str, set[str]] = {}
-    if isinstance(value, dict):
-        for key, child in value.items():
-            if key == "version":
-                continue
-            child_out = _flatten_terms(child, path + (str(key),))
-            for group, terms in child_out.items():
-                out.setdefault(group, set()).update(terms)
-    elif isinstance(value, list):
-        group = ".".join(path) or "taxonomy"
-        for item in value:
-            if isinstance(item, str):
-                term = _norm(item)
-                if len(term) >= 3:
-                    out.setdefault(group, set()).add(term)
-            elif isinstance(item, (dict, list)):
-                child_out = _flatten_terms(item, path)
-                for child_group, terms in child_out.items():
-                    out.setdefault(child_group, set()).update(terms)
-    elif isinstance(value, str):
-        term = _norm(value)
-        if len(term) >= 3:
-            out.setdefault(".".join(path) or "taxonomy", set()).add(term)
-    return out
-
-
 def load_taxonomy(config_dir: Path) -> dict[str, list[str]]:
-    merged: dict[str, set[str]] = {}
-    for path in _taxonomy_files(config_dir):
-        data = _read_json(path)
-        for group, terms in _flatten_terms(data).items():
-            merged.setdefault(group, set()).update(terms)
-    return {
-        group: sorted(terms, key=lambda term: (-len(term), term))
-        for group, terms in sorted(merged.items())
-    }
+    """Compatibility wrapper returning the canonical scoring groups only."""
+
+    groups, _ = load_canonical_taxonomy(config_dir)
+    return groups
 
 
 def _guardrail_policy(profile: dict[str, Any]) -> dict[str, Any]:
@@ -332,12 +302,45 @@ def _public_metadata(row: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in row.items() if key in _PUBLIC_INPUT_FIELDS}
 
 
+def _ordered_taxonomy_groups(group_scores: dict[str, float]) -> list[str]:
+    return sorted(group_scores, key=lambda group: (-group_scores[group], group))
+
+
+def _select_primary_taxonomy(
+    group_scores: dict[str, float],
+    primary_dimension_order: list[str] | None,
+) -> tuple[str, list[str], list[str]]:
+    ordered = _ordered_taxonomy_groups(group_scores)
+    if not ordered:
+        return "", [], []
+
+    primary = ""
+    dimensions = []
+    for group in ordered:
+        dimension = group.split(".", 1)[0]
+        if dimension not in dimensions:
+            dimensions.append(dimension)
+
+    for dimension in primary_dimension_order or []:
+        primary = next(
+            (group for group in ordered if group.split(".", 1)[0] == dimension),
+            "",
+        )
+        if primary:
+            break
+    if not primary:
+        primary = ordered[0]
+    secondary = [group for group in ordered if group != primary]
+    return primary, secondary, dimensions
+
+
 def score_record(
     row: dict[str, Any],
     taxonomy: dict[str, list[str]],
     focus_keywords: list[str],
     provider_weights: dict[str, float],
     guardrails: dict[str, Any] | None = None,
+    primary_dimension_order: list[str] | None = None,
 ) -> dict[str, Any]:
     policy = dict(_DEFAULT_GUARDRAILS)
     if guardrails:
@@ -347,13 +350,13 @@ def score_record(
     abstract = _norm(row.get("abstract") or row.get("summary") or row.get("snippet"))
     keywords = _norm(row.get("keywords") or row.get("keyword") or row.get("subjects"))
     provider = str(row.get("source_provider") or row.get("source") or "")
-    matched_groups: list[str] = []
     matched_terms: list[str] = []
+    taxonomy_group_scores: dict[str, float] = {}
 
     taxonomy_raw = 0.0
     for group, terms in taxonomy.items():
-        group_hit = False
         group_terms: list[str] = []
+        group_score = 0.0
         for term in terms:
             term_score = 0.0
             if term in title:
@@ -363,19 +366,25 @@ def score_record(
             if term in abstract:
                 term_score += 2.0
             if term_score:
-                taxonomy_raw += min(term_score, 8.0)
-                group_hit = True
+                group_score += min(term_score, 8.0)
                 group_terms.append(term)
                 if len(group_terms) >= 4:
                     break
-        if group_hit:
-            taxonomy_raw += 3.0
-            matched_groups.append(group)
+        if group_terms:
+            group_score += 3.0
+            taxonomy_raw += group_score
+            taxonomy_group_scores[group] = round(group_score, 2)
             matched_terms.extend(group_terms)
+
     taxonomy_score = min(
         taxonomy_raw,
         max(0.0, float(policy.get("taxonomy_score_cap") or 0.0)),
     )
+    primary_taxonomy, secondary_taxonomy, taxonomy_dimensions = _select_primary_taxonomy(
+        taxonomy_group_scores,
+        primary_dimension_order,
+    )
+    matched_groups = _ordered_taxonomy_groups(taxonomy_group_scores)
 
     focus_hits: list[str] = []
     focus_raw = 0.0
@@ -462,7 +471,11 @@ def score_record(
             "recency": round(recency_score, 2),
             "penalties": round(penalties, 2),
         },
+        "taxonomy_primary": primary_taxonomy,
+        "taxonomy_secondary": secondary_taxonomy[:12],
+        "taxonomy_dimensions": taxonomy_dimensions,
         "taxonomy_groups": matched_groups[:20],
+        "taxonomy_group_scores": taxonomy_group_scores,
         "matched_terms": sorted(set(matched_terms))[:40],
         "focus_keyword_hits": focus_hits[:20],
         "document_type_hits": type_hits,
@@ -480,15 +493,47 @@ def _tier(index: int, total: int) -> str:
     return "C_DISCOVERY"
 
 
+def _assign_taxonomy_ranks(rows: list[dict[str, Any]]) -> None:
+    groups = sorted(
+        {
+            group
+            for row in rows
+            for group in (row.get("taxonomy_groups") or [])
+            if isinstance(group, str) and group
+        }
+    )
+    for row in rows:
+        row["taxonomy_ranks"] = {}
+
+    for group in groups:
+        members = [row for row in rows if group in (row.get("taxonomy_groups") or [])]
+        members.sort(
+            key=lambda row: (
+                -float((row.get("taxonomy_group_scores") or {}).get(group) or 0),
+                -float(row.get("reference_score") or 0),
+                -int(row.get("reference_year") or 0),
+                str(row.get("title") or ""),
+            )
+        )
+        for index, row in enumerate(members, start=1):
+            row["taxonomy_ranks"][group] = index
+
+    for row in rows:
+        primary = str(row.get("taxonomy_primary") or "")
+        row["taxonomy_primary_rank"] = (
+            (row.get("taxonomy_ranks") or {}).get(primary) if primary else None
+        )
+
+
 def _config_hashes(config_dir: Path) -> dict[str, str]:
-    paths = [config_dir / "reference_mode.json", *_taxonomy_files(config_dir)]
+    paths = [config_dir / "reference_mode.json", *taxonomy_config_paths(config_dir)]
     return {str(path): sha256_file(path) for path in paths if path.is_file()}
 
 
 def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
     profile = _read_json(config_dir / "reference_mode.json")
     guardrails = _guardrail_policy(profile)
-    taxonomy = load_taxonomy(config_dir)
+    taxonomy, taxonomy_metadata = load_canonical_taxonomy(config_dir)
     focus_keywords = list(profile.get("focus_keywords") or [])
     provider_weights = dict(profile.get("provider_weights") or {})
     rows, source_audit = _source_rows(
@@ -517,8 +562,16 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         )
 
     unique = _dedupe(eligible)
+    primary_dimension_order = list(taxonomy_metadata.get("primary_dimension_order") or [])
     ranked = [
-        score_record(row, taxonomy, focus_keywords, provider_weights, guardrails)
+        score_record(
+            row,
+            taxonomy,
+            focus_keywords,
+            provider_weights,
+            guardrails,
+            primary_dimension_order,
+        )
         for row in unique
     ]
     ranked.sort(
@@ -531,6 +584,7 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
     for index, row in enumerate(ranked):
         row["reference_rank"] = index + 1
         row["reference_tier"] = _tier(index, len(ranked))
+    _assign_taxonomy_ranks(ranked)
 
     jsonl_path = out_dir / "reference_ranking.jsonl"
     csv_path = out_dir / "reference_ranking.csv"
@@ -541,6 +595,12 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         "reference_rank",
         "reference_tier",
         "reference_score",
+        "taxonomy_primary",
+        "taxonomy_primary_rank",
+        "taxonomy_secondary",
+        "taxonomy_dimensions",
+        "taxonomy_group_scores",
+        "taxonomy_ranks",
         "title",
         "reference_year",
         "reference_provider",
@@ -565,6 +625,7 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         "# Top referencias NutEV",
         "",
         "Ranking tecnico para priorizacao de leitura. Nao representa nivel de evidencia, elegibilidade de revisao ou recomendacao clinica.",
+        "A taxonomia e canonica e versionada; workstreams historicos e document_types da taxonomia nao entram no score taxonomico.",
         "Todos os itens ranqueados passaram pelo guardrail de rastreabilidade; registros sem identificador ou URL verificavel ficam em reference_quarantine.jsonl.",
         "O score e auditavel em score_breakdown e o manifesto de integridade esta em AUDIT_MANIFEST.json.",
         "",
@@ -587,8 +648,12 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
             lines.append(f"- URL: {row['url']}")
         if row.get("document_type_applied"):
             lines.append(f"- Tipo documental aplicado ao score: {row['document_type_applied']}")
-        if row.get("taxonomy_groups"):
-            lines.append("- Taxonomia: " + ", ".join(row["taxonomy_groups"][:8]))
+        if row.get("taxonomy_primary"):
+            lines.append(
+                f"- Taxonomia principal: {row['taxonomy_primary']} | Rank na taxonomia: {row.get('taxonomy_primary_rank') or 'N/D'}"
+            )
+        if row.get("taxonomy_secondary"):
+            lines.append("- Taxonomias secundarias: " + ", ".join(row["taxonomy_secondary"][:6]))
         if row.get("focus_keyword_hits"):
             lines.append(
                 "- Palavras-chave foco: " + ", ".join(row["focus_keyword_hits"][:8])
@@ -600,6 +665,11 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         lines.append("")
     markdown_sha = _atomic_text(markdown_path, "\n".join(lines))
 
+    taxonomy_audit = {
+        key: value
+        for key, value in taxonomy_metadata.items()
+        if key not in {"group_metadata", "excluded_raw_paths"}
+    }
     config_hashes = _config_hashes(config_dir)
     assertions = [
         {"name": "source_master_hashes_verified", "status": "PASS"},
@@ -608,6 +678,30 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
             "status": "PASS" if not any(row.get("audit_quarantined") for row in eligible) else "FAIL",
         },
         {"name": "document_type_score_non_stacking", "status": "PASS"},
+        {
+            "name": "canonical_taxonomy_registry_applied",
+            "status": (
+                "PASS"
+                if taxonomy_metadata.get("registry_mode") == "canonical"
+                else "PASS_COMPATIBILITY"
+            ),
+        },
+        {
+            "name": "legacy_workstream_groups_excluded",
+            "status": (
+                "PASS"
+                if not any(group.startswith("workstreams.") for group in taxonomy)
+                else "FAIL"
+            ),
+        },
+        {
+            "name": "document_type_taxonomy_excluded",
+            "status": (
+                "PASS"
+                if not any(group.startswith("global.document_types.") for group in taxonomy)
+                else "FAIL"
+            ),
+        },
         {"name": "ranking_outputs_hashed", "status": "PASS"},
         {"name": "provider_results_not_simulated", "status": "PASS_BY_CONTRACT"},
     ]
@@ -618,6 +712,7 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         "created_at": _now(),
         "status": "PASS" if all(item["status"] != "FAIL" for item in assertions) else "FAIL",
         "guardrails": guardrails,
+        "taxonomy": taxonomy_audit,
         "source_integrity": source_audit,
         "configuration_sha256": config_hashes,
         "counts": {
@@ -648,6 +743,10 @@ def run(project_root: Path, config_dir: Path, top_n: int) -> dict[str, Any]:
         "created_at": _now(),
         "guardrail_policy_version": GUARDRAIL_POLICY_VERSION,
         "guardrails": guardrails,
+        "taxonomy_version": taxonomy_metadata.get("taxonomy_version"),
+        "taxonomy_registry_mode": taxonomy_metadata.get("registry_mode"),
+        "taxonomy_raw_groups_mapped": taxonomy_metadata.get("raw_groups_mapped"),
+        "taxonomy_raw_groups_excluded": taxonomy_metadata.get("raw_groups_excluded"),
         "source_files": [item["master_records_path"] for item in source_audit],
         "source_integrity": source_audit,
         "records_input": len(rows),
@@ -686,7 +785,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         result = run(Path(args.project_root), Path(args.config_dir), max(1, args.top_n))
-    except (IntegrityError, RuntimeError) as exc:
+    except (IntegrityError, TaxonomyError, RuntimeError) as exc:
         print(f"Guardrail failure: {exc}")
         return 2
     print(json.dumps(result, ensure_ascii=False, indent=2))
