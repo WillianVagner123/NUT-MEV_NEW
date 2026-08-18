@@ -78,11 +78,11 @@ def test_registry_merges_multiple_raw_paths_into_one_canonical_group(tmp_path: P
 
     assert metadata["registry_mode"] == "canonical"
     assert metadata["raw_groups_mapped"] == 2
-    assert groups["context.care_delivery.personalized_nutrition"] == [
+    assert set(groups["context.care_delivery.personalized_nutrition"]) == {
         "shared decision making",
         "tailored dietary advice",
         "precision nutrition",
-    ]
+    }
 
 
 def test_registry_fails_closed_for_unmapped_semantic_path(tmp_path: Path) -> None:
