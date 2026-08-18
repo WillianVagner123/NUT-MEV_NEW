@@ -1,46 +1,40 @@
-<!-- Thank you for contributing to NutEV/NutMEV. Please fill in the sections below. -->
-
 ## Summary
 
 <!-- What does this PR change and why? -->
 
 ## Type of change
 
+- [ ] Provider / search
+- [ ] Ranking / taxonomy
+- [ ] Output contract
 - [ ] Bug fix
-- [ ] Feature / enhancement
 - [ ] Documentation
-- [ ] Methodology / rules / scoring / ontology change
-- [ ] Search / provider / PLAY change
 - [ ] Build / CI / dependencies
-- [ ] Code hygiene / legacy retirement
+- [ ] Code cleanup / refactor
 
-## Scientific integrity checklist
+## Reference Engine integrity
 
-- [ ] Generated queries are not presented as executed without attempt evidence.
-- [ ] No output is presented as a final clinical recommendation (candidates only).
-- [ ] Conflicts, truncation and failures are surfaced, not hidden.
-- [ ] No LLM is used to define final approval.
-- [ ] Methodology/rule/scoring changes are versioned where required.
-- [ ] Human-only states (PRESS/FREEZE/INCLUDE/EXCLUDE/adjudication) are not invented by software.
+- [ ] Provider failures and unavailable sources remain explicit.
+- [ ] No provider result, identifier or execution evidence is fabricated.
+- [ ] Ranking remains reading/reference priority only.
+- [ ] Source/provider identity is preserved.
+- [ ] Licensed databases are not simulated when access is unavailable.
+- [ ] Public ranking outputs contain only supported metadata/ranking fields.
 
-## Safety checklist
+## Safety
 
-- [ ] No secrets, tokens, `.env`, private keys or signed/authenticated URLs.
+- [ ] No secrets, tokens, private keys or committed `.env` file.
 - [ ] No personal, patient or participant data.
-- [ ] No protected full texts / third-party PDFs without redistribution rights.
-- [ ] No real local run outputs or private databases committed.
+- [ ] No protected third-party full text without redistribution rights.
+- [ ] No local generated output directory or private database committed.
 
 ## Testing
 
-- [ ] `PYTHONPATH=src python -m pytest -q nutev_tests` passes (or explain).
-- [ ] CLI remains usable (`nutev --help`).
-- [ ] User-facing runtime changes are covered by an appropriate smoke/contract test.
+- [ ] `PYTHONPATH=src python -m pytest -q nutev_tests`
+- [ ] `python -m compileall -q src tools nutev_tests`
+- [ ] `ruff check src tools nutev_tests --select F,E9`
+- [ ] User-visible changes are documented.
 
-## Docs
+## Reviewer notes
 
-- [ ] Docs updated where relevant.
-- [ ] No references to deleted legacy workstream/querypack runtime were reintroduced.
-
-## Notes for reviewers
-
-<!-- Anything the reviewer should focus on. -->
+<!-- Anything that deserves focused review. -->
