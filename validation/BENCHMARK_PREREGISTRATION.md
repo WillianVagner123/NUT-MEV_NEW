@@ -40,7 +40,8 @@ Secondary endpoints:
 
 - `precision@20`;
 - `recall@100` within the judged/common-pool universe;
-- average precision;
+- `average_precision@100` within the completely judged depth;
+- full-list average precision only when the complete ranked list being evaluated is judged;
 - reciprocal rank;
 - records required to reach 80%, 90% and 95% of judged relevant references;
 - nDCG@10/50/100.
@@ -64,13 +65,14 @@ Failure on the validation split does not automatically prove the software useles
 
 A claim of `D — VALIDATED_FOR_DEFINED_USE` for **common-pool prioritization only** requires the frozen candidate to satisfy, on the sealed external test set:
 
-1. positive median paired delta `nDCG@20`;
-2. more question-level wins than losses versus the lexical baseline;
-3. a 95% question-level bootstrap confidence interval for the **mean paired delta nDCG@20** whose lower bound is greater than 0, when the number of external questions is sufficient for that interval to be meaningful;
-4. median paired delta `recall@100 >= -0.05`;
-5. transparent reporting of all questions, including failures.
+1. at least **12 independent external-test questions** with benchmark-grade judgments; this is an operational minimum evidence floor, not a claim of universal statistical sufficiency;
+2. positive median paired delta `nDCG@20`;
+3. more question-level wins than losses versus the lexical baseline;
+4. a deterministic 95% question-level bootstrap confidence interval for the **mean paired delta nDCG@20** whose lower bound is greater than 0;
+5. median paired delta `recall@100 >= -0.05`;
+6. transparent reporting of all questions, including failures.
 
-If the external set is too small for a meaningful confidence interval, the correct status is `INSUFFICIENT_EVIDENCE`, not automatic validation.
+If fewer than 12 benchmark-grade external questions are available, the correct status is `INSUFFICIENT_EVIDENCE_SAMPLE_SIZE`, not automatic validation. Meeting the minimum sample count does not guarantee promotion: every other criterion above must also pass.
 
 Passing this criterion would support only a statement equivalent to:
 
@@ -121,13 +123,42 @@ Scale:
 
 Disagreements require human adjudication. Scripts may validate the process but may not choose the final scientific label.
 
-## 10. Unjudged documents
+## 10. Unjudged documents and judgment coverage
 
-Metrics must explicitly state the judged universe. For the common-pool benchmark, recall is bounded by the judged pool and must not be described as global literature recall.
+Unjudged documents must never be silently converted to relevance grade `0`.
+
+For the preregistered primary comparison:
+
+- every candidate and baseline result through rank 20 must be judged to calculate the primary `nDCG@20` comparison;
+- every candidate and baseline result through rank 100 must be judged to calculate the `recall@100` guard;
+- incomplete judgment coverage at a required endpoint causes the paired comparison to fail closed;
+- evaluation output must report judgment coverage by depth and the completely judged prefix;
+- full-list AP is omitted when the list extends beyond the judged universe; `average_precision@100` is the bounded common-pool alternative when depth 100 is completely judged.
+
+For the common-pool benchmark, recall is bounded by the judged pool and must not be described as global literature recall.
 
 Any later discovery benchmark must add independently discovered relevant references outside the NutEV common pool.
 
-## 11. Leakage prohibition
+## 11. Statistical analysis
+
+The primary comparison is paired at the question level.
+
+Pre-specified implementation parameters:
+
+- candidate: `nutev_full`;
+- baseline: `lexical_baseline`;
+- paired effect: candidate metric minus baseline metric for each `question_id`;
+- bootstrap statistic: mean paired delta `nDCG@20`;
+- bootstrap resampling unit: question;
+- bootstrap iterations: `10000`;
+- fixed seed: `nutev-paired-bootstrap-v1`;
+- interval: deterministic percentile 95% interval;
+- wins/losses/ties: sign of the paired `nDCG@20` delta;
+- recall non-inferiority floor: median paired delta `recall@100 >= -0.05`.
+
+The bootstrap interval is evidence about the represented question set; it must not be interpreted as proof of universal generalization.
+
+## 12. Leakage prohibition
 
 Before external-test labels are opened, do not change the frozen candidate based on:
 
@@ -139,13 +170,13 @@ Before external-test labels are opened, do not change the frozen candidate based
 
 Any runtime change creates a new candidate and requires a new freeze.
 
-## 12. Verdict mapping
+## 13. Verdict mapping
 
 - `A — KILL`: requires broader evidence of material inferiority/lack of value; common-pool failure alone is strong negative evidence but does not automatically establish total uselessness.
 - `B — DEMOTE`: default until evidence supports promotion.
 - `C — SCIENTIFIC_CANDIDATE`: validation split shows pre-specified positive signal sufficient to justify sealed external testing.
 - `D — VALIDATED_FOR_DEFINED_USE`: external-test criterion passes for the explicitly bounded use.
 
-## 13. Current evidence
+## 14. Current evidence
 
 No human relevance labels have been observed or generated in this pre-registration. All scientific performance metrics remain `NOT_TESTED`.

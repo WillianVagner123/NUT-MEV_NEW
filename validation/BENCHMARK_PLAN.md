@@ -83,8 +83,19 @@ A ferramenta deve falhar se o SHA fornecido não corresponder ao candidato conge
 - precision@10/20/50/100;
 - recall@10/20/50/100;
 - reciprocal rank;
-- average precision;
+- `average_precision@100` na profundidade completamente julgada;
+- full-list average precision somente se toda a lista avaliada estiver julgada;
 - nDCG@10/20/50/100.
+
+### Judgment coverage
+
+O avaliador reporta cobertura de julgamento por profundidade e o prefixo totalmente julgado. Documento não julgado **não** é convertido silenciosamente em irrelevante.
+
+Para a comparação pré-registrada:
+
+- `nDCG@20` exige 100% de julgamento até rank 20 em `nutev_full` e `lexical_baseline`;
+- `recall@100` exige 100% de julgamento até rank 100 nos dois sistemas;
+- cobertura incompleta nesses endpoints encerra a comparação com erro, em vez de produzir uma métrica enviesada.
 
 ### Workload
 
@@ -131,11 +142,11 @@ Antes de abrir `external_test`, registrar:
 
 ## Critério para sair de B_DEMOTE
 
-Nenhum resultado do common-pool isoladamente autoriza `D — VALIDATED_FOR_DEFINED_USE`.
+Para `C — SCIENTIFIC_CANDIDATE`, o split `validation` deve cumprir os critérios pré-registrados: mediana do delta `nDCG@20 > 0`, mais vitórias que derrotas e mediana do delta `recall@100 >= -0.05`.
 
-Para considerar `C — SCIENTIFIC_CANDIDATE`, deve existir sinal quantitativo pré-especificado de benefício sobre o baseline primário, acompanhado de análise por pergunta e sem perda material escondida em métricas secundárias.
+Para `D — VALIDATED_FOR_DEFINED_USE` no escopo de common-pool prioritization, o split `external_test` deve ter pelo menos 12 perguntas benchmark-grade e cumprir simultaneamente os critérios registrados em `BENCHMARK_PREREGISTRATION.md`, incluindo limite inferior do IC bootstrap de 95% da média do delta `nDCG@20` maior que zero. Menos de 12 perguntas resulta em `INSUFFICIENT_EVIDENCE_SAMPLE_SIZE`, não em promoção.
 
-Para considerar `D`, o efeito precisa sobreviver ao conjunto externo selado e ao escopo definido da alegação. O critério numérico final deve ser registrado **antes** de abrir `external_test`; não pode ser escolhido depois de observar o resultado.
+Nenhum resultado desta camada autoriza alegações de discovery recall, qualidade metodológica da evidência ou validade clínica.
 
 ## Relato
 
@@ -146,12 +157,15 @@ Para cada sistema:
 - dispersão;
 - pior e melhor caso;
 - perguntas vencidas/empatadas/perdidas versus baseline primário;
+- cobertura de julgamento nos endpoints;
 - análise de erros;
 - distinção explícita entre common-pool e discovery coverage.
 
 ## Estatística
 
-Quando o número de perguntas permitir, usar intervalos de confiança por reamostragem no nível da pergunta e comparação pareada entre sistemas. Não tratar milhares de referências dentro da mesma pergunta como observações independentes para inflar precisão estatística.
+A comparação principal é pareada no nível da pergunta. O harness usa bootstrap determinístico de 10.000 reamostragens da pergunta, seed `nutev-paired-bootstrap-v1`, e intervalo percentil de 95% para a média do delta `nDCG@20`. Não tratar milhares de referências dentro da mesma pergunta como observações independentes para inflar precisão estatística.
+
+O limiar mínimo de 12 perguntas externas é um piso operacional pré-resultados, não uma garantia universal de poder ou generalização.
 
 ## Ablations
 
