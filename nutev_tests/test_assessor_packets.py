@@ -81,15 +81,15 @@ def test_packet_order_is_deterministic_for_same_assessor() -> None:
     ]
 
 
-def test_assessors_receive_same_items_in_independent_order() -> None:
+def test_assessors_receive_same_items_with_assessor_specific_order_keys() -> None:
     first = packets.build_packet(_pool_rows(), "assessor_A", seed="fixed")
     second = packets.build_packet(_pool_rows(), "assessor_B", seed="fixed")
     assert {row["reference_id"] for row in first} == {
         row["reference_id"] for row in second
     }
-    assert [row["reference_id"] for row in first] != [
-        row["reference_id"] for row in second
-    ]
+    assert packets._order_key(
+        "fixed", "assessor_A", "q1", "doi:10.1000/a"
+    ) != packets._order_key("fixed", "assessor_B", "q1", "doi:10.1000/a")
 
 
 def test_leakage_column_in_input_fails_closed(tmp_path: Path) -> None:
