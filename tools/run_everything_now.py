@@ -17,6 +17,7 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from nutev.reference_identity import canonical_identity, dedupe_records
 from nutev.search.brave_optional import search_brave
 from nutev.search.crossref import search_crossref
 from nutev.search.doaj import search_doaj
@@ -67,16 +68,22 @@ def _atomic_jsonl(path: Path, rows: list[dict[str, Any]]) -> str:
 
 
 def _normalize_doi(value: Any) -> str:
+    """Legacy compatibility helper; runtime identity uses nutev.reference_identity."""
+
     match = _DOI_RE.search(str(value or ""))
     return match.group(0).rstrip(" .;,)]}").lower() if match else ""
 
 
 def _normalize_pmid(value: Any) -> str:
+    """Legacy compatibility helper; runtime identity uses nutev.reference_identity."""
+
     digits = re.sub(r"\D+", "", str(value or ""))
     return digits if digits else ""
 
 
 def _normalize_url(value: Any) -> str:
+    """Legacy compatibility helper; runtime identity uses nutev.reference_identity."""
+
     raw = str(value or "").strip()
     if not raw:
         return ""
@@ -92,36 +99,11 @@ def _normalize_url(value: Any) -> str:
 
 
 def _identity(row: dict[str, Any]) -> str:
-    doi = _normalize_doi(row.get("doi"))
-    if doi:
-        return "doi:" + doi
-    pmid = _normalize_pmid(row.get("pmid"))
-    if pmid:
-        return "pmid:" + pmid
-    url = _normalize_url(row.get("url"))
-    if url:
-        return "url:" + url.casefold()
-    title = _SPACE_RE.sub(" ", str(row.get("title") or "").strip().casefold())
-    return "title:" + title if title else ""
+    return canonical_identity(row)
 
 
 def _dedupe(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    best: dict[str, dict[str, Any]] = {}
-    unkeyed: list[dict[str, Any]] = []
-    for row in rows:
-        key = _identity(row)
-        if not key:
-            unkeyed.append(dict(row))
-            continue
-        current = best.get(key)
-        if current is None:
-            best[key] = dict(row)
-            continue
-        old_text = str(current.get("abstract") or current.get("summary") or current.get("snippet") or "")
-        new_text = str(row.get("abstract") or row.get("summary") or row.get("snippet") or "")
-        if len(new_text) > len(old_text):
-            best[key] = dict(row)
-    return list(best.values()) + unkeyed
+    return dedupe_records(rows)
 
 
 def _save_provider(run_dir: Path, provider: str, rows: list[dict[str, Any]], meta: dict[str, Any]) -> dict[str, Any]:

@@ -1,204 +1,227 @@
 # Limitações conhecidas
 
-Este documento registra limitações do NutEV Reference Engine que devem permanecer explícitas na documentação e na interpretação dos outputs.
+Este documento descreve limitações atuais do **NutEV Reference Engine**. Elas fazem parte do contrato do produto e devem permanecer explícitas em qualquer uso científico.
 
-## 1. O ranking não é avaliação de qualidade científica
+## 1. Estado científico: benefício incremental ainda não demonstrado
 
-O score prioriza leitura por sinais de texto, taxonomia, tipo documental, provider, identificadores e recência.
+O estado atual do projeto permanece:
+
+```text
+B — DEMOTE
+```
+
+O Engine funciona como utilitário operacional/experimental, mas ainda não possui demonstração externa de benefício científico incremental sobre baselines ou ferramentas existentes.
+
+Até existir gold standard independente e benchmark reproduzível, métricas como recall, precision, MAP, MRR, nDCG, workload reduction e generalização permanecem `NOT_TESTED` quando não houver dados reais.
+
+## 2. Ranking não é qualidade científica
+
+O score é uma heurística de prioridade de leitura. Ele combina sinais de taxonomia, focus keywords, tipo documental, provider, identificador válido, recência e penalidades de metadados.
 
 Ele não mede diretamente:
 
 - risco de viés;
 - qualidade metodológica;
 - certeza da evidência;
-- aplicabilidade clínica;
-- elegibilidade para uma revisão;
-- força de recomendação.
+- força de recomendação;
+- elegibilidade para revisão;
+- aplicabilidade clínica.
 
-Um registro com score maior pode ser menos importante para uma pergunta específica do que um registro com score menor.
+Um item com score maior pode ser cientificamente menos importante para uma pergunta específica.
 
-## 2. A deduplicação não é semântica
+## 3. Pesos do ranking ainda não foram calibrados externamente
 
-A identidade atual usa:
+Os pesos e caps atuais são regras de engenharia versionadas. Ainda não foi demonstrado que a combinação vigente supera baselines simples ou permanece estável sob perturbação dos parâmetros.
+
+A validação prevista inclui ablation study e sensitivity analysis antes de qualquer claim forte sobre o ranking.
+
+## 4. A taxonomia é canônica e versionada, mas ainda não validada externamente
+
+A taxonomia ativa é compilada pelo `config/taxonomy_registry.json`, versão `2026-08-v2`, nas dimensões:
 
 ```text
-DOI -> PMID -> URL -> título normalizado
+domain
+context
+condition
+outcome
 ```
 
-Consequências:
+Os `keyword_taxonomy*.json` são fontes de vocabulário; o registry controla quais caminhos viram grupos canônicos.
 
-- o mesmo conteúdo publicado em veículos diferentes pode permanecer em mais de um registro;
-- versões, republicações, documentos irmãos ou consensos publicados em periódicos distintos podem aparecer separados;
-- títulos quase idênticos com identificadores diferentes não são automaticamente agrupados;
-- `records_unique == records_input` não prova ausência de duplicatas conceituais.
+`workstreams.*` e `global.document_types.*` são excluídos do score taxonômico. Caminhos semânticos não registrados causam falha em vez de criar categoria silenciosa.
 
-## 3. Matching de taxonomia continua aditivo, embora agora possua cap
+Isso garante controle estrutural, mas **não prova validade de conteúdo**, concordância com especialistas ou capacidade classificatória suficiente. Esses pontos ainda exigem validação humana independente.
 
-Um documento que corresponde a muitos grupos e termos acumula score até o teto configurado.
+## 5. `taxonomy_primary` é uma convenção determinística
 
-A `main` com guardrails usa `taxonomy_score_cap = 60`, o que reduz inflação estrutural, mas não elimina completamente o efeito da organização da taxonomia.
+A escolha da taxonomia primária segue regras programadas e não deve ser interpretada automaticamente como o tema cientificamente dominante do documento.
 
-A taxonomia deve ser interpretada como mecanismo de recuperação e priorização, não como ontologia de qualidade da evidência.
+A regra de prioridade entre dimensões deve ser testada contra classificação humana antes de ser tratada como válida externamente.
 
-## 4. Nomes de grupos de taxonomia são caminhos de configuração
+## 6. Deduplicação é determinística, não semântica/work-level
 
-Os outputs exibem caminhos dos grupos carregados de `keyword_taxonomy*.json` para auditabilidade.
+Coleta e ranking usam o mesmo contrato canônico em `src/nutev/reference_identity.py`:
 
-Esses nomes podem refletir a organização histórica dos arquivos de configuração. Eles não são categorias formais de qualidade científica e não devem ser citados como classificação metodológica externa.
+```text
+DOI válido -> PMID válido -> URL HTTP(S) normalizada -> título normalizado
+```
 
-O cap de taxonomia reduz, mas não elimina, a influência da fragmentação histórica em grupos.
+Isso elimina a inconsistência anterior entre as duas etapas, mas não resolve todos os casos de equivalência intelectual.
 
-## 5. Tipos documentais são inferidos por texto do título
+Podem permanecer separados:
 
-Os bônus de guideline, consensus, systematic review e termos relacionados são ativados por expressões no título.
+- republicações;
+- versões preprint/final;
+- traduções;
+- guidelines publicados paralelamente;
+- documentos irmãos;
+- registros equivalentes com identificadores diferentes.
 
-A política atual evita empilhamento de expressões sobrepostas: todos os hits são registrados, mas apenas o maior peso é aplicado.
+`records_unique == records_input` significa apenas que a regra ativa não removeu nenhum registro; não prova unicidade semântica.
 
-Ainda podem ocorrer:
+## 7. Identificador sintaticamente válido não é identificador resolvido
 
-- classificação textual de documentos que discutem guidelines sem serem, eles próprios, guidelines;
-- ausência de bônus quando o tipo documental não aparece no título;
-- ambiguidade lexical em títulos curtos.
+DOI, PMID e PMCID precisam ter formato plausível para receber classe `A_IDENTIFIER` e bônus de identificador.
 
-## 6. Metadados variam entre providers
+Entretanto, a validação sintática não prova que:
 
-Os providers não oferecem o mesmo nível de detalhe para:
+- o DOI existe na agência registradora;
+- o PMID/PMCID resolve;
+- o identificador corresponde ao título esperado;
+- o provider forneceu o identificador correto.
 
-- abstracts;
-- autores;
+Resolução bibliográfica e leitura crítica permanecem externas ao gate.
+
+## 8. Provider pode influenciar o score
+
+A configuração atual atribui pesos diferentes a providers. Ainda não foi demonstrado que essa diferença melhora relevância independente.
+
+Até existir benchmark `leave-one-provider-out` e teste de provider bias, esses pesos devem ser tratados como heurística não validada, não como proxy de qualidade científica.
+
+## 9. Assimetria de metadados pode influenciar o ranking
+
+Providers oferecem níveis diferentes de detalhe para:
+
+- abstract;
 - keywords;
-- identificadores;
+- autores;
+- tipo documental;
 - datas;
-- URLs de texto completo;
-- tipo documental.
+- identificadores;
+- URLs.
 
-Essa assimetria pode influenciar o ranking.
+Como o score usa parte desses campos, a riqueza do metadata pode alterar a posição de uma obra sem que sua relevância científica tenha mudado. O efeito ainda precisa ser quantificado.
 
-## 7. Rastreabilidade não prova verdade científica
+## 10. Tipos documentais são inferidos principalmente pelo título
 
-As classes `A_IDENTIFIER` e `B_TRACEABLE_URL` significam que o registro possui uma rota de rastreamento independente por identificador ou URL.
+Expressões como `clinical practice guideline`, `consensus`, `systematic review` e similares podem gerar bônus.
 
-Isso não prova que:
+A política impede empilhamento de expressões sobrepostas, mas ainda pode haver falso positivo ou falso negativo textual.
 
-- o provider não cometeu erro bibliográfico;
-- DOI/PMID/URL corresponde ao documento esperado;
-- o abstract esteja correto;
-- as conclusões científicas sejam verdadeiras;
-- o documento tenha qualidade metodológica.
+## 11. A quarentena pode reduzir recall
 
-O guardrail protege proveniência e integridade do pipeline, não substitui leitura crítica.
+Registros `Q_*` não entram no ranking por padrão.
 
-## 8. Hash de integridade não autentica o provider externo
+Classes atuais:
 
-`master_records_sha256` e os hashes de output detectam alterações do arquivo depois de ele ser produzido.
+- `Q_INCOMPLETE_ORIGIN`;
+- `Q_INVALID_IDENTIFIER`;
+- `Q_UNTRACEABLE`.
 
-Eles não constituem assinatura criptográfica do PubMed, Crossref, OpenAlex ou outro provider. Um arquivo pode ser íntegro em relação ao manifesto e ainda conter um erro originado no serviço externo.
+Isso protege rastreabilidade, mas pode excluir referências reais com metadados incompletos. A perda de recall atribuível à quarentena ainda é `NOT_TESTED` até revisão humana de uma amostra apropriada.
 
-## 9. A quarentena pode reduzir recall
+Correções devem vir do dado-fonte; o Engine não deve preencher metadados por suposição.
 
-Por padrão, registros sem provider/título ou sem DOI/PMID/PMCID/URL HTTP(S) não são ranqueados.
+## 12. Hashes provam integridade de arquivo, não verdade externa
 
-Isso é intencional para evitar que itens não rastreáveis apareçam como referências priorizadas, mas pode excluir registros bibliograficamente reais com metadados incompletos.
+`master_records_sha256`, hashes de configuração e hashes de output permitem detectar alteração em relação ao manifesto.
 
-Esses itens ficam em:
+Eles não constituem assinatura do PubMed, Crossref, OpenAlex ou outro provider e não validam a verdade científica do registro.
 
-```text
-reference_quarantine.jsonl
-```
+## 13. Limites de coleta não equivalem a exaustividade
 
-A correção deve ser baseada no dado-fonte, nunca em preenchimento por suposição.
-
-## 10. Limites de coleta não equivalem a exaustividade
-
-O perfil operacional usa limites máximos por provider. O perfil profundo aumenta esses limites, mas também não constitui garantia de cobertura exaustiva.
-
-Cobertura depende de:
+Os perfis operacional e profundo usam tetos por provider. Cobertura depende também de:
 
 - consulta configurada;
-- disponibilidade da API/interface;
-- paginação e limites do provider;
+- indexação;
+- paginação;
 - rate limits;
 - credenciais;
-- indexação do provider;
-- idioma e metadados disponíveis.
+- falhas temporárias;
+- idiomas;
+- disponibilidade de metadata.
 
-## 11. BVS/LILACS e SciELO podem bloquear automação
+Aumentar o limite não transforma o sistema em busca exaustiva.
 
-As interfaces públicas nativas podem responder com `401` ou `403`.
+## 14. BVS/LILACS e SciELO podem ficar indisponíveis para automação
 
-A `main` registra esse estado como `unavailable` e continua quando há outras fontes disponíveis.
+Respostas `401`/`403` ou outras falhas de interface são registradas como indisponibilidade da rota automatizada.
 
-`unavailable` não significa “zero resultados”. Significa que o engine não conseguiu obter resultados por aquela rota automatizada naquela execução.
+`unavailable` **não significa zero literatura**. Significa que aquela fonte não foi obtida por aquela rota naquela execução.
 
-## 12. Providers opcionais dependem de credenciais
+## 15. Scopus e Web of Science não são simulados
 
-Google Programmable Search, Brave e SerpAPI só são executados quando as credenciais necessárias estão presentes no ambiente.
+Sem acesso licenciado/configurado, essas bases não participam da coleta real. O Engine não cria resultados substitutos com esses rótulos.
 
-A ausência dessas fontes deve ser tratada como diferença de cobertura da execução.
+## 16. Providers opcionais dependem de credenciais
 
-## 13. Scopus e Web of Science não são simulados
+Google Programmable Search, Brave e SerpAPI só executam quando suas credenciais estão disponíveis. Execuções com combinações diferentes de providers não têm cobertura equivalente.
 
-Sem integração/licença configurada, essas bases não fazem parte da coleta real. O engine não substitui seus resultados por resultados de outra fonte com o mesmo rótulo.
+## 17. APIs e metadados externos mudam
 
-## 14. Recência é um bônus leve, não um filtro
+Uma mesma versão do software pode receber resultados diferentes em datas distintas porque bases bibliográficas e APIs são sistemas vivos.
 
-Documentos recentes recebem um pequeno bônus, mas documentos antigos podem continuar no topo quando têm muitos sinais temáticos.
+A reprodutibilidade do software deve ser distinguida da estabilidade do universo bibliográfico externo.
 
-## 15. URLs podem apontar para recursos externos mutáveis
+## 18. TOP N não é o conjunto total
 
-O engine preserva URLs recebidas dos providers. Esses endereços podem:
+`TOP_REFERENCIAS.md` é uma janela de leitura prioritária. O conjunto elegível completo está em `reference_ranking.csv` e `reference_ranking.jsonl`; registros em quarentena ficam separados.
 
-- expirar;
-- redirecionar;
-- mudar de política de acesso;
-- apontar para PDF, landing page ou repositório externo.
+## 19. O runtime canônico não usa IA generativa para criar referências
 
-O repositório não redistribui automaticamente o conteúdo protegido desses links.
+O Engine não deve inventar DOI, autores, títulos, anos ou abstracts. Funções generativas futuras, se existirem, precisarão de contrato próprio de citação, proveniência, separação entre extração/inferência e revisão humana.
 
-## 16. O TOP N é uma janela de visualização
+## 20. Não é revisão sistemática nem sistema clínico
 
-`TOP_REFERENCIAS.md` apresenta somente o TOP N configurado, atualmente 100 por padrão.
+O Reference Engine não é:
 
-`reference_ranking.csv` e `reference_ranking.jsonl` contêm o conjunto elegível ranqueado completo disponível para aquela execução.
+- protocolo PRISMA;
+- screening científico automático;
+- avaliação de risco de viés;
+- avaliação de certeza da evidência;
+- recomendação clínica;
+- substituto de revisão humana.
 
-Registros em quarentena ficam separados e não estão incluídos nessas contagens de ranking.
+## 21. Governança do repositório continua separada da validação científica
 
-## 17. Uma execução validada não garante resultados futuros idênticos
+CI verde e guardrails corretos são necessários, mas não suficientes para validação científica. Regras administrativas do GitHub, proteção de branch e metadata do repositório também não constituem evidência de desempenho científico.
 
-A execução Windows registrada em 18/08/2026 teve 8.702 entradas no ranking e 115 grupos de taxonomia carregados. Ela documenta aquele estado do software e das fontes externas.
+## 22. Uso recomendado
 
-As mudanças posteriores de guardrail alteram o contrato do ranking: verificam hashes, aplicam quarentena, caps e scoring não cumulativo para tipo documental. Portanto, os números daquela execução histórica não devem ser tratados como baseline obrigatório da `main` atual.
+Use o Engine para:
 
-Resultados futuros podem mudar porque código, política, providers e metadados externos mudam com o tempo.
+1. descoberta e agregação de referências candidatas;
+2. organização taxonômica;
+3. prioridade técnica de leitura;
+4. inspeção de proveniência e `score_breakdown`;
+5. curadoria humana posterior.
 
-Para reprodutibilidade, registre o SHA do repositório e preserve `latest.json`, `AUDIT_MANIFEST.json`, manifests e arquivos de entrada.
+Não use `reference_score`, faixa A/B/C ou `taxonomy_primary_rank` como justificativa isolada de inclusão, exclusão, qualidade ou recomendação científica.
 
-## 18. Guardrails não eliminam todas as formas possíveis de erro
+## 23. Próxima fronteira de validação
 
-O sistema reduz risco de referências fabricadas dentro do pipeline determinístico, mas não garante ausência absoluta de:
+O protocolo em `validation/` exige, antes de promoção científica do produto:
 
-- erro de provider;
-- erro de parser;
-- erro de configuração;
-- erro de regra de scoring;
-- metadados incorretos fornecidos por terceiros.
+- gold standard independente;
+- baselines apropriados;
+- benchmark quantitativo;
+- ablations;
+- validação da taxonomia contra humanos;
+- benchmark de deduplicação;
+- provider/metadata bias;
+- perda de recall da quarentena;
+- sensibilidade do score;
+- teste externo selado;
+- estudo de workload quando aplicável.
 
-Por isso existem testes, hashes, quarentena, `score_breakdown` e manifesto de auditoria.
-
-## 19. IA generativa não faz parte do runtime canônico
-
-O Reference Engine atual não usa LLM para gerar referências, preencher metadados, resumir estudos ou produzir recomendações.
-
-Se uma função generativa for adicionada futuramente, ela deverá ter contrato próprio de citação, rastreabilidade, distinção entre extração e inferência e bloqueio quando a fonte necessária estiver ausente.
-
-## 20. Uso recomendado
-
-Use o engine para:
-
-1. descoberta ampla;
-2. priorização de leitura;
-3. inspeção de rastreabilidade e `score_breakdown`;
-4. curadoria humana de duplicatas/versões;
-5. seleção científica conforme critérios externos ao ranking.
-
-Não use o ranking sozinho como justificativa de inclusão ou exclusão científica.
+Ausência desses dados deve continuar sendo reportada como `NOT_TESTED` ou `INSUFFICIENT_EVIDENCE`, nunca como resultado positivo implícito.
