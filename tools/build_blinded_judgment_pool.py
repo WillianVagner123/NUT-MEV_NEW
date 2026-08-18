@@ -13,6 +13,7 @@ from nutev.reference_identity import canonical_identity
 DEFAULT_POOL_DEPTH = 100
 DEFAULT_POOL_SEED = "nutev-judgment-pool-v1"
 DEFAULT_PRIMARY_SYSTEMS = ("nutev_full", "lexical_baseline")
+VALID_SPLITS = ("development", "validation", "external_test")
 
 
 class PoolBuildError(RuntimeError):
@@ -67,6 +68,7 @@ def load_rankings(
     *,
     depth: int,
     systems: tuple[str, ...] | None = None,
+    split: str | None = None,
 ) -> dict[tuple[str, str], list[tuple[int, str]]]:
     if not path.is_file():
         raise PoolBuildError(f"Rankings CSV not found: {path}")
@@ -77,22 +79,28 @@ def load_rankings(
     all_questions: set[str] = set()
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
+        fields = set(reader.fieldnames or [])
         required = {"question_id", "system", "rank", "reference_id"}
-        missing = required - set(reader.fieldnames or [])
+        missing = required - fields
         if missing:
             raise PoolBuildError(
                 f"Rankings CSV missing columns: {', '.join(sorted(missing))}"
             )
+        if split is not None and "split" not in fields:
+            raise PoolBuildError("Split-specific pool requires a split column in rankings")
         for line_number, row in enumerate(reader, start=2):
             question_id = _clean(row.get("question_id"))
             system = _clean(row.get("system"))
             rid = _clean(row.get("reference_id"))
+            row_split = _clean(row.get("split")).casefold() if "split" in fields else ""
             try:
                 rank = int(_clean(row.get("rank")))
             except ValueError as exc:
                 raise PoolBuildError(f"Invalid rank at line {line_number}") from exc
             if not question_id or not system or not rid or rank < 1:
                 raise PoolBuildError(f"Invalid ranking identity at line {line_number}")
+            if split is not None and row_split != split:
+                continue
             all_questions.add(question_id)
             if selected is not None and system not in selected:
                 continue
@@ -107,7 +115,10 @@ def load_rankings(
             if rank <= depth:
                 groups.setdefault((question_id, system), []).append((rank, rid))
     if not groups:
-        raise PoolBuildError("Rankings contain no records inside requested pool depth")
+        scope = f" for split {split}" if split else ""
+        raise PoolBuildError(
+            f"Rankings contain no records inside requested pool depth{scope}"
+        )
     for items in groups.values():
         items.sort(key=lambda item: (item[0], item[1]))
     if systems is not None:
@@ -209,6 +220,11 @@ def main() -> int:
         default=",".join(DEFAULT_PRIMARY_SYSTEMS),
         help="Comma-separated systems to contribute to the judgment pool. Default is the preregistered primary pair.",
     )
+    parser.add_argument(
+        "--split",
+        choices=VALID_SPLITS,
+        help="Optional split to build as a physically separate pool, supporting sealed external-test custody.",
+    )
     args = parser.parse_args()
 
     try:
@@ -217,7 +233,12 @@ def main() -> int:
         systems = _parse_systems(args.systems)
         metadata_rows = _read_jsonl(args.metadata)
         metadata = _metadata_index(metadata_rows)
-        groups = load_rankings(args.rankings, depth=args.depth, systems=systems)
+        groups = load_rankings(
+            args.rankings,
+            depth=args.depth,
+            systems=systems,
+            split=args.split,
+        )
         blinded, audit = build_pool(groups, metadata, seed=args.seed)
         _write_csv(
             args.blinded_output,
@@ -254,6 +275,7 @@ def main() -> int:
                 if systems == DEFAULT_PRIMARY_SYSTEMS
                 else "CUSTOM_COMMON_POOL_TOP_K_UNION"
             ),
+            "split": args.split or "__ALL__",
             "selected_systems": list(systems),
             "depth_per_system": args.depth,
             "blind_order_seed": args.seed,
@@ -268,7 +290,8 @@ def main() -> int:
             "scientific_boundary": (
                 "The audit output contains system membership and must not be shown to assessors "
                 "before initial relevance judgments are locked. The default primary pool contains "
-                "only the preregistered candidate and lexical baseline."
+                "only the preregistered candidate and lexical baseline. Split-specific pools allow "
+                "external-test evidence to remain under separate custody until the validation gate."
             ),
         }
         args.manifest.parent.mkdir(parents=True, exist_ok=True)
