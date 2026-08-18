@@ -3,7 +3,11 @@ setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
 set "ARTICLE=%~1"
-if /I not "%ARTICLE%"=="A1" if /I not "%ARTICLE%"=="A2" if /I not "%ARTICLE%"=="A3" if /I not "%ARTICLE%"=="A4" (
+if /I "%ARTICLE%"=="A1" set "ARTICLE=A1"
+if /I "%ARTICLE%"=="A2" set "ARTICLE=A2"
+if /I "%ARTICLE%"=="A3" set "ARTICLE=A3"
+if /I "%ARTICLE%"=="A4" set "ARTICLE=A4"
+if not "%ARTICLE%"=="A1" if not "%ARTICLE%"=="A2" if not "%ARTICLE%"=="A3" if not "%ARTICLE%"=="A4" (
   echo.
   echo USO: RODAR_ARTIGO.cmd A1^|A2^|A3^|A4
   echo.
