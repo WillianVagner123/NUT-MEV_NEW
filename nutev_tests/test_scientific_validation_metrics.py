@@ -128,6 +128,29 @@ def test_question_cannot_appear_in_multiple_splits(tmp_path: Path) -> None:
         validation.load_rankings(path)
 
 
+def test_split_specific_loading_excludes_external_test(tmp_path: Path) -> None:
+    path = tmp_path / "rankings.csv"
+    path.write_text(
+        "question_id,split,system,rank,reference_id\n"
+        "qv,validation,nutev,1,a\n"
+        "qe,external_test,nutev,1,b\n",
+        encoding="utf-8",
+    )
+    rankings = validation.load_rankings(path, split="validation")
+    assert set(rankings) == {("qv", "nutev")}
+    assert rankings[("qv", "nutev")][0].split == "validation"
+
+
+def test_split_specific_loading_requires_split_column(tmp_path: Path) -> None:
+    path = tmp_path / "rankings.csv"
+    path.write_text(
+        "question_id,system,rank,reference_id\nq1,nutev,1,a\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(validation.ValidationDataError, match="split column"):
+        validation.load_rankings(path, split="validation")
+
+
 def test_conflicting_gold_labels_fail_closed(tmp_path: Path) -> None:
     path = tmp_path / "gold.csv"
     path.write_text(
