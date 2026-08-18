@@ -50,11 +50,31 @@ python -m pip install -e ".[documents,search]"
 .\RODAR_TUDO.cmd
 ```
 
-`RODAR_TUDO.cmd` is the supported one-command v1 path.
+`RODAR_TUDO.cmd` remains the general one-command v1 reference-discovery path.
+
+## PhD article runs — canonical A1–A4 governance
+
+For thesis work, do **not** use an unscoped ranking as if it represented one article. Use the governed launcher and declare the article explicitly:
+
+```powershell
+.\RODAR_ARTIGO.cmd A1
+.\RODAR_ARTIGO.cmd A2
+.\RODAR_ARTIGO.cmd A3
+.\RODAR_ARTIGO.cmd A4
+```
+
+Canonical article boundaries are versioned in `config/nutev_governance_manifest.json` and article-specific ranking profiles are versioned in `config/article_reference_profiles.json`.
+
+- **A1** — recommendations and dietary direction in normative/structuring documents.
+- **A2** — current dietary prescriptions/interventions + operational package + executability difficulties. Implementation, competencies/repertoires and context are explanatory dimensions, not the autonomous object.
+- **A3** — sources supporting development of the NutEV Dietary Protocol; not an independent evidence-review engine.
+- **A4** — sources supporting the conceptual clinical-decision framework. A4 is not CFD-I, CFD-8, a score, a flag engine or a computational clinical decision algorithm.
+
+Every governed run receives a unique `run_id`, records the governance version/digest and preserves a governance snapshot, effective article profile and SHA-256 hashes for the exported ranking artifacts. Scientific inclusion/exclusion and clinical decisions remain human-only.
 
 ## Outputs
 
-The primary public outputs are:
+The primary general outputs are:
 
 ```text
 project_output_reference/reference_ranking/TOP_REFERENCIAS.md
@@ -62,6 +82,25 @@ project_output_reference/reference_ranking/reference_ranking.csv
 project_output_reference/reference_ranking/reference_ranking.jsonl
 project_output_reference/reference_ranking/latest.json
 ```
+
+Governed thesis runs are additionally preserved without cross-article overwrite:
+
+```text
+project_output_reference/reference_ranking/by_article/A1/latest.json
+project_output_reference/reference_ranking/by_article/A2/latest.json
+project_output_reference/reference_ranking/by_article/A3/latest.json
+project_output_reference/reference_ranking/by_article/A4/latest.json
+
+project_output_reference/reference_ranking/by_article/<ARTICLE>/runs/<RUN_ID>/
+  TOP_REFERENCIAS.md
+  reference_ranking.csv
+  reference_ranking.jsonl
+  nutev_governance_manifest.json
+  effective_reference_mode.json
+  run_manifest.json
+```
+
+The root `reference_ranking/latest.json` is a convenience pointer to the most recent ranking run. For thesis provenance, the article-specific `by_article/<ARTICLE>/latest.json` and immutable `runs/<RUN_ID>/` directory are the authoritative run outputs.
 
 ### Ranking tiers
 
@@ -90,7 +129,7 @@ Scopus and Web of Science are not simulated. Their absence is not silently repla
 
 ## Ranking model
 
-The ranker uses `config/keyword_taxonomy*.json` together with `config/reference_mode.json`.
+The ranker uses `config/keyword_taxonomy*.json` together with `config/reference_mode.json`. Governed article runs create an ephemeral effective profile from the canonical article configuration without mutating the base configuration.
 
 Score components include:
 
@@ -111,16 +150,28 @@ Main semantic configuration:
 config/keyword_taxonomy.json
 config/keyword_taxonomy_supplement*.json
 config/reference_mode.json
+config/nutev_governance_manifest.json
+config/article_reference_profiles.json
 ```
 
-Changing taxonomy or focus terms changes prioritization without creating a separate scientific-review workflow.
+Changing taxonomy or focus terms changes prioritization without creating a separate scientific-review workflow. Changes to canonical A1–A4 governance must be intentional, versioned and regression-tested.
 
 ## Run only the ranker
 
-If collection outputs already exist:
+If collection outputs already exist, general ranking can be run with:
 
 ```bash
 python tools/rank_references.py \
+  --project-root ./project_output_reference \
+  --config-dir ./config \
+  --top-n 100
+```
+
+For a thesis article, use the governed ranker instead:
+
+```bash
+python tools/run_governed_rank_references.py \
+  --article A2 \
   --project-root ./project_output_reference \
   --config-dir ./config \
   --top-n 100
@@ -134,10 +185,13 @@ python tools/rank_references.py \
 - Scopus and Web of Science are not simulated when licensed access is unavailable.
 - The ranking is lexical/taxonomic and metadata-driven; it does not replace human judgment about whether a reference should be cited or used.
 - A high score is not a clinical recommendation and is not proof of methodological quality.
+- Article governance controls scope/provenance of discovery and ranking; it does not automate eligibility, synthesis conclusions or clinical decisions.
 
 ## Reproducibility and provenance
 
 Raw provider/source identity is preserved through the ranking pipeline. Failures and unavailable sources must remain explicit rather than being converted into fabricated zero-result claims.
+
+For governed article runs, each `runs/<RUN_ID>/run_manifest.json` records the exact article scope, governance context, effective profile and hashed artifacts used in that run.
 
 Historical research-review modules and documents remain only as compatibility/provenance material. They are outside the supported v1 runtime; see `docs/legacy/README.md` and `docs/RELEASE_V1_AUDIT.md`.
 
