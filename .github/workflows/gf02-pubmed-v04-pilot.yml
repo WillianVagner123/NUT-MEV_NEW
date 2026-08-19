@@ -1,0 +1,43 @@
+name: gf02-pubmed-v04-pilot
+
+on:
+  push:
+    branches:
+      - gf02/pilot-v04-execution
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NCBI_EMAIL: ${{ secrets.NCBI_EMAIL }}
+      NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install project
+        run: python -m pip install -e .
+      - name: Execute GF-02 PubMed v0.4 PILOT
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/run_gf02_pubmed_pilot.py \
+            --project-root project_output_scientific \
+            2>&1 | tee gf02-pilot-stdout.txt
+      - name: Upload GF-02 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gf02-pubmed-v04-pilot-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            gf02-pilot-stdout.txt
+            project_output_scientific/07_logs/gf02/pubmed/**
