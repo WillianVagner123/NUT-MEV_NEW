@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - gf02/pilot-v04-execution
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
