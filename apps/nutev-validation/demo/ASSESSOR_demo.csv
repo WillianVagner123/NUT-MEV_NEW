@@ -1,0 +1,4 @@
+question_id,pool_item_id,assessor_order,reference_id,title,abstract,journal,year,doi,pmid,pmcid,url,assessor_id,relevance_grade,reason,decision_timestamp,blind_to_nutev,notes
+DEMO-Q01,demo_01,1,demo:synthetic-1,DEMO synthetic reference 1,Synthetic demonstration text only. This is not a scientific article and is not benchmark evidence.,DEMO ONLY,2026,,,,,demo_assessor,,,,true,SYNTHETIC_DEMO_NOT_BENCHMARK_EVIDENCE
+DEMO-Q02,demo_02,2,demo:synthetic-2,DEMO synthetic reference 2,Synthetic demonstration text only. This is not a scientific article and is not benchmark evidence.,DEMO ONLY,2026,,,,,demo_assessor,,,,true,SYNTHETIC_DEMO_NOT_BENCHMARK_EVIDENCE
+DEMO-Q03,demo_03,3,demo:synthetic-3,DEMO synthetic reference 3,Synthetic demonstration text only. This is not a scientific article and is not benchmark evidence.,DEMO ONLY,2026,,,,,demo_assessor,,,,true,SYNTHETIC_DEMO_NOT_BENCHMARK_EVIDENCE
