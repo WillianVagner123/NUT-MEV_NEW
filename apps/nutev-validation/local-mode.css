@@ -1,0 +1,9 @@
+.mode-card { min-height: 320px; display: flex; flex-direction: column; align-items: flex-start; }
+.mode-card p, .mode-card ul { flex: 0 0 auto; }
+.mode-card .btn { margin-top: auto; }
+.mode-card.featured { border-color: #99d5cd; box-shadow: 0 14px 36px rgba(15, 118, 110, .12); }
+.eligibility-pre { white-space: pre-wrap; word-break: break-word; background: transparent; color: inherit; font-size: .82rem; }
+.hash { display: block; margin-top: .35rem; font-size: .76rem; overflow-wrap: anywhere; }
+.vertical-actions { flex-direction: column; align-items: stretch; }
+.vertical-actions .btn { width: 100%; }
+.session-card + .session-card { margin-top: .65rem; }

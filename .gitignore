@@ -27,3 +27,11 @@ tests/accessibility_tests/node_modules/
 dist/
 build/
 *.egg-info/
+
+# private human-validation artifacts: never publish blinded packets/decisions
+validation/data/validation_assessor_packets/
+apps/nutev-validation/private-review-output/
+NutEV_Validation_assessor_*_PRIVATE.zip
+ASSESSOR_assessor_*_completed.csv
+NUTEV_assessor_*_backup.json
+REVIEW_assessor_*.html

@@ -1,0 +1,33 @@
+{
+  "assessor_ids": [
+    "demo_assessor"
+  ],
+  "forbidden_fields_checked": [
+    "rank",
+    "reference_rank",
+    "reference_score",
+    "score_breakdown",
+    "system",
+    "system_membership",
+    "system_score",
+    "systems_count",
+    "taxonomy",
+    "taxonomy_primary",
+    "taxonomy_secondary"
+  ],
+  "independent_order_per_assessor": true,
+  "label_blind": true,
+  "minimum_assessors_required": 2,
+  "outputs": [
+    {
+      "assessor_id": "demo_assessor",
+      "path": "ASSESSOR_demo.csv",
+      "rows": 3,
+      "sha256": "83eabb93cc0bcddd5caa723e88bc5f33fe347655c86d7e6c175ebfcacbc6f5d1"
+    }
+  ],
+  "packet_seed": "demo-only",
+  "packet_type": "SYNTHETIC_DEMO_NOT_BENCHMARK_EVIDENCE",
+  "pool_rows": 3,
+  "scientific_boundary": "Synthetic UI demo only. Never use these rows as benchmark evidence."
+}

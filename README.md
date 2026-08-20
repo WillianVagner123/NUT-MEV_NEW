@@ -265,6 +265,21 @@ validation/BENCHMARK_PLAN.md
 validation/SCIENTIFIC_VALIDATION_REPORT.md
 ```
 
+## NutEV Validation (MVP web)
+
+O diretório `apps/nutev-validation/` contém um MVP web separado do runtime do Reference Engine para operacionalizar o gate humano cego da validação científica.
+
+- modo local sem backend, com IndexedDB, retomada e exportação do packet preenchido;
+- modo online preparado para login por magic link via Supabase;
+- RLS separa os avaliadores e impede leitura das decisões do outro assessor durante `assessment`;
+- julgamento `0/1/2` com justificativa, timestamp, progresso, atalhos e "revisar depois";
+- import do `QUESTIONS.csv` e dos packets assessor-safe com verificação de SHA-256 e rejeição de score/rank/taxonomia/origem do sistema;
+- adjudicação somente depois do fechamento da avaliação cega;
+- exportação compatível com `tools/validate_gold_standard.py`;
+- MVP restrito ao split `validation`; o conjunto `external_test` permanece fora da aplicação e selado.
+
+O app **não** altera score, ranking, taxonomia ou runtime e não calcula métricas nem promove o estado científico automaticamente. O modo local funciona sem servidor; o modo online é deployável como frontend estático com backend Supabase. Veja `apps/nutev-validation/LOCAL_MODE.md`, `apps/nutev-validation/README.md` e `apps/nutev-validation/DEPLOYMENT.md`.
+
 ## O que este projeto não é
 
 O NutEV Reference Engine não é:
