@@ -27,6 +27,7 @@ from search_adapter import (
     load_search_run,
     search_evidence,
 )
+from validation_readiness import get_validation_readiness
 
 MAX_BODY_BYTES = 32 * 1024
 MAX_SEARCH_JOBS = 100
@@ -202,7 +203,7 @@ def _load_search_job(job_id: str) -> dict[str, object]:
 
 
 class NutEVHandler(SimpleHTTPRequestHandler):
-    server_version = "NutEVWeb/0.3"
+    server_version = "NutEVWeb/0.4"
 
     def end_headers(self) -> None:
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -248,6 +249,9 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "progressive_search": True,
                 }
             )
+            return
+        if path == "/api/validation/readiness":
+            self._json(get_validation_readiness())
             return
         if path == "/api/providers":
             self._json(

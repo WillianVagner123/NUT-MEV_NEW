@@ -87,6 +87,20 @@ def test_validation_entry_uses_same_product_navigation_and_hides_technical_first
     assert ".unified-shell" in shell_css
 
 
+def test_validation_readiness_is_server_verified_and_visible_without_file_ui() -> None:
+    server = (WEB_ROOT / "server.py").read_text(encoding="utf-8")
+    readiness = (WEB_ROOT / "validation_readiness.py").read_text(encoding="utf-8")
+    launcher = (VALIDATION_ROOT / "launcher.js").read_text(encoding="utf-8")
+    assert 'path == "/api/validation/readiness"' in server
+    assert "get_validation_readiness" in server
+    assert "EXPECTED_QUESTIONS_SHA256" in readiness
+    assert "PROHIBITED_PACKET_COLUMNS" in readiness
+    assert "pre-existing grade" in readiness
+    assert "fetch('/api/validation/readiness'" in launcher
+    assert "rodada pronta" in launcher
+    assert "aguardando preparação" in launcher
+
+
 def test_progressive_job_api_keeps_synchronous_search_compatibility() -> None:
     server = (WEB_ROOT / "server.py").read_text(encoding="utf-8")
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
