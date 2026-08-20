@@ -3,7 +3,7 @@
 Interface unificada para:
 
 1. **Buscar evidências** no NutEV Reference Engine;
-2. consultar o histórico local de buscas;
+2. consultar os runs reais persistidos pelo Engine;
 3. abrir o módulo existente de **Validação científica** no mesmo servidor.
 
 ## Iniciar
@@ -18,26 +18,35 @@ O navegador abre em `http://127.0.0.1:8765/`.
 
 ## Busca interativa
 
-O endpoint `POST /api/search` recebe uma pergunta e consulta diretamente os clientes existentes de:
+O endpoint `POST /api/search` recebe uma pergunta e reutiliza os clientes/pipelines existentes de:
 
 - PubMed;
 - Europe PMC;
 - OpenAlex;
 - Crossref;
 - DOAJ;
-- Semantic Scholar.
+- Semantic Scholar;
+- LILACS/BVS, via `tools/run_latin_sources.py`;
+- SciELO, via `tools/run_latin_sources.py`.
 
 Os registros recuperados preservam `source`/`source_provider`, passam pela deduplicação canônica (`DOI -> PMID -> URL -> título normalizado`) e são priorizados com o score vigente de `config/reference_mode.json` e a taxonomia canônica.
 
-Falhas de provider aparecem explicitamente no resultado. Nenhum provider é simulado.
+LILACS/BVS e SciELO mantêm a regra do pipeline nativo: se a interface pública bloquear automação, a fonte aparece como `unavailable`/`failed`; o sistema nunca fabrica cobertura ou substitui silenciosamente outro provider.
+
+Cada busca web é persistida em:
+
+```text
+project_output_reference/15_web_searches/<search_id>/result.json
+```
+
+O endpoint `GET /api/searches` alimenta **Minhas buscas** a partir desses runs reais, sem depender de `localStorage`. `GET /api/searches/<search_id>` reabre um resultado já persistido sem executar a busca novamente.
 
 ### Limites atuais
 
-- LILACS/BVS e SciELO continuam no estágio canônico separado (`tools/run_latin_sources.py`) e ainda não foram ligados à consulta web interativa.
 - Scopus e Web of Science continuam não simulados; dependem de acesso licenciado.
-- A busca web é síncrona nesta primeira versão. Para produção multiusuário, o próximo passo é fila/job persistente com progresso.
+- A busca web ainda responde de forma síncrona por requisição. Uma futura fila/job pode acrescentar progresso por provider sem mudar o contrato científico.
 - O score continua sendo **prioridade de leitura**, não recomendação clínica, elegibilidade científica ou avaliação de qualidade metodológica.
 
 ## Validação científica
 
-A rota `/validation/` serve o módulo `apps/nutev-validation` existente. Isso unifica a experiência sem misturar score/rank do Engine com os julgamentos cegos do benchmark.
+A rota `/validation/` serve o módulo `apps/nutev-validation` existente. Isso unifica a experiência sem misturar score/rank de uma busca comum do usuário com os julgamentos cegos do benchmark científico congelado.
