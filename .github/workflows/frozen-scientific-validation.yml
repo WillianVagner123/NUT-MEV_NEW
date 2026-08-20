@@ -6,12 +6,18 @@ on:
       - agent/benchmark-frozen-runtime
   workflow_dispatch:
 
+concurrency:
+  group: nutev-frozen-scientific-validation
+  cancel-in-progress: true
+
 permissions:
   contents: read
+  issues: write
 
 env:
   FROZEN_RUNTIME_SHA: 6aa7a5fe6009776e611ca3e1506486606b05f4f6
   BENCHMARK_TOOLING_SHA: 436b48094223f3493984c8e2fe9159caeda1b51e
+  QUESTIONS_SHA256: 55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589
   PROJECT_ROOT: project_output_reference
 
 jobs:
@@ -20,64 +26,48 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
+      - name: Report run start to scientific gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/issues/1099/comments" -f body="Frozen scientific validation automation started. Run ID: ${GITHUB_RUN_ID}; workflow commit: ${GITHUB_SHA}; candidate runtime: ${FROZEN_RUNTIME_SHA}. No relevance labels or metrics are generated at this stage."
+
       - name: Checkout exact frozen runtime
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.FROZEN_RUNTIME_SHA }}
           fetch-depth: 1
 
-      - name: Verify runtime identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          actual="$(git rev-parse HEAD)"
-          printf 'expected=%s\nactual=%s\n' "$FROZEN_RUNTIME_SHA" "$actual"
-          test "$actual" = "$FROZEN_RUNTIME_SHA"
-
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
-      - name: Install frozen runtime
+      - name: Verify identity and install frozen runtime
         shell: bash
         run: |
           set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$FROZEN_RUNTIME_SHA"
           python -m pip install --upgrade pip
           python -m pip install -r requirements/nutev-ci.txt
           python -m pip install --no-deps -e .
 
-      - name: Run multi-source collection
+      - name: Execute normal frozen Reference Engine workflow
         shell: bash
         run: |
           set +e
           python tools/run_everything_now.py --project-root "$PROJECT_ROOT"
-          code=$?
-          printf '%s\n' "$code" > collection_exit_code.txt
-          echo "collection_exit_code=$code"
-          exit 0
-
-      - name: Run native Latin sources
-        shell: bash
-        run: |
-          set +e
+          collect=$?
           python tools/run_latin_sources.py --project-root "$PROJECT_ROOT"
-          code=$?
-          printf '%s\n' "$code" > latin_exit_code.txt
-          echo "latin_exit_code=$code"
-          exit 0
-
-      - name: Build frozen reference ranking
-        shell: bash
-        run: |
-          set +e
-          python tools/rank_references.py \
-            --project-root "$PROJECT_ROOT" \
-            --config-dir ./config \
-            --top-n 100
-          code=$?
-          printf '%s\n' "$code" > ranking_exit_code.txt
-          echo "ranking_exit_code=$code"
+          latin=$?
+          python tools/rank_references.py --project-root "$PROJECT_ROOT" --config-dir ./config --top-n 100
+          ranking=$?
+          printf '%s\n' "$collect" > collection_exit_code.txt
+          printf '%s\n' "$latin" > latin_exit_code.txt
+          printf '%s\n' "$ranking" > ranking_exit_code.txt
+          printf 'collection=%s\nlatin=%s\nranking=%s\n' "$collect" "$latin" "$ranking"
           exit 0
 
       - name: Assemble immutable runtime bundle
@@ -87,60 +77,40 @@ jobs:
           bundle="frozen_runtime_bundle"
           ranking_dir="$PROJECT_ROOT/reference_ranking"
           mkdir -p "$bundle"
-
-          cp collection_exit_code.txt "$bundle/"
-          cp latin_exit_code.txt "$bundle/"
-          cp ranking_exit_code.txt "$bundle/"
-
-          actual="$(git rev-parse HEAD)"
+          cp collection_exit_code.txt latin_exit_code.txt ranking_exit_code.txt "$bundle/"
           cat > "$bundle/runtime_identity.txt" <<EOF
-          candidate_runtime_sha=$actual
+          candidate_runtime_sha=$(git rev-parse HEAD)
           expected_candidate_runtime_sha=$FROZEN_RUNTIME_SHA
           github_workflow_sha=$GITHUB_SHA
           github_run_id=$GITHUB_RUN_ID
           github_run_attempt=$GITHUB_RUN_ATTEMPT
           generated_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           EOF
-
-          for required in reference_ranking.jsonl AUDIT_MANIFEST.json latest.json; do
-            if [ -f "$ranking_dir/$required" ]; then
-              cp "$ranking_dir/$required" "$bundle/$required"
-            fi
+          for name in reference_ranking.jsonl AUDIT_MANIFEST.json latest.json reference_ranking.csv reference_quarantine.jsonl TOP_REFERENCIAS.md; do
+            if [ -f "$ranking_dir/$name" ]; then cp "$ranking_dir/$name" "$bundle/$name"; fi
           done
-          for optional in reference_ranking.csv reference_quarantine.jsonl TOP_REFERENCIAS.md; do
-            if [ -f "$ranking_dir/$optional" ]; then
-              cp "$ranking_dir/$optional" "$bundle/$optional"
-            fi
-          done
-
-          tar -czf "$bundle/project_output_reference.tar.gz" "$PROJECT_ROOT"
-
-          find "$bundle" -maxdepth 1 -type f ! -name bundle_sha256.txt -print0 \
-            | sort -z \
-            | xargs -0 sha256sum > "$bundle/bundle_sha256.txt"
-
+          if [ -d "$PROJECT_ROOT" ]; then
+            tar -czf "$bundle/project_output_reference.tar.gz" "$PROJECT_ROOT"
+          fi
           python - <<'PY'
           import json
           from pathlib import Path
-
-          bundle = Path("frozen_runtime_bundle")
-          ranking_code = int((bundle / "ranking_exit_code.txt").read_text().strip())
-          required = ["reference_ranking.jsonl", "AUDIT_MANIFEST.json", "latest.json"]
+          b = Path('frozen_runtime_bundle')
+          ranking_code = int((b / 'ranking_exit_code.txt').read_text().strip())
+          required = ['reference_ranking.jsonl', 'AUDIT_MANIFEST.json', 'latest.json']
           status = {
-              "candidate_runtime_sha": "6aa7a5fe6009776e611ca3e1506486606b05f4f6",
-              "ranking_exit_code": ranking_code,
-              "required_files": {name: (bundle / name).is_file() for name in required},
-              "benchmark_runtime_ready": ranking_code == 0 and all((bundle / name).is_file() for name in required),
+              'candidate_runtime_sha': '6aa7a5fe6009776e611ca3e1506486606b05f4f6',
+              'ranking_exit_code': ranking_code,
+              'required_files': {x: (b / x).is_file() for x in required},
+              'benchmark_runtime_ready': ranking_code == 0 and all((b / x).is_file() for x in required),
           }
-          if (bundle / "AUDIT_MANIFEST.json").is_file():
-              json.loads((bundle / "AUDIT_MANIFEST.json").read_text(encoding="utf-8"))
-          (bundle / "RUNTIME_BUNDLE_STATUS.json").write_text(
-              json.dumps(status, indent=2, sort_keys=True) + "\n",
-              encoding="utf-8",
-          )
+          if (b / 'AUDIT_MANIFEST.json').is_file():
+              json.loads((b / 'AUDIT_MANIFEST.json').read_text(encoding='utf-8'))
+          (b / 'RUNTIME_BUNDLE_STATUS.json').write_text(json.dumps(status, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           PY
+          find "$bundle" -maxdepth 1 -type f ! -name bundle_sha256.txt -print0 | sort -z | xargs -0 sha256sum > "$bundle/bundle_sha256.txt"
 
-      - name: Upload frozen runtime audit artifact
+      - name: Upload frozen runtime artifact
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -150,7 +120,7 @@ jobs:
           retention-days: 90
           compression-level: 0
 
-      - name: Enforce benchmark-grade frozen runtime output
+      - name: Enforce benchmark-grade runtime output
         shell: bash
         run: |
           set -euo pipefail
@@ -161,10 +131,19 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          status = json.loads(Path("frozen_runtime_bundle/RUNTIME_BUNDLE_STATUS.json").read_text())
-          if not status.get("benchmark_runtime_ready"):
-              raise SystemExit("Frozen runtime bundle is not benchmark-ready")
+          s = json.loads(Path('frozen_runtime_bundle/RUNTIME_BUNDLE_STATUS.json').read_text())
+          if not s['benchmark_runtime_ready']:
+              raise SystemExit('Frozen runtime bundle is not benchmark-ready')
           PY
+
+      - name: Report runtime stage outcome
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/issues/1099/comments" -f body="Frozen runtime stage ${JOB_STATUS}. Run ID: ${GITHUB_RUN_ID}. Expected artifact: frozen-runtime-${FROZEN_RUNTIME_SHA}. Candidate SHA remains ${FROZEN_RUNTIME_SHA}. No relevance labels, gold standard, external-test evidence, or metrics were created."
 
   validation-prehuman:
     name: label-blind validation pool and assessor packets
@@ -178,23 +157,16 @@ jobs:
           ref: ${{ env.BENCHMARK_TOOLING_SHA }}
           fetch-depth: 1
 
-      - name: Verify benchmark tooling identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          actual="$(git rev-parse HEAD)"
-          printf 'expected=%s\nactual=%s\n' "$BENCHMARK_TOOLING_SHA" "$actual"
-          test "$actual" = "$BENCHMARK_TOOLING_SHA"
-
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
-      - name: Install benchmark tooling
+      - name: Verify tooling identity and install
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BENCHMARK_TOOLING_SHA"
           python -m pip install --upgrade pip
           python -m pip install -r requirements/nutev-ci.txt
           python -m pip install --no-deps -e .
@@ -205,64 +177,38 @@ jobs:
           name: frozen-runtime-6aa7a5fe6009776e611ca3e1506486606b05f4f6
           path: frozen_runtime_bundle
 
-      - name: Verify freeze chain before benchmark preparation
+      - name: Build label-blind validation gate artifacts
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import hashlib
-          import json
+          import hashlib, json
           from pathlib import Path
-
-          questions = Path("validation/data/QUESTIONS.csv")
-          manifest = json.loads(Path("validation/data/QUESTIONS_FREEZE_MANIFEST.json").read_text(encoding="utf-8"))
-          actual_questions_sha = hashlib.sha256(questions.read_bytes()).hexdigest()
-          expected_questions_sha = "55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589"
-          if manifest.get("status") != "PASS":
-              raise SystemExit("Question freeze manifest is not PASS")
-          if actual_questions_sha != expected_questions_sha:
-              raise SystemExit(f"Question SHA mismatch: {actual_questions_sha}")
-          if manifest.get("questions_sha256") != expected_questions_sha:
-              raise SystemExit("Manifest question SHA mismatch")
-
-          identity = Path("frozen_runtime_bundle/runtime_identity.txt").read_text(encoding="utf-8")
-          expected_runtime = "candidate_runtime_sha=6aa7a5fe6009776e611ca3e1506486606b05f4f6"
-          if expected_runtime not in identity:
-              raise SystemExit("Frozen runtime identity mismatch")
-          json.loads(Path("frozen_runtime_bundle/AUDIT_MANIFEST.json").read_text(encoding="utf-8"))
+          q = Path('validation/data/QUESTIONS.csv')
+          m = json.loads(Path('validation/data/QUESTIONS_FREEZE_MANIFEST.json').read_text(encoding='utf-8'))
+          actual = hashlib.sha256(q.read_bytes()).hexdigest()
+          expected = '55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589'
+          if actual != expected or m.get('questions_sha256') != expected or m.get('status') != 'PASS':
+              raise SystemExit('Question freeze chain mismatch')
+          identity = Path('frozen_runtime_bundle/runtime_identity.txt').read_text(encoding='utf-8')
+          if 'candidate_runtime_sha=6aa7a5fe6009776e611ca3e1506486606b05f4f6' not in identity:
+              raise SystemExit('Frozen runtime identity mismatch')
+          json.loads(Path('frozen_runtime_bundle/AUDIT_MANIFEST.json').read_text(encoding='utf-8'))
           PY
-
-      - name: Build all label-blind rankings once
-        shell: bash
-        run: |
-          set -euo pipefail
           python tools/build_scientific_benchmark_rankings.py \
             --questions validation/data/QUESTIONS.csv \
             --frozen-ranking frozen_runtime_bundle/reference_ranking.jsonl \
             --candidate-sha "$FROZEN_RUNTIME_SHA" \
             --output validation/data/BENCHMARK_RANKINGS.csv \
             --manifest validation/data/BENCHMARK_RANKINGS_MANIFEST.json
-
-      - name: Verify label-blind ranking manifest
-        shell: bash
-        run: |
-          set -euo pipefail
           python - <<'PY'
           import json
           from pathlib import Path
-          m = json.loads(Path("validation/data/BENCHMARK_RANKINGS_MANIFEST.json").read_text(encoding="utf-8"))
-          if m.get("label_blind_build") is not True:
-              raise SystemExit("label_blind_build must be true")
-          if m.get("gold_standard_consumed") is not False:
-              raise SystemExit("gold_standard_consumed must be false")
-          if m.get("candidate_runtime_sha") != "6aa7a5fe6009776e611ca3e1506486606b05f4f6":
-              raise SystemExit("candidate_runtime_sha mismatch")
+          m = json.loads(Path('validation/data/BENCHMARK_RANKINGS_MANIFEST.json').read_text(encoding='utf-8'))
+          assert m.get('label_blind_build') is True
+          assert m.get('gold_standard_consumed') is False
+          assert m.get('candidate_runtime_sha') == '6aa7a5fe6009776e611ca3e1506486606b05f4f6'
           PY
-
-      - name: Build validation blinded pool
-        shell: bash
-        run: |
-          set -euo pipefail
           python tools/build_blinded_judgment_pool.py \
             --rankings validation/data/BENCHMARK_RANKINGS.csv \
             --metadata frozen_runtime_bundle/reference_ranking.jsonl \
@@ -272,99 +218,54 @@ jobs:
             --blinded-output validation/data/VALIDATION_BLINDED_POOL.csv \
             --audit-output validation/data/VALIDATION_POOL_AUDIT.csv \
             --manifest validation/data/VALIDATION_POOL_MANIFEST.json
-
-      - name: Generate two independent assessor packets
-        shell: bash
-        run: |
-          set -euo pipefail
           python tools/build_assessor_packets.py \
             --pool validation/data/VALIDATION_BLINDED_POOL.csv \
             --assessor-id assessor_A \
             --assessor-id assessor_B \
             --output-dir validation/data/validation_assessor_packets \
             --manifest validation/data/VALIDATION_ASSESSOR_PACKETS_MANIFEST.json
-
-      - name: Verify assessor blindness and assemble human gate
-        shell: bash
-        run: |
-          set -euo pipefail
           python - <<'PY'
-          import csv
-          import json
+          import csv, json
           from pathlib import Path
-
-          prohibited = {
-              "reference_score",
-              "reference_rank",
-              "taxonomy_primary",
-              "taxonomy_secondary",
-              "taxonomy_groups",
-              "taxonomy_group_scores",
-              "system",
-              "systems",
-              "system_origin",
-              "nutev_score",
-              "nutev_rank",
-          }
-          packet_dir = Path("validation/data/validation_assessor_packets")
-          packet_files = sorted(packet_dir.glob("*.csv"))
-          if len(packet_files) < 2:
-              raise SystemExit("Expected at least two assessor packet CSV files")
-
-          packet_summary = []
-          for packet in packet_files:
-              with packet.open(encoding="utf-8-sig", newline="") as fh:
-                  reader = csv.DictReader(fh)
-                  fields = set(reader.fieldnames or [])
-                  leaked = sorted(fields & prohibited)
-                  if leaked:
-                      raise SystemExit(f"Blindness leak in {packet}: {leaked}")
-                  rows = list(reader)
-              if not rows:
-                  raise SystemExit(f"Empty assessor packet: {packet}")
-              packet_summary.append({"file": packet.name, "rows": len(rows)})
-
-          pool = Path("validation/data/VALIDATION_BLINDED_POOL.csv")
-          with pool.open(encoding="utf-8-sig", newline="") as fh:
-              reader = csv.DictReader(fh)
-              pool_fields = set(reader.fieldnames or [])
-              leaked = sorted(pool_fields & prohibited)
-              if leaked:
-                  raise SystemExit(f"Blindness leak in blinded pool: {leaked}")
-              pool_rows = sum(1 for _ in reader)
-
+          prohibited = {'reference_score','reference_rank','taxonomy_primary','taxonomy_secondary','taxonomy_groups','taxonomy_group_scores','system','systems','system_origin','nutev_score','nutev_rank'}
+          packet_dir = Path('validation/data/validation_assessor_packets')
+          packets = sorted(packet_dir.glob('*.csv'))
+          if len(packets) < 2:
+              raise SystemExit('Expected two assessor packets')
+          summary = []
+          for p in packets:
+              with p.open(encoding='utf-8-sig', newline='') as f:
+                  r = csv.DictReader(f)
+                  leak = set(r.fieldnames or []) & prohibited
+                  if leak: raise SystemExit(f'Packet blindness leak: {sorted(leak)}')
+                  rows = list(r)
+              if not rows: raise SystemExit(f'Empty packet: {p.name}')
+              summary.append({'file': p.name, 'rows': len(rows)})
+          with Path('validation/data/VALIDATION_BLINDED_POOL.csv').open(encoding='utf-8-sig', newline='') as f:
+              r = csv.DictReader(f)
+              leak = set(r.fieldnames or []) & prohibited
+              if leak: raise SystemExit(f'Pool blindness leak: {sorted(leak)}')
+              pool_rows = sum(1 for _ in r)
           status = {
-              "status": "HUMAN_INITIAL_ASSESSMENT_GATE_READY",
-              "split": "validation",
-              "candidate_runtime_sha": "6aa7a5fe6009776e611ca3e1506486606b05f4f6",
-              "benchmark_tooling_sha": "436b48094223f3493984c8e2fe9159caeda1b51e",
-              "questions_sha256": "55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589",
-              "pool_rows": pool_rows,
-              "assessor_packets": packet_summary,
-              "minimum_independent_assessors_required": 2,
-              "external_test_built": False,
-              "metrics_calculated": False,
-              "gold_standard_created": False,
+              'status': 'HUMAN_INITIAL_ASSESSMENT_GATE_READY',
+              'split': 'validation',
+              'candidate_runtime_sha': '6aa7a5fe6009776e611ca3e1506486606b05f4f6',
+              'benchmark_tooling_sha': '436b48094223f3493984c8e2fe9159caeda1b51e',
+              'questions_sha256': '55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589',
+              'pool_rows': pool_rows,
+              'assessor_packets': summary,
+              'minimum_independent_assessors_required': 2,
+              'external_test_built': False,
+              'metrics_calculated': False,
+              'gold_standard_created': False,
           }
-          Path("validation/data/HUMAN_GATE_READY.json").write_text(
-              json.dumps(status, indent=2, sort_keys=True) + "\n",
-              encoding="utf-8",
-          )
+          Path('validation/data/HUMAN_GATE_READY.json').write_text(json.dumps(status, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           PY
-
           mkdir -p assessor_safe_bundle validation_audit_bundle
-          cp validation/data/HUMAN_GATE_READY.json assessor_safe_bundle/
-          cp validation/data/VALIDATION_ASSESSOR_PACKETS_MANIFEST.json assessor_safe_bundle/
+          cp validation/data/HUMAN_GATE_READY.json validation/data/VALIDATION_ASSESSOR_PACKETS_MANIFEST.json assessor_safe_bundle/
           cp validation/data/validation_assessor_packets/*.csv assessor_safe_bundle/
-
-          cp validation/data/QUESTIONS_FREEZE_MANIFEST.json validation_audit_bundle/
-          cp validation/data/BENCHMARK_RANKINGS.csv validation_audit_bundle/
-          cp validation/data/BENCHMARK_RANKINGS_MANIFEST.json validation_audit_bundle/
-          cp validation/data/VALIDATION_POOL_AUDIT.csv validation_audit_bundle/
-          cp validation/data/VALIDATION_POOL_MANIFEST.json validation_audit_bundle/
-          cp validation/data/HUMAN_GATE_READY.json validation_audit_bundle/
-          cp frozen_runtime_bundle/runtime_identity.txt validation_audit_bundle/
-          cp frozen_runtime_bundle/bundle_sha256.txt validation_audit_bundle/
+          cp validation/data/QUESTIONS_FREEZE_MANIFEST.json validation/data/BENCHMARK_RANKINGS.csv validation/data/BENCHMARK_RANKINGS_MANIFEST.json validation/data/VALIDATION_POOL_AUDIT.csv validation/data/VALIDATION_POOL_MANIFEST.json validation/data/HUMAN_GATE_READY.json validation_audit_bundle/
+          cp frozen_runtime_bundle/runtime_identity.txt frozen_runtime_bundle/bundle_sha256.txt validation_audit_bundle/
 
       - name: Upload assessor-safe packets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -382,9 +283,16 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Stop at human assessment gate
+      - name: Report human gate outcome
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
         shell: bash
         run: |
-          set -euo pipefail
-          cat validation/data/HUMAN_GATE_READY.json
-          echo "No relevance labels, adjudicated gold, external-test evidence, or scientific metrics were generated."
+          if [ "$JOB_STATUS" = "success" ]; then
+            body="Validation pre-human stage SUCCESS. Run ID: ${GITHUB_RUN_ID}. Safe assessor artifact: validation-assessor-packets-${FROZEN_RUNTIME_SHA}. Segregated audit artifact: validation-audit-DO-NOT-SHOW-ASSESSORS-${FROZEN_RUNTIME_SHA}. Status: HUMAN_INITIAL_ASSESSMENT_GATE_READY. External-test was not built; no relevance labels, gold standard, or metrics were generated."
+          else
+            body="Validation pre-human stage ${JOB_STATUS}. Run ID: ${GITHUB_RUN_ID}. The automation did not declare the human assessment gate ready. External-test remains unopened and no scientific promotion is claimed."
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/issues/1099/comments" -f body="$body"
