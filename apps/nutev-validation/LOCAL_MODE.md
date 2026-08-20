@@ -29,6 +29,23 @@ Every demo row is marked `SYNTHETIC_DEMO_NOT_BENCHMARK_EVIDENCE`. These files ar
 
 The real assessor packets and completed decisions are intentionally **not versioned**. `.gitignore` blocks the canonical private-output patterns to reduce accidental publication risk.
 
+## Optional private one-file reviewer
+
+`tools/build_local_validation_bundle.py` can turn exactly one assessor-safe packet into a self-contained private `REVIEW.html`. The builder checks the packet SHA against the assessor manifest, rejects prohibited blinding fields, requires initially blank human decisions, and includes only `validation` question context.
+
+Example for a private assessor workspace:
+
+```bash
+python tools/build_local_validation_bundle.py \
+  --questions validation/data/QUESTIONS.csv \
+  --manifest /private/VALIDATION_ASSESSOR_PACKETS_MANIFEST.json \
+  --packet /private/ASSESSOR_assessor_A.csv \
+  --expected-questions-sha256 55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589 \
+  --output /private/REVIEW_assessor_A.html
+```
+
+Generated reviewer HTML files embed the assessor packet and therefore are **private scientific artifacts**. Do not commit, publish, attach to issues, or provide one assessor with the other assessor's generated file.
+
 ## Scientific boundary
 
 Local mode is **not a replacement for independent custody**. For real blinded assessment:
