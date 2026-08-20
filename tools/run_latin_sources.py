@@ -16,6 +16,7 @@ import requests
 COLLECTION_TYPE = "REFERENCE_COLLECTION"
 USER_AGENT = "NutEV Reference Engine/1.0 (+https://github.com/WillianVagner123/NutEV-Evidence-Engine)"
 _SPACE_RE = re.compile(r"\s+")
+LATIN_PROVIDER_ORDER = ("lilacs_bvs_native", "scielo_native")
 
 
 def _now() -> str:
@@ -193,17 +194,37 @@ def _run_provider(provider: str, search_url: str, query: str, run_dir: Path) -> 
         }
 
 
-def run(project_root: Path, query: str) -> dict[str, Any]:
-    run_id = "latin_" + datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
+def _provider_search_url(provider: str, query: str) -> str:
+    if provider == "lilacs_bvs_native":
+        return lilacs_search_url(query)
+    if provider == "scielo_native":
+        return scielo_search_url(query)
+    raise ValueError(f"Unsupported Latin provider: {provider}")
+
+
+def run(
+    project_root: Path,
+    query: str,
+    *,
+    providers: list[str] | tuple[str, ...] | None = None,
+) -> dict[str, Any]:
+    selected = list(dict.fromkeys(providers or LATIN_PROVIDER_ORDER))
+    invalid = [provider for provider in selected if provider not in LATIN_PROVIDER_ORDER]
+    if invalid:
+        raise ValueError("Unsupported Latin providers: " + ", ".join(invalid))
+    if not selected:
+        raise ValueError("At least one Latin provider must be selected")
+
+    run_id = "latin_" + datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z") + "_" + uuid4().hex[:8]
     run_dir = project_root / "14_latin_native" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
-    providers = [
-        _run_provider("lilacs_bvs_native", lilacs_search_url(query), query, run_dir),
-        _run_provider("scielo_native", scielo_search_url(query), query, run_dir),
+    provider_results = [
+        _run_provider(provider, _provider_search_url(provider, query), query, run_dir)
+        for provider in selected
     ]
 
     master_rows: list[dict[str, Any]] = []
-    for provider in providers:
+    for provider in provider_results:
         path = Path(str(provider.get("records_path") or ""))
         if not path.is_file():
             continue
@@ -215,15 +236,16 @@ def run(project_root: Path, query: str) -> dict[str, Any]:
 
     master_path = run_dir / "latin_native_records.jsonl"
     master_sha = _atomic_jsonl(master_path, master_rows)
-    unavailable = [p["provider"] for p in providers if p.get("status") == "unavailable"]
-    failed = [p["provider"] for p in providers if p.get("status") == "failed"]
+    unavailable = [p["provider"] for p in provider_results if p.get("status") == "unavailable"]
+    failed = [p["provider"] for p in provider_results if p.get("status") == "failed"]
     summary = {
         "schema_version": 1,
         "collection_type": COLLECTION_TYPE,
         "run_id": run_id,
         "created_at": _now(),
         "query": query,
-        "providers": providers,
+        "requested_providers": selected,
+        "providers": provider_results,
         "unavailable_providers": unavailable,
         "failed_providers": failed,
         "master_records_path": str(master_path),

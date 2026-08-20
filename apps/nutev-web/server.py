@@ -6,7 +6,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import sys
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 import webbrowser
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -15,13 +15,19 @@ VALIDATION_ROOT = REPO_ROOT / "apps" / "nutev-validation"
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
-from search_adapter import PROVIDER_LABELS, PROVIDER_ORDER, search_evidence
+from search_adapter import (
+    PROVIDER_LABELS,
+    PROVIDER_ORDER,
+    list_search_runs,
+    load_search_run,
+    search_evidence,
+)
 
 MAX_BODY_BYTES = 32 * 1024
 
 
 class NutEVHandler(SimpleHTTPRequestHandler):
-    server_version = "NutEVWeb/0.1"
+    server_version = "NutEVWeb/0.2"
 
     def end_headers(self) -> None:
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -56,12 +62,28 @@ class NutEVHandler(SimpleHTTPRequestHandler):
         return value
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path == "/api/health":
             self._json({"status": "ok", "service": "nutev-web", "validation_available": VALIDATION_ROOT.is_dir()})
             return
         if path == "/api/providers":
             self._json({"providers": [{"id": p, "label": PROVIDER_LABELS[p]} for p in PROVIDER_ORDER]})
+            return
+        if path == "/api/searches":
+            query = parse_qs(parsed.query)
+            try:
+                limit = int((query.get("limit") or ["30"])[0])
+            except ValueError:
+                limit = 30
+            self._json({"searches": list_search_runs(limit=limit)})
+            return
+        if path.startswith("/api/searches/"):
+            search_id = unquote(path[len("/api/searches/"):]).strip()
+            try:
+                self._json(load_search_run(search_id))
+            except (FileNotFoundError, ValueError):
+                self._json({"error": "search_not_found"}, HTTPStatus.NOT_FOUND)
             return
         return super().do_GET()
 
