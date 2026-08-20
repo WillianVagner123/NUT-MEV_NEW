@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>NutEV — Evidence Engine</title>
+  <meta name="description" content="Busca de evidências e validação científica do NutEV em uma interface única.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <button class="nav-item active" data-view="search">⌕ <span>Buscar evidências</span></button>
+        <button class="nav-item" data-view="history">◷ <span>Minhas buscas</span></button>
+        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+      </nav>
+      <div class="sidebar-note">A busca prioriza leitura. Não substitui avaliação metodológica nem decisão clínica.</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar"><div><h1 id="pageTitle">Buscar evidências</h1><p id="pageSubtitle">Faça uma pergunta. O NutEV consulta múltiplas fontes, deduplica e prioriza as referências.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
+
+      <section id="searchView" class="view">
+        <div class="hero card">
+          <label for="question">Qual evidência você quer encontrar?</label>
+          <textarea id="question" rows="4" placeholder="Ex.: Qual a evidência sobre padrões alimentares mediterrâneos e risco cardiovascular em adultos?"></textarea>
+          <details class="advanced">
+            <summary>Opções avançadas</summary>
+            <div class="provider-grid" id="providerGrid"></div>
+            <div class="controls-row">
+              <label>Por fonte <input id="perProvider" type="number" min="1" max="100" value="25"></label>
+              <label>Exibir até <input id="maxResults" type="number" min="1" max="300" value="100"></label>
+            </div>
+          </details>
+          <div class="search-actions"><button id="searchBtn" class="primary">Buscar evidências</button><span id="searchHint">6 fontes conectadas no modo web</span></div>
+        </div>
+
+        <div id="searchState" class="hidden"></div>
+        <section id="summary" class="hidden"></section>
+        <section id="results" class="results"></section>
+      </section>
+
+      <section id="historyView" class="view hidden">
+        <div class="card"><div class="section-head"><div><h2>Minhas buscas</h2><p>Histórico salvo neste navegador.</p></div><button id="clearHistory" class="ghost">Limpar histórico</button></div><div id="historyList"></div></div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
