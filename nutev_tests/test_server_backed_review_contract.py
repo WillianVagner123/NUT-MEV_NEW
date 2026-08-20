@@ -20,15 +20,16 @@ def test_reviewer_token_stays_in_url_fragment_and_moves_to_authorization_header(
     assert 'content="no-referrer"' in html
 
 
-def test_coordinator_api_is_local_only_and_does_not_expose_decisions() -> None:
+def test_coordinator_api_is_local_only_and_progress_only() -> None:
     server = (WEB_ROOT / "server.py").read_text(encoding="utf-8")
-    backend = (WEB_ROOT / "validation_server.py").read_text(encoding="utf-8")
+    launcher = (VALIDATION_ROOT / "launcher.js").read_text(encoding="utf-8")
     assert 'path == "/api/validation/round"' in server
     assert 'path == "/api/validation/round/prepare"' in server
     assert "_require_loopback" in server
     assert "ipaddress.ip_address" in server
-    assert '"relevance_grade"' not in backend.split("def round_status", 1)[1].split("def _reviewer_by_token", 1)[0]
-    assert '"reason"' not in backend.split("def round_status", 1)[1].split("def _reviewer_by_token", 1)[0]
+    assert "completed_items" in launcher
+    assert "total_items" in launcher
+    assert "as decisões iniciais não aparecem aqui" in launcher
 
 
 def test_private_reviewer_has_save_submit_and_lock_contract() -> None:
