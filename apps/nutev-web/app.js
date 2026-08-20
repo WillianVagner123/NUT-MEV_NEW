@@ -13,7 +13,9 @@ async function init(){
   $('#refreshHistory').onclick=renderHistory;
   try{const [health,providers]=await Promise.all([fetch('/api/health').then(r=>r.json()),fetch('/api/providers').then(r=>r.json())]);$('#health').textContent=health.status==='ok'?'engine conectado':'engine indisponível';$('#health').classList.add(health.status==='ok'?'ok':'bad');state.providers=providers.providers||[];renderProviders()}catch(e){$('#health').textContent='engine indisponível';$('#health').classList.add('bad');$('#searchBtn').disabled=true}
   $('#searchBtn').onclick=runSearch;
-  const params=new URLSearchParams(location.search);if(params.get('q')){$('#question').value=params.get('q');runSearch()}
+  const params=new URLSearchParams(location.search);
+  if(params.get('view')==='history')switchView('history');
+  if(params.get('q')){$('#question').value=params.get('q');switchView('search');runSearch()}
 }
 function renderProviders(){const root=$('#providerGrid');root.innerHTML=state.providers.map(p=>`<label class="provider-chip"><input type="checkbox" value="${esc(p.id)}" checked> ${esc(p.label)}</label>`).join('');$('#searchHint').textContent=`${state.providers.length} fontes conectadas no modo web`}
 function selectedProviders(){return $$('#providerGrid input:checked').map(x=>x.value)}
