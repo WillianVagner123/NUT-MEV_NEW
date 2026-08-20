@@ -1,0 +1,35 @@
+{
+  "artifact_type": "NUTEV_BENCHMARK_QUESTION_SET_FREEZE",
+  "declared_human_approver_counts": {
+    "WillianVagner123": 22
+  },
+  "human_approval_required": true,
+  "minimum_external_questions_required": 12,
+  "minimum_outside_historical_focus_required": 2,
+  "outside_historical_focus_count": 2,
+  "question_count": 22,
+  "questions_path": "validation/data/QUESTIONS.csv",
+  "questions_sha256": "55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589",
+  "sampling_stratum_counts": {
+    "behavior_adherence": 2,
+    "cardiometabolic_prevention": 3,
+    "diabetes": 2,
+    "diet_quality": 1,
+    "dietary_patterns": 2,
+    "food_literacy_cooking": 2,
+    "healthy_aging_candidate": 1,
+    "implementation_models_of_care": 1,
+    "models_of_care": 2,
+    "obesity": 2,
+    "other_domain_candidate": 2,
+    "social_determinants_food_environment": 2
+  },
+  "scientific_boundary": "PASS proves schema, declared approval, split/sample floors and file integrity only. Software cannot verify that a human-approved question is scientifically well-formed, independent of NutEV performance, or representative of the target domain.",
+  "semantic_independence_verified_by_software": false,
+  "split_counts": {
+    "development": 4,
+    "external_test": 12,
+    "validation": 6
+  },
+  "status": "PASS"
+}
