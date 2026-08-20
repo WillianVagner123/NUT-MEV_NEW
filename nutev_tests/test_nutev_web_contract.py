@@ -3,6 +3,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = REPO_ROOT / "apps" / "nutev-web"
+VALIDATION_ROOT = REPO_ROOT / "apps" / "nutev-validation"
 
 
 def test_web_app_exposes_search_and_validation_without_csv_ui() -> None:
@@ -63,8 +64,27 @@ def test_web_history_uses_persisted_engine_runs() -> None:
     assert 'path == "/api/searches"' in server
     assert 'path.startswith("/api/searches/")' in server
     assert "fetch('/api/searches?limit=50')" in app
+    assert "params.get('view')==='history'" in app
     assert "localStorage" not in app
     assert "Runs persistidos pelo NutEV Evidence Engine" in index
+
+
+def test_validation_entry_uses_same_product_navigation_and_hides_technical_first_step() -> None:
+    launcher = (VALIDATION_ROOT / "launcher.js").read_text(encoding="utf-8")
+    index = (VALIDATION_ROOT / "index.html").read_text(encoding="utf-8")
+    shell_css = (VALIDATION_ROOT / "unified-shell.css").read_text(encoding="utf-8")
+    assert "Buscar evidências" in launcher
+    assert "Minhas buscas" in launcher
+    assert "Validação científica" in launcher
+    assert "Avaliação A/B" in launcher
+    assert "Adjudicação" in launcher
+    assert "Resultado" in launcher
+    assert "Abrir avaliação cega" in launcher
+    assert "Configuração avançada" in launcher
+    assert "CSV" not in launcher
+    assert "MVP" not in launcher
+    assert "unified-shell.css" in index
+    assert ".unified-shell" in shell_css
 
 
 def test_progressive_job_api_keeps_synchronous_search_compatibility() -> None:
