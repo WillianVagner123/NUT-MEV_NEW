@@ -17,6 +17,18 @@ The landing page offers **Local blind mode** and the future **Online multi-user 
 - exports the completed assessor CSV in the benchmark packet schema;
 - can export a local JSON backup of the session.
 
+## Safe demo included in Git
+
+A fully synthetic demo is committed under `apps/nutev-validation/demo/` so the interface can be tested without exposing any benchmark reference:
+
+- `demo/QUESTIONS_DEMO.csv`;
+- `demo/DEMO_MANIFEST.json`;
+- `demo/ASSESSOR_demo.csv`.
+
+Every demo row is marked `SYNTHETIC_DEMO_NOT_BENCHMARK_EVIDENCE`. These files are for UI/usability testing only and must never be merged into human validation evidence.
+
+The real assessor packets and completed decisions are intentionally **not versioned**. `.gitignore` blocks the canonical private-output patterns to reduce accidental publication risk.
+
 ## Scientific boundary
 
 Local mode is **not a replacement for independent custody**. For real blinded assessment:
