@@ -5,6 +5,7 @@ import copy
 from datetime import datetime
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import ipaddress
 import json
 from pathlib import Path
 import sys
@@ -28,6 +29,13 @@ from search_adapter import (
     search_evidence,
 )
 from validation_readiness import get_validation_readiness
+from validation_server import (
+    prepare_round,
+    reviewer_payload,
+    round_status,
+    save_decision,
+    submit_reviewer,
+)
 
 MAX_BODY_BYTES = 32 * 1024
 MAX_SEARCH_JOBS = 100
@@ -203,11 +211,11 @@ def _load_search_job(job_id: str) -> dict[str, object]:
 
 
 class NutEVHandler(SimpleHTTPRequestHandler):
-    server_version = "NutEVWeb/0.4"
+    server_version = "NutEVWeb/0.5"
 
     def end_headers(self) -> None:
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "SAMEORIGIN")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         super().end_headers()
@@ -216,6 +224,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
         data = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -237,6 +246,26 @@ class NutEVHandler(SimpleHTTPRequestHandler):
             raise ValueError("JSON precisa ser um objeto")
         return value
 
+    def _is_loopback(self) -> bool:
+        try:
+            return ipaddress.ip_address(self.client_address[0]).is_loopback
+        except ValueError:
+            return False
+
+    def _require_loopback(self) -> bool:
+        if self._is_loopback():
+            return True
+        self._json(
+            {"error": "coordinator_local_only", "message": "A coordenação da rodada só pode ser feita no navegador local do servidor."},
+            HTTPStatus.FORBIDDEN,
+        )
+        return False
+
+    def _bearer(self) -> str:
+        header = self.headers.get("Authorization", "")
+        prefix = "Bearer "
+        return header[len(prefix):].strip() if header.startswith(prefix) else ""
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path
@@ -247,11 +276,26 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "service": "nutev-web",
                     "validation_available": VALIDATION_ROOT.is_dir(),
                     "progressive_search": True,
+                    "server_backed_blind_review": True,
                 }
             )
             return
         if path == "/api/validation/readiness":
             self._json(get_validation_readiness())
+            return
+        if path == "/api/validation/round":
+            if not self._require_loopback():
+                return
+            try:
+                self._json(round_status())
+            except FileNotFoundError:
+                self._json({"error": "validation_round_not_prepared"}, HTTPStatus.NOT_FOUND)
+            return
+        if path == "/api/validation/reviewer":
+            try:
+                self._json(reviewer_payload(self._bearer()))
+            except PermissionError as exc:
+                self._json({"error": "invalid_private_link", "message": str(exc)}, HTTPStatus.UNAUTHORIZED)
             return
         if path == "/api/providers":
             self._json(
@@ -289,6 +333,28 @@ class NutEVHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+        if path == "/api/validation/round/prepare":
+            if not self._require_loopback():
+                return
+            try:
+                self._read_json()
+                self._json(prepare_round(), HTTPStatus.CREATED)
+            except ValueError as exc:
+                self._json({"error": "validation_round_not_ready", "message": str(exc)}, HTTPStatus.CONFLICT)
+            except Exception as exc:
+                self._json({"error": "validation_round_prepare_failed", "message": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if path in {"/api/validation/reviewer/save", "/api/validation/reviewer/submit"}:
+            try:
+                payload = self._read_json()
+                token = self._bearer()
+                result = save_decision(token, payload) if path.endswith("/save") else submit_reviewer(token)
+                self._json(result)
+            except PermissionError as exc:
+                self._json({"error": "invalid_private_link", "message": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            except ValueError as exc:
+                self._json({"error": "invalid_assessment", "message": str(exc)}, HTTPStatus.CONFLICT)
+            return
         if path not in {"/api/search", "/api/search/jobs"}:
             self._json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
             return
