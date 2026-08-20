@@ -10,17 +10,22 @@ def test_web_app_exposes_search_and_validation_without_csv_ui() -> None:
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
     assert "Buscar evidências" in index
     assert "/validation/" in index
-    assert "/api/search" in app
+    assert "/api/search/jobs" in app
     for forbidden in (".csv", "upload csv", "importar csv"):
         assert forbidden not in index.casefold()
 
 
 def test_web_search_reuses_canonical_engine_primitives_and_latin_pipeline() -> None:
     adapter = (WEB_ROOT / "search_adapter.py").read_text(encoding="utf-8")
+    progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
     assert "dedupe_records" in adapter
     assert "score_record" in adapter
     assert "load_canonical_taxonomy" in adapter
     assert "run_latin_sources" in adapter
+    assert "_provider_call" in progressive
+    assert "_latin_rows_and_status" in progressive
+    assert "_score_rows" in progressive
+    assert "_persist_search" in progressive
     for provider in (
         "pubmed",
         "europepmc",
@@ -38,10 +43,13 @@ def test_web_search_reuses_canonical_engine_primitives_and_latin_pipeline() -> N
 
 def test_provider_failures_are_explicit_and_network_disable_is_fail_closed() -> None:
     adapter = (WEB_ROOT / "search_adapter.py").read_text(encoding="utf-8")
+    progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
     assert 'status = "failed"' in adapter
     assert '"network_disabled"' in adapter
     assert "COMPLETE_WITH_PROVIDER_GAPS" in adapter
     assert '"unavailable_providers"' in adapter
+    assert '"network_disabled"' in progressive
+    assert "COMPLETE_WITH_PROVIDER_GAPS" in progressive
 
 
 def test_web_history_uses_persisted_engine_runs() -> None:
@@ -57,6 +65,20 @@ def test_web_history_uses_persisted_engine_runs() -> None:
     assert "fetch('/api/searches?limit=50')" in app
     assert "localStorage" not in app
     assert "Runs persistidos pelo NutEV Evidence Engine" in index
+
+
+def test_progressive_job_api_keeps_synchronous_search_compatibility() -> None:
+    server = (WEB_ROOT / "server.py").read_text(encoding="utf-8")
+    app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
+    assert '"/api/search/jobs"' in server
+    assert 'path.startswith("/api/search/jobs/")' in server
+    assert "threading.Thread" in server
+    assert "search_evidence_progressive" in server
+    assert '"/api/search"' in server
+    assert "search_evidence(" in server
+    assert "pollSearchJob" in app
+    assert "setTimeout" in app
+    assert "completed_providers" in app
 
 
 def test_server_adds_basic_security_headers() -> None:
