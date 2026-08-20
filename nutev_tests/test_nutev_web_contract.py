@@ -77,9 +77,9 @@ def test_validation_entry_uses_same_product_navigation_and_hides_technical_first
     assert "Minhas buscas" in launcher
     assert "Validação científica" in launcher
     assert "Avaliação A/B" in launcher
-    assert "Adjudicação" in launcher
+    assert "Adjudicar" in launcher
     assert "Resultado" in launcher
-    assert "Abrir avaliação cega" in launcher
+    assert "Preparar rodada científica" in launcher
     assert "Configuração avançada" in launcher
     assert "CSV" not in launcher
     assert "MVP" not in launcher
@@ -97,8 +97,8 @@ def test_validation_readiness_is_server_verified_and_visible_without_file_ui() -
     assert "PROHIBITED_PACKET_COLUMNS" in readiness
     assert "pre-existing grade" in readiness
     assert "fetch('/api/validation/readiness'" in launcher
-    assert "rodada pronta" in launcher
-    assert "aguardando preparação" in launcher
+    assert "rodada científica verificada" in launcher
+    assert "aguardando materiais privados" in launcher
 
 
 def test_progressive_job_api_keeps_synchronous_search_compatibility() -> None:
