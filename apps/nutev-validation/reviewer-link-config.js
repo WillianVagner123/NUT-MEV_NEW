@@ -70,6 +70,24 @@ function rewritePrivateLinks(base) {
   return changed
 }
 
+function updateCopyButtons(base) {
+  const blocked = !base && isLocalOnlyHost(location.hostname)
+  document.querySelectorAll('.copy-link[data-link]').forEach(button => {
+    if (blocked) {
+      if (!button.dataset.reviewOriginalLabel) button.dataset.reviewOriginalLabel = button.textContent || 'Copiar link privado'
+      button.dataset.reviewLinkBlocked = 'true'
+      button.disabled = true
+      button.textContent = 'Configure endereço primeiro'
+      return
+    }
+    if (button.dataset.reviewLinkBlocked === 'true') {
+      button.disabled = false
+      button.textContent = button.dataset.reviewOriginalLabel || 'Copiar link privado'
+      delete button.dataset.reviewLinkBlocked
+    }
+  })
+}
+
 function panelHtml(base) {
   const needsAddress = !base
   const defaultHint = isLocalOnlyHost(location.hostname)
@@ -78,11 +96,11 @@ function panelHtml(base) {
   return `<section class="card" id="${REVIEW_PANEL_ID}" data-review-base-state="${reviewEsc(base || 'missing')}" style="margin-top:1rem">
     <div class="section-head"><div><span class="eyebrow">acesso dos avaliadores</span><h2>Endereço dos avaliadores</h2></div><span class="badge ${needsAddress ? 'warn' : 'success'}">${needsAddress ? 'configurar' : 'pronto'}</span></div>
     <p>${reviewEsc(defaultHint)}</p>
-    ${base ? `<div class="notice success"><strong>Links privados usarão:</strong> <code>${reviewEsc(base)}</code></div>` : '<div class="notice warn"><strong>Os links ainda apontariam para localhost/0.0.0.0.</strong> Configure um endereço acessível antes de enviá-los.</div>'}
+    ${base ? `<div class="notice success"><strong>Links privados usarão:</strong> <code>${reviewEsc(base)}</code></div>` : '<div class="notice warn"><strong>Os links ainda apontariam para localhost/0.0.0.0.</strong> Configure um endereço acessível antes de enviá-los. Os botões de cópia ficam bloqueados até isso ser resolvido.</div>'}
     <div class="actions" style="margin-top:.8rem;align-items:center;flex-wrap:wrap">
       <input id="reviewerBaseInput" type="url" inputmode="url" autocomplete="off" spellcheck="false" value="${reviewEsc(base)}" placeholder="http://192.168.1.50:8765" style="min-width:min(100%,28rem);flex:1" />
       <button class="btn primary" id="saveReviewerBase">Salvar endereço</button>
-      ${base ? '<button class="btn" id="clearReviewerBase">Usar endereço atual</button>' : ''}
+      ${base ? '<button class="btn" id="clearReviewerBase">Limpar configuração</button>' : ''}
     </div>
     <p class="small muted" style="margin-top:.55rem">Somente a URL base é salva no navegador. Os tokens continuam individuais e ficam no fragmento <code>#token=...</code>, que não é enviado nos logs HTTP.</p>
   </section>`
@@ -125,6 +143,7 @@ function renderReviewerLinkConfig() {
   try {
     const base = storedReviewerBase()
     rewritePrivateLinks(base)
+    updateCopyButtons(base)
     insertPanel(base)
   } finally {
     renderingReviewerLinks = false
