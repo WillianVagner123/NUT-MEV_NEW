@@ -38,7 +38,7 @@ def test_validation_decision_ui_never_offers_manual_scientific_choice() -> None:
 def test_validation_decision_ui_is_idempotent_across_main_panel_rerenders() -> None:
     script = (VALIDATION_ROOT / "decision-ui.js").read_text(encoding="utf-8")
     assert "data-decision-state" in script
-    assert "currentState === desiredState" in script
+    assert "existing?.dataset.decisionState === desiredState" in script
     assert "MutationObserver" in script
     assert "renderingDecision" in script
 
