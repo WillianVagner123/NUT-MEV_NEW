@@ -30,6 +30,7 @@ build/
 
 # private human-validation artifacts: never publish blinded packets/decisions
 validation/data/validation_assessor_packets/
+validation/data/validation_coordinator_audit/
 apps/nutev-validation/private-review-output/
 NutEV_Validation_assessor_*_PRIVATE.zip
 ASSESSOR_assessor_*_completed.csv
