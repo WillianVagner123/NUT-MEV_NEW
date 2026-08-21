@@ -33,6 +33,7 @@ from validation_adjudication import (
     finalize_adjudication,
     save_adjudication,
 )
+from validation_decision import decision_status, lock_validation_decision
 from validation_gold import build_and_validate_gold, gold_status
 from validation_metrics import metrics_status, run_validation_metrics
 from validation_readiness import get_validation_readiness
@@ -218,7 +219,7 @@ def _load_search_job(job_id: str) -> dict[str, object]:
 
 
 class NutEVHandler(SimpleHTTPRequestHandler):
-    server_version = "NutEVWeb/0.8"
+    server_version = "NutEVWeb/0.9"
 
     def end_headers(self) -> None:
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -265,7 +266,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
         self._json(
             {
                 "error": "coordinator_local_only",
-                "message": "A coordenação, adjudicação, gold e métricas só podem ser executados no navegador local do servidor.",
+                "message": "A coordenação, adjudicação, gold, métricas e lock de decisão só podem ser executados no navegador local do servidor.",
             },
             HTTPStatus.FORBIDDEN,
         )
@@ -290,6 +291,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "human_adjudication": True,
                     "canonical_gold_validation": True,
                     "validation_metrics_gate": True,
+                    "validation_decision_lock": True,
                 }
             )
             return
@@ -333,6 +335,16 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 self._json({"error": "validation_round_not_prepared", "message": str(exc)}, HTTPStatus.NOT_FOUND)
             except ValueError as exc:
                 self._json({"error": "metrics_status_invalid", "message": str(exc)}, HTTPStatus.CONFLICT)
+            return
+        if path == "/api/validation/decision":
+            if not self._require_loopback():
+                return
+            try:
+                self._json(decision_status())
+            except FileNotFoundError as exc:
+                self._json({"error": "validation_round_not_prepared", "message": str(exc)}, HTTPStatus.NOT_FOUND)
+            except ValueError as exc:
+                self._json({"error": "decision_status_invalid", "message": str(exc)}, HTTPStatus.CONFLICT)
             return
         if path == "/api/validation/reviewer":
             try:
@@ -422,6 +434,19 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 self._json({"error": "validation_metrics_blocked", "message": str(exc)}, HTTPStatus.CONFLICT)
             except Exception as exc:
                 self._json({"error": "validation_metrics_failed", "message": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if path == "/api/validation/decision/lock":
+            if not self._require_loopback():
+                return
+            try:
+                self._read_json()
+                self._json(lock_validation_decision(), HTTPStatus.CREATED)
+            except FileNotFoundError as exc:
+                self._json({"error": "validation_decision_source_missing", "message": str(exc)}, HTTPStatus.NOT_FOUND)
+            except ValueError as exc:
+                self._json({"error": "validation_decision_blocked", "message": str(exc)}, HTTPStatus.CONFLICT)
+            except Exception as exc:
+                self._json({"error": "validation_decision_failed", "message": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
         if path in {"/api/validation/reviewer/save", "/api/validation/reviewer/submit"}:
             try:
