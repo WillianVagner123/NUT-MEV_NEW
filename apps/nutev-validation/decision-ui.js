@@ -30,7 +30,7 @@ function updateRoundBadge(status) {
 }
 
 function unlockedHtml() {
-  return `<section class="card" id="${DECISION_PANEL_ID}" style="margin-top:1rem">
+  return `<section class="card" id="${DECISION_PANEL_ID}" data-decision-state="pending" style="margin-top:1rem">
     <div class="section-head"><div><span class="eyebrow">lock pré-external</span><h2>Bloquear decisão de validation</h2></div><span class="badge">pendente</span></div>
     <p>A decisão não será escolhida manualmente. O NutEV verificará novamente hashes, gold PASS, par primário, split e o resultado da comparação pré-especificada.</p>
     <div class="notice"><strong>Regra determinística:</strong> <code>CONTINUATION_CRITERIA_PASS</code> → <code>CONTINUE_TO_EXTERNAL</code>; <code>CONTINUATION_CRITERIA_FAIL</code> → <code>STOP_AT_B</code>.</div>
@@ -41,7 +41,7 @@ function unlockedHtml() {
 
 function lockedHtml(decision) {
   const continueExternal = decision.decision === 'CONTINUE_TO_EXTERNAL'
-  return `<section class="card" id="${DECISION_PANEL_ID}" style="margin-top:1rem">
+  return `<section class="card" id="${DECISION_PANEL_ID}" data-decision-state="locked:${decisionEsc(decision.decision)}" style="margin-top:1rem">
     <div class="section-head"><div><span class="eyebrow">decisão de validation bloqueada</span><h2>${continueExternal ? 'CONTINUE_TO_EXTERNAL' : 'STOP_AT_B'}</h2></div><span class="badge ${continueExternal ? 'success' : 'danger'}">LOCKED</span></div>
     <div class="notice ${continueExternal ? 'success' : 'danger'}"><strong>${continueExternal ? 'Os critérios pré-especificados permitem avançar para a etapa externa.' : 'O candidato permanece em B — DEMOTE neste ciclo.'}</strong></div>
     <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:1rem">
@@ -59,6 +59,7 @@ async function lockDecision(button) {
   button.textContent = 'Verificando e bloqueando…'
   try {
     await decisionApi('/api/validation/decision/lock', { method:'POST', body:'{}' })
+    document.querySelector(`#${DECISION_PANEL_ID}`)?.remove()
     await renderDecisionPanel()
   } catch (error) {
     alert(error.message || String(error))
@@ -77,10 +78,19 @@ async function renderDecisionPanel() {
     if (!roundResponse.ok) return
     const round = await roundResponse.json()
     const relevant = ['validation_metrics_complete','validation_decision_continue','validation_decision_stop'].includes(round.status)
-    document.querySelector(`#${DECISION_PANEL_ID}`)?.remove()
-    if (!relevant) return
+    const existing = document.querySelector(`#${DECISION_PANEL_ID}`)
+    if (!relevant) {
+      existing?.remove()
+      return
+    }
 
     const decision = await decisionApi('/api/validation/decision')
+    const desiredState = decision.locked ? `locked:${decision.decision}` : 'pending'
+    if (existing?.dataset.decisionState === desiredState) {
+      if (decision.locked) updateRoundBadge(round.status)
+      return
+    }
+    existing?.remove()
     if (decision.locked) {
       roundPanel.insertAdjacentHTML('beforeend', lockedHtml(decision))
       updateRoundBadge(round.status)
@@ -91,7 +101,7 @@ async function renderDecisionPanel() {
       document.querySelector('#lockValidationDecision')?.addEventListener('click', event => lockDecision(event.currentTarget))
     }
   } catch {
-    // The decision layer is supplementary; the main validation panel remains usable.
+    // Supplementary layer: the main validation panel remains usable if this check fails.
   } finally {
     renderingDecision = false
   }
