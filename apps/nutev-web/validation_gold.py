@@ -179,13 +179,13 @@ def _build_rows(
                     "relevance_grade": int(item["relevance_grade"]),
                     "reason": str(item.get("reason") or ""),
                     "decision_timestamp": str(item.get("decision_timestamp") or ""),
-                    "blind_to_nutev": "true" if bool(item.get("blind_to_nutev", 1)) else "false",
+                    "blind_to_nutev": "true",
                     "doi": str(item.get("doi") or ""),
                     "pmid": str(item.get("pmid") or ""),
                     "pmcid": str(item.get("pmcid") or ""),
                     "url": str(item.get("url") or ""),
                     "title": str(item.get("title") or ""),
-                    "notes": str(item.get("notes") or ""),
+                    "notes": "",
                 }
             )
 
@@ -308,6 +308,15 @@ def build_and_validate_gold(
             return gold_status(repo_root=root, db_path=path, round_id=rid)
         if status != "adjudication_complete":
             raise ValueError("O gold standard só pode ser construído após a adjudicação completa.")
+
+        blind_broken = conn.execute(
+            "SELECT COUNT(*) AS n FROM validation_assignments WHERE round_id = ? AND blind_to_nutev != 1",
+            (rid,),
+        ).fetchone()
+        if int(blind_broken["n"] or 0):
+            raise ValueError(
+                "Estado de cegamento inválido detectado após o lock; o gold standard foi bloqueado."
+            )
 
         validation_question_ids = set(_questions(root))
         grouped = _group_locked_rows(_locked_assessments(conn, rid), validation_question_ids)
