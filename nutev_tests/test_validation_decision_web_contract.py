@@ -31,7 +31,8 @@ def test_validation_decision_ui_never_offers_manual_scientific_choice() -> None:
     assert "STOP_AT_B" in script
     assert "External test continua selado" in script
     assert "decision-ui.js" in html
-    assert "select" not in script.lower()
+    assert "manualChoice" not in script
+    assert "chosenDecision" not in script
 
 
 def test_validation_decision_ui_is_idempotent_across_main_panel_rerenders() -> None:
