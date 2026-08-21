@@ -23,6 +23,16 @@ Para permitir que avaliadores em outros computadores da mesma rede local abram s
 python apps/nutev-web/server.py --host 0.0.0.0
 ```
 
+A coordenação pode continuar aberta em `http://127.0.0.1:8765/validation/`. Depois de preparar a rodada, a própria tela mostra **Endereço dos avaliadores**. Informe ali o endereço que os outros computadores conseguem abrir, por exemplo:
+
+```text
+http://192.168.1.50:8765
+```
+
+A interface salva somente essa URL base no navegador e reescreve os botões **Copiar link privado**. O token individual continua no fragmento `#token=...`, que não é enviado ao servidor como parte da requisição HTTP.
+
+Se a página de coordenação já estiver aberta por um hostname/IP não local, o sistema usa automaticamente a origem atual como endereço dos avaliadores. A URL configurada pode ser alterada ou removida na própria tela.
+
 A coordenação científica continua protegida pelo servidor: endpoints de preparo, adjudicação, gold, métricas e lock da decisão aceitam somente requisições originadas da própria máquina do servidor. Os links dos avaliadores podem ser acessados remotamente na rede, mas cada avaliador recebe apenas o próprio token.
 
 > Não exponha diretamente esse servidor HTTP à internet pública. Para uso fora da rede local, use uma camada HTTPS/autenticada administrada pela instituição. O backend multiusuário dedicado continua separado deste fluxo local.
