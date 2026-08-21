@@ -51,4 +51,4 @@ def test_metrics_service_never_releases_external_test_or_claims_final_promotion(
     assert '"external_test_released": False' in service
     assert '"decision_locked": False' in service
     assert "C — SCIENTIFIC_CANDIDATE" not in launcher
-    assert "external_test_released": True not in launcher
+    assert '"external_test_released": True' not in service
