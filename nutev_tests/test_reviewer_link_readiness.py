@@ -48,6 +48,15 @@ def test_loopback_coordinator_requires_explicit_reviewer_address() -> None:
     assert "Os links ainda apontariam para localhost/0.0.0.0" in script
 
 
+def test_loopback_copy_buttons_are_blocked_until_reviewer_address_is_ready() -> None:
+    script = (VALIDATION_ROOT / "reviewer-link-config.js").read_text(encoding="utf-8")
+    assert "function updateCopyButtons(base)" in script
+    assert "button.disabled = true" in script
+    assert "Configure endereço primeiro" in script
+    assert "button.disabled = false" in script
+    assert "updateCopyButtons(base)" in script
+
+
 def test_reviewer_link_panel_is_idempotent_across_launcher_rerenders() -> None:
     script = (VALIDATION_ROOT / "reviewer-link-config.js").read_text(encoding="utf-8")
     assert "data-review-base-state" in script
