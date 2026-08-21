@@ -1,121 +1,226 @@
-# NutEV Validation MVP
+# NutEV Validation
 
-A lightweight, Rayyan-like web interface for the **blinded human relevance assessment** phase of the NutEV scientific validation benchmark.
+Interface web do **fluxo humano cego de validação científica** do NutEV Evidence Engine.
 
-This app is intentionally separate from the Reference Engine runtime. It does **not** calculate NutEV scores, rankings, benchmark metrics, or relevance labels automatically.
+O caminho operacional canônico não exige que avaliadores carreguem, editem ou exportem CSVs. O coordenador prepara a rodada no site, distribui dois links privados, acompanha apenas o progresso, conduz a adjudicação, valida o gold standard, calcula a etapa `validation` e bloqueia a decisão pré-especificada.
 
-## What the MVP does
+O sistema permanece cientificamente em:
 
-- passwordless/magic-link login through Supabase Auth;
-- separate roles: `assessor`, `admin`, `adjudicator`;
-- RLS-enforced assessor isolation;
-- one-reference-at-a-time review with `0 / 1 / 2` relevance grades;
-- mandatory reason, timestamp, review-later flag, keyboard shortcuts and progress;
-- browser-side packet validation that rejects score/rank/taxonomy/system fields;
-- admin import of the canonical `QUESTIONS.csv` plus two assessor-safe packet CSVs;
-- transition guard from `assessment` to `adjudication` only after all blinded decisions are complete;
-- conflict-only adjudication;
-- export of `VALIDATION_ASSESSMENTS.csv` and `VALIDATION_GOLD_STANDARD.csv` in schemas compatible with `tools/validate_gold_standard.py`;
-- hard MVP boundary: only `split = validation` is accepted. External-test data stays out of this application round.
-
-## Scientific guardrails
-
-The application must never receive the segregated audit artifact or benchmark rankings during initial assessment. Upload only the assessor-safe files:
-
-- `ASSESSOR_assessor_A.csv`
-- `ASSESSOR_assessor_B.csv`
-- `VALIDATION_ASSESSOR_PACKETS_MANIFEST.json`
-- canonical `validation/data/QUESTIONS.csv`
-
-Do **not** upload or expose:
-
-- `BENCHMARK_RANKINGS.csv`;
-- `VALIDATION_POOL_AUDIT.csv`;
-- NutEV score/rank/taxonomy;
-- system membership/origin;
-- another assessor's completed decisions before the round enters adjudication.
-
-The database RLS policies reinforce this boundary: assessors can select only their own assignment rows; admin/adjudicator raw-decision access is blocked while the round is in `assessment`.
-
-## Backend setup
-
-1. Create a dedicated hosted Supabase project.
-2. Open the SQL Editor and execute `supabase/schema.sql`.
-3. Create/invite the assessor users in Supabase Auth. New users receive role `assessor` automatically.
-4. Create your admin user and promote it once in the SQL Editor:
-
-```sql
-update public.validation_profiles
-set role = 'admin', display_name = 'NutEV Admin'
-where id = '<ADMIN_AUTH_USER_UUID>';
+```text
+B — DEMOTE
 ```
 
-5. If using a separate adjudicator, promote that user similarly:
+até que julgamentos humanos independentes reais sejam concluídos e os critérios pré-registrados sejam satisfeitos. **Prontidão do software não é promoção científica.**
 
-```sql
-update public.validation_profiles
-set role = 'adjudicator', display_name = 'Human Adjudicator'
-where id = '<ADJUDICATOR_AUTH_USER_UUID>';
-```
+## Caminho operacional canônico
 
-6. Configure Auth > URL Configuration with the deployed site URL and redirect URL.
-7. Use a **Publishable key** (`sb_publishable_...`) in the browser. Never use `service_role` or a secret key.
-
-Supabase's current documentation recommends publishable keys for client-side use and notes that legacy `anon` / `service_role` keys remain compatible only during the transition period. Magic-link login uses `signInWithOtp(..., { shouldCreateUser: false })` so unknown e-mails are not silently registered.
-
-## Frontend setup
-
-No build step is required. The app is plain static HTML/CSS/JS with version-pinned browser imports:
-
-- `@supabase/supabase-js@2.112.3`
-- `papaparse@5.6.0`
-
-Serve this directory from any HTTPS static host (Vercel, Netlify, Cloudflare Pages, GitHub Pages, etc.). On first visit, the browser asks for:
-
-- Supabase project URL;
-- Supabase Publishable key.
-
-Those values are stored only in that browser's `localStorage`. The publishable key is not a server secret; data authorization is enforced by RLS.
-
-For local smoke testing:
+Inicie o servidor unificado na raiz do repositório:
 
 ```bash
-cd apps/nutev-validation
-python -m http.server 8080
+python apps/nutev-web/server.py
 ```
 
-Then open `http://localhost:8080`.
+Abra:
 
-## Running the current validation round
+```text
+http://127.0.0.1:8765/validation/
+```
 
-1. Admin creates a round with the frozen candidate SHA and question-set SHA.
-2. Admin selects two distinct users with role `assessor`.
-3. Admin uploads `QUESTIONS.csv`, the assessor-packets manifest, packet A and packet B.
-4. The browser verifies the question-set SHA-256, both packet SHA-256 values, manifest blind/order declarations, and rejects forbidden fields or non-empty decisions.
-5. Import inserts the validation questions, common-pool references and each assessor's independent order, then changes the round to `assessment`.
-6. Assessors work independently. No other assessor decisions are visible.
-7. When both progress counters reach 100%, admin closes assessment. The database refuses the transition if any decision/reason/timestamp is missing or if `blind_to_nutev != true`.
-8. Adjudicator resolves only disagreements.
-9. Round can be locked only after every conflict is resolved.
-10. Export assessments and gold CSVs, then run the repository's canonical validator and metrics tooling outside this web app.
+O fluxo principal é:
 
-## Current benchmark identity
+```text
+PREPARAR RODADA
+    ↓
+AVALIAÇÃO CEGA A / B
+    ↓
+SUBMIT + LOCK INDIVIDUAL
+    ↓
+ADJUDICAÇÃO HUMANA DOS CONFLITOS
+    ↓
+GOLD STANDARD + VALIDATOR CANÔNICO
+    ↓
+MÉTRICAS SOMENTE DO SPLIT validation
+    ↓
+LOCK DA DECISÃO PRÉ-ESPECIFICADA
+```
 
-The UI pre-fills, but does not silently alter, the current frozen identities:
+A decisão de `validation` não é escolhida manualmente:
 
-- candidate runtime: `6aa7a5fe6009776e611ca3e1506486606b05f4f6`
-- questions SHA-256: `55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589`
+```text
+CONTINUATION_CRITERIA_PASS
+    -> CONTINUE_TO_EXTERNAL
 
-Changing either value creates a distinct validation round and should be scientifically documented.
+CONTINUATION_CRITERIA_FAIL
+    -> STOP_AT_B
+```
 
-## Security notes
+O `external_test` continua selado em ambos os casos até uma ação posterior e separada do custodiante.
 
-- Every exposed table has RLS enabled.
-- SQL-created tables receive explicit Data API grants because current Supabase projects may not automatically expose new tables.
-- Authorization roles live in a database table, not user-editable `user_metadata`.
-- The browser never contains a `service_role` / secret key.
-- Assessor update grants are column-limited so reviewer identity/order cannot be reassigned by the client.
-- The app does not persist audit-system fields because they are rejected on import.
-- A role is singular: an admin cannot simultaneously be assigned as an assessor by the provided RLS policy.
+## Avaliadores em outros computadores
 
-This MVP is designed for the current scientific gate, not as a general systematic-review platform yet.
+Para receber conexões da rede local:
+
+```bash
+python apps/nutev-web/server.py --host 0.0.0.0
+```
+
+Mantenha a coordenação aberta localmente e, em **Endereço dos avaliadores**, informe uma URL que os outros computadores consigam abrir, por exemplo:
+
+```text
+http://192.168.1.50:8765
+```
+
+Enquanto esse endereço não estiver configurado em uma sessão de coordenação aberta por `localhost`, `127.0.0.1` ou `0.0.0.0`, os botões **Copiar link privado** ficam bloqueados para impedir o envio acidental de um link inutilizável.
+
+Cada link contém somente o token daquele avaliador em `#token=...`. O fragmento não é enviado ao servidor nos logs HTTP; a página do avaliador o move para o header `Authorization` durante as chamadas de API.
+
+Nunca entregue os dois links à mesma pessoa.
+
+## O que o avaliador vê
+
+Cada avaliador recebe somente:
+
+- pergunta congelada e contexto de elegibilidade;
+- referência cega;
+- título, resumo e metadados bibliográficos permitidos;
+- escala `0 / 1 / 2`;
+- campo de justificativa;
+- opção de revisar depois;
+- progresso e envio final.
+
+O avaliador **não recebe**:
+
+- rank do NutEV;
+- score do NutEV;
+- sistema de origem do item;
+- membership `nutev_full`/baseline;
+- taxonomia usada no ranking;
+- decisão do outro avaliador;
+- audit artifact;
+- resultados do `external_test`.
+
+## Submit e lock
+
+O envio final exige:
+
+- todos os itens julgados;
+- justificativa em todos os itens;
+- timestamp de decisão;
+- `blind_to_nutev = true` em todos os itens.
+
+Depois do envio, as decisões daquele avaliador ficam travadas.
+
+Quando os dois avaliadores terminam, a rodada avança para `ready_for_adjudication`.
+
+## Adjudicação
+
+A tela de adjudicação mostra **somente discordâncias**.
+
+- concordâncias não são reabertas;
+- nenhum algoritmo seleciona a nota vencedora;
+- cada conflito exige nota humana final `0/1/2`;
+- exige identificação do adjudicador e timestamp;
+- a decisão é armazenada separadamente dos julgamentos brutos A/B.
+
+## Gold standard
+
+Após a adjudicação completa, o servidor gera internamente os artefatos canônicos e chama diretamente:
+
+```text
+tools/validate_gold_standard.py
+```
+
+O fluxo só avança se o validator retornar `PASS` e confirmar cobertura completa e pelo menos dois avaliadores por referência.
+
+`PASS` nessa etapa significa **completude e coerência processual**, não que os julgamentos humanos sejam cientificamente corretos e não que o NutEV tenha desempenho superior.
+
+## Métricas de validation
+
+Depois de `gold_validated`, os rankings label-blind de coordenação são lidos de uma área privada e ignorada pelo Git:
+
+```text
+validation/data/validation_coordinator_audit/
+```
+
+ou de `NUTEV_VALIDATION_RANKINGS_DIR`.
+
+Antes de calcular qualquer métrica, o sistema verifica:
+
+- `label_blind_build = true`;
+- `gold_standard_consumed = false`;
+- candidate SHA congelado;
+- SHA das perguntas;
+- SHA dos rankings.
+
+A avaliação é fixada em:
+
+```text
+split = validation
+candidate = nutev_full
+baseline = lexical_baseline
+judged depth = 100
+```
+
+usando as ferramentas canônicas:
+
+```text
+tools/evaluate_scientific_validation.py
+tools/compare_scientific_benchmark.py
+```
+
+Nenhum label ou resultado do `external_test` é consumido nesta etapa.
+
+## Lock da decisão
+
+Após `validation_metrics_complete`, o sistema revalida os hashes de todos os outputs e cria:
+
+```text
+VALIDATION_DECISION.json
+```
+
+A decisão é derivada deterministicamente do gate pré-registrado. O sistema registra explicitamente:
+
+```text
+external_test_released = false
+external_test_labels_consumed = false
+external_test_metrics_calculated = false
+automatic_external_release = false
+```
+
+## Persistência privada
+
+O estado operacional fica em:
+
+```text
+project_output_reference/16_validation_server/
+```
+
+incluindo SQLite e outputs da rodada. Esse caminho é ignorado pelo Git.
+
+Um restart do servidor preserva avaliações salvas, submissões travadas, adjudicação, gold, métricas e decisão bloqueada. Apenas jobs transitórios de busca comum vivem em memória.
+
+## Identidade científica congelada atual
+
+```text
+candidate runtime:
+6aa7a5fe6009776e611ca3e1506486606b05f4f6
+
+questions SHA-256:
+55a0f654e49cb5a9b10249c373df168cac585167a245b828d667c7724fb64589
+```
+
+Mudanças nesses identificadores constituem uma rodada científica diferente e devem ser documentadas.
+
+## Segurança e limites de implantação
+
+O servidor local protege preparo de rodada, adjudicação, gold, métricas e lock da decisão com restrição de loopback. Os endpoints do avaliador são protegidos pelo token individual.
+
+Para uso em LAN, não é necessário Supabase.
+
+**Não exponha diretamente o servidor HTTP local à internet pública.** Para revisão fora da rede local, coloque o sistema atrás de HTTPS/autenticação institucional ou implemente um backend multiusuário dedicado.
+
+## Backend Supabase legado/opcional
+
+Os arquivos `app.js`, `supabase/schema.sql` e a documentação histórica de Supabase permanecem no repositório como **implementação alternativa/legada e base para uma futura implantação multiusuário hospedada**. Eles não são o caminho canônico da rodada atual e não devem ser confundidos com o fluxo site-first servido por `apps/nutev-web/server.py`.
+
+O modo legado nunca deve receber o audit artifact nem qualquer material de `external_test` antes do gate metodológico apropriado.

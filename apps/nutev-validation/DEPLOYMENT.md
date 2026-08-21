@@ -1,51 +1,72 @@
-# Deployment checklist
+# NutEV Validation — deployment and operation
 
-The frontend is static; the backend is Supabase. Deployment should use HTTPS.
+## Canonical current deployment
 
-## 1. Supabase
+The current benchmark round uses the unified NutEV server:
 
-- Create a dedicated project (recommended rather than reusing unrelated production data).
-- Run `supabase/schema.sql` in SQL Editor.
-- Create/invite admin and assessor users.
-- Promote only the admin/adjudicator roles in SQL Editor.
-- In Auth URL Configuration, add the exact deployed origin/path used by the app.
-- Obtain the Project URL and **Publishable key** from the Connect dialog.
-
-## 2. Static hosting
-
-Set the host's publish/root directory to:
-
-```text
-apps/nutev-validation
+```bash
+python apps/nutev-web/server.py
 ```
 
-No build command is required.
+Coordinator URL:
 
-Examples:
+```text
+http://127.0.0.1:8765/validation/
+```
 
-- Vercel: Root Directory `apps/nutev-validation`, Framework Preset `Other`, no build command.
-- Netlify: Publish directory `apps/nutev-validation`, no build command.
-- Cloudflare Pages: output directory `apps/nutev-validation`, no build command.
+For assessors on the same LAN:
 
-The first browser visit asks for Supabase URL + Publishable key. This avoids committing environment-specific configuration to the repository.
+```bash
+python apps/nutev-web/server.py --host 0.0.0.0
+```
 
-## 3. Auth smoke test
+Then configure **Endereço dos avaliadores** in the coordinator page with the reachable LAN/HTTPS origin. Coordinator-only scientific actions remain loopback-restricted.
 
-- Known assessor receives a magic link and can sign in.
-- Unknown e-mail is rejected because `shouldCreateUser=false`.
-- Assessor can see only their own assigned rows.
-- Admin sees progress counts during assessment, but raw assessor grades remain inaccessible until the status becomes `adjudication`.
+Do not expose the raw HTTP server directly to the public internet. Remote/institutional use requires an authenticated HTTPS layer or a dedicated hosted backend.
 
-## 4. Scientific smoke test
+## Canonical smoke test before real judgments
 
-Before real judgments:
+Use only synthetic/non-scientific fixture data for software testing. Confirm:
 
-- use a disposable draft round and tiny synthetic/non-scientific demo packet;
-- verify 0/1/2 + reason + timestamp save correctly;
-- verify assessor A cannot read assessor B assignment rows;
-- verify transition to adjudication fails while any decision is incomplete;
-- verify export headers match `tools/validate_gold_standard.py`;
-- delete the disposable round;
-- only then import the real assessor-safe artifact.
+- `/api/health` responds;
+- the validation page loads;
+- a round cannot prepare when scientific readiness fails;
+- two distinct reviewer sessions are created when readiness passes;
+- localhost reviewer-copy buttons stay blocked until a reachable reviewer base is configured;
+- assessor A cannot use assessor B's token;
+- save/resume works;
+- incomplete assessment cannot be submitted;
+- submitted assessments become immutable;
+- adjudication opens only after both submissions are locked;
+- only conflicts appear in adjudication;
+- gold generation refuses unresolved conflicts or broken blinding;
+- canonical gold validator must return PASS before metrics;
+- metrics are restricted to `split=validation`, `nutev_full` vs `lexical_baseline`, depth 100;
+- decision lock is deterministic and tamper-detecting;
+- `external_test` remains sealed throughout the validation-stage workflow.
 
-Do not use synthetic labels as benchmark evidence. The disposable round is UI testing only.
+Synthetic labels are software-test fixtures only and must never be reported as benchmark evidence.
+
+## Persistence
+
+Private operational state is stored under:
+
+```text
+project_output_reference/16_validation_server/
+```
+
+The directory is ignored by Git. Preserve it when moving or backing up a live validation round.
+
+## Legacy/optional hosted Supabase implementation
+
+The repository still contains an earlier hosted implementation under:
+
+```text
+apps/nutev-validation/supabase/
+```
+
+and browser code in `app.js`.
+
+That path is **not the canonical deployment for the current round**. It remains an optional foundation for a future authenticated multiuser deployment. If it is revived later, it requires a dedicated Supabase project, RLS review, HTTPS hosting, controlled role provisioning and a fresh security audit before real benchmark data are used.
+
+Never place `service_role` or other secret credentials in browser code, and never expose assessor audit/ranking fields or sealed external-test data to initial assessors.
