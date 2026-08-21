@@ -88,8 +88,11 @@ function roundHtml(round, readiness) {
       <div class="actions"><button class="btn primary copy-link" data-link="${esc(link)}">Copiar link privado</button></div>
     </div>`
   }).join('')
-  const allSubmitted = round.status === 'ready_for_adjudication'
-  return `<section class="card"><div class="section-head"><div><span class="eyebrow">rodada ativa</span><h2>Avaliação A/B</h2></div><span class="badge ${allSubmitted ? 'success' : ''}">${allSubmitted ? 'A/B concluídos' : 'em avaliação'}</span></div><p>Distribua cada link somente ao avaliador correspondente. Nunca envie os dois links à mesma pessoa.</p></section><div class="grid two" style="margin-top:1rem">${reviewers}</div>${allSubmitted ? '<div class="notice success" style="margin-top:1rem"><strong>Avaliação inicial concluída.</strong> Os dois envios estão travados. A próxima etapa é adjudicar somente as discordâncias.</div>' : ''}`
+  const adjudicationOpen = ['ready_for_adjudication','adjudicating','adjudication_complete'].includes(round.status)
+  const adjudicationComplete = round.status === 'adjudication_complete'
+  const roundBadge = adjudicationComplete ? 'adjudicação concluída' : adjudicationOpen ? 'A/B concluídos' : 'em avaliação'
+  const action = adjudicationOpen ? `<div class="notice ${adjudicationComplete ? 'success' : ''}" style="margin-top:1rem"><strong>${adjudicationComplete ? 'Adjudicação encerrada.' : 'Avaliação inicial concluída.'}</strong> ${adjudicationComplete ? 'A próxima etapa é construir e validar o gold standard.' : 'Os dois envios estão travados. Agora o adjudicador verá somente as discordâncias.'}<div class="actions" style="margin-top:.7rem"><a class="btn primary" href="/validation/adjudicate.html">${adjudicationComplete ? 'Ver adjudicação' : 'Resolver conflitos'}</a></div></div>` : ''
+  return `<section class="card"><div class="section-head"><div><span class="eyebrow">rodada ativa</span><h2>Avaliação A/B</h2></div><span class="badge ${adjudicationOpen ? 'success' : ''}">${roundBadge}</span></div><p>Distribua cada link somente ao avaliador correspondente. Nunca envie os dois links à mesma pessoa.</p></section><div class="grid two" style="margin-top:1rem">${reviewers}</div>${action}`
 }
 
 async function prepareRound() {
@@ -148,7 +151,7 @@ async function renderChooser() {
   document.querySelector('#legacyLocal')?.addEventListener('click', () => launch('local'))
   document.querySelector('#onlineBtn')?.addEventListener('click', () => launch('online'))
   clearInterval(refreshTimer)
-  if (round && !round.error && round.status !== 'ready_for_adjudication') refreshTimer = setInterval(renderChooser, 5000)
+  if (round && !round.error && round.status === 'assessment') refreshTimer = setInterval(renderChooser, 5000)
 }
 
 const requested = new URL(location.href).searchParams.get('mode')
