@@ -59,6 +59,19 @@ async function loadRound() {
   }
 }
 
+async function loadGold(round) {
+  if (!round || round.error) return null
+  try {
+    const response = await fetch('/api/validation/gold', { cache: 'no-store' })
+    if (response.status === 404) return null
+    const payload = await response.json()
+    if (!response.ok) return { error: payload.message || payload.error || 'gold indisponível' }
+    return payload
+  } catch (error) {
+    return { error: error.message || String(error) }
+  }
+}
+
 function readinessHtml(readiness) {
   const status = readiness.status || 'unavailable'
   const label = status === 'ready' ? 'rodada científica verificada' : status === 'invalid' ? 'rodada inválida' : status === 'waiting_for_private_packets' ? 'aguardando materiais privados' : 'status indisponível'
@@ -71,7 +84,19 @@ function reviewLink(token) {
   return `${location.origin}/validation/review.html#token=${encodeURIComponent(token)}`
 }
 
-function roundHtml(round, readiness) {
+function goldHtml(round, gold) {
+  if (round.status === 'adjudication_complete') {
+    return `<div class="notice" style="margin-top:1rem"><strong>Adjudicação encerrada.</strong> O próximo gate é construir o ledger bruto, o gold final e executar o validator canônico. Nenhuma métrica será calculada nesta etapa.<div class="actions" style="margin-top:.7rem"><button class="btn primary" id="buildGold">Construir e validar gold standard</button><a class="btn" href="/validation/adjudicate.html">Ver adjudicação</a></div></div>`
+  }
+  if (round.status !== 'gold_validated') return ''
+  if (!gold || gold.error || !gold.validated) {
+    return `<div class="notice danger" style="margin-top:1rem"><strong>Gold marcado como validado, mas o relatório canônico não pôde ser confirmado.</strong><div class="small">${esc(gold?.error || 'Relatório ausente ou inconsistente.')}</div></div>`
+  }
+  const agreementPct = gold.raw_exact_agreement_fraction == null ? '—' : `${Math.round(Number(gold.raw_exact_agreement_fraction) * 1000) / 10}%`
+  return `<section class="card" style="margin-top:1rem"><div class="section-head"><div><span class="eyebrow">gate canônico</span><h2>Gold standard validado</h2></div><span class="badge success">PASS</span></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:1rem"><div class="kpi"><strong>${Number(gold.final_labels || 0)}</strong><span>labels finais</span></div><div class="kpi"><strong>${Number(gold.unanimous_groups || 0)}</strong><span>concordâncias</span></div><div class="kpi"><strong>${Number(gold.conflict_groups || 0)}</strong><span>conflitos resolvidos</span></div><div class="kpi"><strong>${agreementPct}</strong><span>acordo bruto</span></div></div><div class="notice success" style="margin-top:1rem"><strong>Cobertura do pool: 100%.</strong> O PASS confirma cobertura, cegamento e consistência da adjudicação. Ainda não confirma desempenho científico do NutEV.</div><div class="notice" style="margin-top:.7rem"><strong>Próxima etapa:</strong> calcular as métricas pré-especificadas da camada <em>validation</em>. O <code>external_test</code> continua selado.</div></section>`
+}
+
+function roundHtml(round, readiness, gold) {
   if (round?.error) return `<section class="card"><h2>Coordenação local</h2><div class="notice warn">${esc(round.error)}</div><p class="muted small">Abra esta tela no navegador da máquina que está executando o NutEV para preparar e acompanhar a rodada. Os links privados dos avaliadores podem ser abertos em outros dispositivos que alcancem este servidor.</p></section>`
   if (!round) {
     return `<section class="card featured"><span class="eyebrow">etapa 1</span><h2>Preparar rodada</h2><p>O NutEV criará automaticamente duas sessões isoladas e os links privados dos avaliadores. Nenhum avaliador precisa carregar arquivos.</p><button class="btn primary" id="prepareRound" ${readiness.ready ? '' : 'disabled'}>Preparar rodada científica</button>${readiness.ready ? '' : '<p class="small muted">O botão será liberado quando a checagem científica acima estiver pronta.</p>'}</section>`
@@ -81,18 +106,15 @@ function roundHtml(round, readiness) {
     const pct = total ? Math.round(done / total * 100) : 0
     const label = reviewer.assessor_id || `Avaliador ${index + 1}`
     const link = reviewLink(reviewer.token)
-    return `<div class="card">
-      <div class="section-head"><div><span class="eyebrow">sessão privada</span><h3>${esc(label)}</h3></div><span class="badge ${reviewer.submitted ? 'success' : ''}">${reviewer.submitted ? 'enviado e travado' : `${pct}%`}</span></div>
-      <div class="progress-wrap"><div class="progress"><span style="width:${pct}%"></span></div><strong>${done}/${total}</strong></div>
-      <p class="small muted">O coordenador acompanha somente progresso e status de envio; as decisões iniciais não aparecem aqui.</p>
-      <div class="actions"><button class="btn primary copy-link" data-link="${esc(link)}">Copiar link privado</button></div>
-    </div>`
+    return `<div class="card"><div class="section-head"><div><span class="eyebrow">sessão privada</span><h3>${esc(label)}</h3></div><span class="badge ${reviewer.submitted ? 'success' : ''}">${reviewer.submitted ? 'enviado e travado' : `${pct}%`}</span></div><div class="progress-wrap"><div class="progress"><span style="width:${pct}%"></span></div><strong>${done}/${total}</strong></div><p class="small muted">O coordenador acompanha somente progresso e status de envio; as decisões iniciais não aparecem aqui.</p><div class="actions"><button class="btn primary copy-link" data-link="${esc(link)}">Copiar link privado</button></div></div>`
   }).join('')
-  const adjudicationOpen = ['ready_for_adjudication','adjudicating','adjudication_complete'].includes(round.status)
+  const adjudicationActive = ['ready_for_adjudication','adjudicating'].includes(round.status)
   const adjudicationComplete = round.status === 'adjudication_complete'
-  const roundBadge = adjudicationComplete ? 'adjudicação concluída' : adjudicationOpen ? 'A/B concluídos' : 'em avaliação'
-  const action = adjudicationOpen ? `<div class="notice ${adjudicationComplete ? 'success' : ''}" style="margin-top:1rem"><strong>${adjudicationComplete ? 'Adjudicação encerrada.' : 'Avaliação inicial concluída.'}</strong> ${adjudicationComplete ? 'A próxima etapa é construir e validar o gold standard.' : 'Os dois envios estão travados. Agora o adjudicador verá somente as discordâncias.'}<div class="actions" style="margin-top:.7rem"><a class="btn primary" href="/validation/adjudicate.html">${adjudicationComplete ? 'Ver adjudicação' : 'Resolver conflitos'}</a></div></div>` : ''
-  return `<section class="card"><div class="section-head"><div><span class="eyebrow">rodada ativa</span><h2>Avaliação A/B</h2></div><span class="badge ${adjudicationOpen ? 'success' : ''}">${roundBadge}</span></div><p>Distribua cada link somente ao avaliador correspondente. Nunca envie os dois links à mesma pessoa.</p></section><div class="grid two" style="margin-top:1rem">${reviewers}</div>${action}`
+  const goldValidated = round.status === 'gold_validated'
+  const completed = adjudicationActive || adjudicationComplete || goldValidated
+  const roundBadge = goldValidated ? 'gold validado' : adjudicationComplete ? 'adjudicação concluída' : adjudicationActive ? 'A/B concluídos' : 'em avaliação'
+  const adjudicationAction = adjudicationActive ? `<div class="notice success" style="margin-top:1rem"><strong>Avaliação inicial concluída.</strong> Os dois envios estão travados. Agora o adjudicador verá somente as discordâncias.<div class="actions" style="margin-top:.7rem"><a class="btn primary" href="/validation/adjudicate.html">Resolver conflitos</a></div></div>` : ''
+  return `<section class="card"><div class="section-head"><div><span class="eyebrow">rodada ativa</span><h2>Avaliação A/B</h2></div><span class="badge ${completed ? 'success' : ''}">${roundBadge}</span></div><p>Distribua cada link somente ao avaliador correspondente. Nunca envie os dois links à mesma pessoa.</p></section><div class="grid two" style="margin-top:1rem">${reviewers}</div>${adjudicationAction}${goldHtml(round, gold)}`
 }
 
 async function prepareRound() {
@@ -109,6 +131,20 @@ async function prepareRound() {
   }
 }
 
+async function buildGold() {
+  const button = document.querySelector('#buildGold')
+  if (button) { button.disabled = true; button.textContent = 'Validando…' }
+  try {
+    const response = await fetch('/api/validation/gold/build', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
+    const payload = await response.json()
+    if (!response.ok) throw new Error(payload.message || payload.error || 'Falha na validação do gold')
+    await renderChooser()
+  } catch (error) {
+    alert(error.message || String(error))
+    if (button) { button.disabled = false; button.textContent = 'Construir e validar gold standard' }
+  }
+}
+
 async function copyPrivateLink(button) {
   const link = button.dataset.link || ''
   try {
@@ -122,31 +158,15 @@ async function copyPrivateLink(button) {
 async function renderChooser() {
   const onlineConfigured = Boolean(localStorage.getItem(ONLINE_CONFIG_KEY))
   const [readiness, round] = await Promise.all([loadReadiness(), loadRound()])
+  const gold = await loadGold(round)
   app.innerHTML = shell(`
-    <section class="card validation-hero">
-      <span class="eyebrow">fluxo científico</span>
-      <h2>Validar o NutEV sem arquivos para o avaliador</h2>
-      <p>O coordenador prepara a rodada uma vez. Cada avaliador recebe um link privado, julga somente o próprio conjunto e envia. Depois entram adjudicação, gold standard e métricas.</p>
-      <div class="status-note"><span class="status-dot"></span><span>O benchmark congelado e o external test continuam separados da busca comum.</span></div>
-      ${readinessHtml(readiness)}
-    </section>
-
-    <section class="validation-flow" aria-label="Etapas da validação científica">
-      <div class="flow-step"><div class="step-number">1</div><strong>Preparar</strong><span>O servidor verifica a rodada e cria dois links privados.</span></div>
-      <div class="flow-step"><div class="step-number">2</div><strong>Avaliar A/B</strong><span>Cada pessoa abre seu link, marca 0/1/2 e justifica.</span></div>
-      <div class="flow-step"><div class="step-number">3</div><strong>Adjudicar</strong><span>Depois dos dois envios travados, somente conflitos são mostrados.</span></div>
-      <div class="flow-step"><div class="step-number">4</div><strong>Resultado</strong><span>Gold validado, métricas calculadas e decisão científica exibida.</span></div>
-    </section>
-
-    <div id="roundPanel">${roundHtml(round, readiness)}</div>
-
-    <details class="technical">
-      <summary>Configuração avançada e contingência</summary>
-      <p>A sessão principal acima salva as decisões no servidor local privado e usa links com tokens que não entram nos logs HTTP. O SQLite fica dentro de <code>project_output_reference</code>, fora do Git. O modo antigo baseado no navegador permanece apenas como contingência. O backend multiusuário dedicado continua adiado.</p>
-      <div class="actions"><button class="btn" id="legacyLocal">Abrir modo local legado</button>${onlineConfigured ? '<button class="btn" id="onlineBtn">Abrir backend multiusuário configurado</button>' : ''}</div>
-    </details>`)
+    <section class="card validation-hero"><span class="eyebrow">fluxo científico</span><h2>Validar o NutEV sem arquivos para o avaliador</h2><p>O coordenador prepara a rodada uma vez. Cada avaliador recebe um link privado, julga somente o próprio conjunto e envia. Depois entram adjudicação, gold standard e métricas.</p><div class="status-note"><span class="status-dot"></span><span>O benchmark congelado e o external test continuam separados da busca comum.</span></div>${readinessHtml(readiness)}</section>
+    <section class="validation-flow" aria-label="Etapas da validação científica"><div class="flow-step"><div class="step-number">1</div><strong>Preparar</strong><span>O servidor verifica a rodada e cria dois links privados.</span></div><div class="flow-step"><div class="step-number">2</div><strong>Avaliar A/B</strong><span>Cada pessoa abre seu link, marca 0/1/2 e justifica.</span></div><div class="flow-step"><div class="step-number">3</div><strong>Adjudicar</strong><span>Depois dos dois envios travados, somente conflitos são mostrados.</span></div><div class="flow-step"><div class="step-number">4</div><strong>Resultado</strong><span>Gold validado, métricas calculadas e decisão científica exibida.</span></div></section>
+    <div id="roundPanel">${roundHtml(round, readiness, gold)}</div>
+    <details class="technical"><summary>Configuração avançada e contingência</summary><p>A sessão principal acima salva as decisões no servidor local privado e usa links com tokens que não entram nos logs HTTP. O SQLite e os artefatos científicos ficam dentro de <code>project_output_reference</code>, fora do Git. O modo antigo baseado no navegador permanece apenas como contingência. O backend multiusuário dedicado continua adiado.</p><div class="actions"><button class="btn" id="legacyLocal">Abrir modo local legado</button>${onlineConfigured ? '<button class="btn" id="onlineBtn">Abrir backend multiusuário configurado</button>' : ''}</div></details>`)
 
   document.querySelector('#prepareRound')?.addEventListener('click', prepareRound)
+  document.querySelector('#buildGold')?.addEventListener('click', buildGold)
   document.querySelectorAll('.copy-link').forEach(button => button.addEventListener('click', () => copyPrivateLink(button)))
   document.querySelector('#legacyLocal')?.addEventListener('click', () => launch('local'))
   document.querySelector('#onlineBtn')?.addEventListener('click', () => launch('online'))
