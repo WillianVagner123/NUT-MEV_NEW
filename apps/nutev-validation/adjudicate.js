@@ -1,6 +1,6 @@
 const root = document.querySelector('#adjudicationApp')
-const ADJUDICATOR_KEY = 'nutev_validation_adjudicator_id_v1'
-const state = { data: null, index: 0, adjudicatorId: localStorage.getItem(ADJUDICATOR_KEY) || '' }
+const ADJUDICATOR_STORAGE_ID = 'nutev_validation_adjudicator_id_v1'
+const state = { data: null, index: 0, adjudicatorId: localStorage.getItem(ADJUDICATOR_STORAGE_ID) || '' }
 
 function esc(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')
@@ -106,7 +106,7 @@ async function save() {
   if (!selected) return alert('Escolha a nota final 0, 1 ou 2.')
   const adjudicatorId = document.querySelector('#adjudicatorId')?.value.trim() || ''
   if (!adjudicatorId) return alert('Identifique o adjudicador humano.')
-  state.adjudicatorId = adjudicatorId; localStorage.setItem(ADJUDICATOR_KEY, adjudicatorId)
+  state.adjudicatorId = adjudicatorId; localStorage.setItem(ADJUDICATOR_STORAGE_ID, adjudicatorId)
   const payload = { question_id: item.question_id, reference_id: item.reference_id, relevance_grade: Number(selected.dataset.grade), adjudicator_id: adjudicatorId, notes: document.querySelector('#adjudicationNotes')?.value.trim() || '' }
   state.data = await api('/api/validation/adjudication/save', { method:'POST', body: JSON.stringify(payload) })
   const next = state.data.conflicts.findIndex(conflict => !conflict.adjudication)
