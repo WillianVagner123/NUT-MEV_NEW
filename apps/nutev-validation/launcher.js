@@ -61,11 +61,26 @@ async function loadRound() {
 
 async function loadGold(round) {
   if (!round || round.error) return null
+  if (!['adjudication_complete','gold_validated','validation_metrics_complete'].includes(round.status)) return null
   try {
     const response = await fetch('/api/validation/gold', { cache: 'no-store' })
     if (response.status === 404) return null
     const payload = await response.json()
     if (!response.ok) return { error: payload.message || payload.error || 'gold indisponível' }
+    return payload
+  } catch (error) {
+    return { error: error.message || String(error) }
+  }
+}
+
+async function loadMetrics(round) {
+  if (!round || round.error) return null
+  if (!['gold_validated','validation_metrics_complete'].includes(round.status)) return null
+  try {
+    const response = await fetch('/api/validation/metrics', { cache: 'no-store' })
+    if (response.status === 404) return null
+    const payload = await response.json()
+    if (!response.ok) return { error: payload.message || payload.error || 'métricas indisponíveis' }
     return payload
   } catch (error) {
     return { error: error.message || String(error) }
@@ -84,19 +99,42 @@ function reviewLink(token) {
   return `${location.origin}/validation/review.html#token=${encodeURIComponent(token)}`
 }
 
-function goldHtml(round, gold) {
+function goldSummary(gold) {
+  if (!gold || gold.error || !gold.validated) return ''
+  const agreementPct = gold.raw_exact_agreement_fraction == null ? '—' : `${Math.round(Number(gold.raw_exact_agreement_fraction) * 1000) / 10}%`
+  return `<div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:1rem"><div class="kpi"><strong>${Number(gold.final_labels || 0)}</strong><span>labels finais</span></div><div class="kpi"><strong>${Number(gold.unanimous_groups || 0)}</strong><span>concordâncias</span></div><div class="kpi"><strong>${Number(gold.conflict_groups || 0)}</strong><span>conflitos resolvidos</span></div><div class="kpi"><strong>${agreementPct}</strong><span>acordo bruto</span></div></div>`
+}
+
+function metricsHtml(round, metrics) {
+  if (!['gold_validated','validation_metrics_complete'].includes(round.status)) return ''
+  if (!metrics || metrics.error) {
+    return `<div class="notice warn" style="margin-top:1rem"><strong>Gate de métricas indisponível.</strong><div class="small">${esc(metrics?.error || 'Não foi possível verificar os rankings privados de coordenação.')}</div></div>`
+  }
+  if (round.status === 'gold_validated' && !metrics.source_ready) {
+    return `<div class="notice" style="margin-top:1rem"><strong>Gold validado; métricas aguardando custódia.</strong><div class="small" style="margin-top:.3rem">${esc(metrics.source_message || 'Os rankings label-blind de coordenação ainda não estão disponíveis.')}</div><div class="small" style="margin-top:.3rem">Esse material contém posição/sistema e permanece fora do alcance dos avaliadores. O <code>external_test</code> continua selado.</div></div>`
+  }
+  if (round.status === 'gold_validated' && metrics.ready) {
+    return `<div class="notice" style="margin-top:1rem"><strong>Pronto para a comparação pré-especificada.</strong><div class="small" style="margin-top:.3rem">Serão avaliados somente <code>validation</code>, <code>nutev_full</code> vs <code>lexical_baseline</code>, com cobertura julgada até 100.</div><div class="actions" style="margin-top:.7rem"><button class="btn primary" id="runMetrics">Calcular métricas da validation</button></div><div class="small muted" style="margin-top:.45rem">Nenhum label ou resultado de <code>external_test</code> será consumido.</div></div>`
+  }
+  if (round.status !== 'validation_metrics_complete' || !metrics.completed) return ''
+  const pass = metrics.validation_continuation_pass === true
+  const medianNdcg = metrics.median_delta_ndcg_at_20 == null ? '—' : Number(metrics.median_delta_ndcg_at_20).toFixed(4)
+  const medianRecall = metrics.median_delta_recall_at_100 == null ? '—' : Number(metrics.median_delta_recall_at_100).toFixed(4)
+  return `<section class="card" style="margin-top:1rem"><div class="section-head"><div><span class="eyebrow">comparison gate · validation</span><h2>${pass ? 'Critérios de continuação atendidos' : 'Critérios de continuação não atendidos'}</h2></div><span class="badge ${pass ? 'success' : 'danger'}">${esc(metrics.validation_evidence_status || (pass ? 'PASS' : 'FAIL'))}</span></div><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-top:1rem"><div class="kpi"><strong>${Number(metrics.questions || 0)}</strong><span>perguntas</span></div><div class="kpi"><strong>${Number(metrics.wins || 0)}</strong><span>wins</span></div><div class="kpi"><strong>${Number(metrics.losses || 0)}</strong><span>losses</span></div><div class="kpi"><strong>${medianNdcg}</strong><span>Δ mediano nDCG@20</span></div><div class="kpi"><strong>${medianRecall}</strong><span>Δ mediano recall@100</span></div></div><div class="notice ${pass ? 'success' : 'danger'}" style="margin-top:1rem"><strong>${pass ? 'O gate de validation permite considerar continuação.' : 'Este candidato deve permanecer em B — DEMOTE neste gate.'}</strong> A decisão ainda precisa ser formalmente bloqueada antes de qualquer liberação do conjunto externo.</div><div class="notice" style="margin-top:.7rem"><strong>External test segue selado.</strong> Nenhum label, métrica ou análise externa foi consumido ou liberado nesta etapa.</div></section>`
+}
+
+function goldHtml(round, gold, metrics) {
   if (round.status === 'adjudication_complete') {
     return `<div class="notice" style="margin-top:1rem"><strong>Adjudicação encerrada.</strong> O próximo gate é construir o ledger bruto, o gold final e executar o validator canônico. Nenhuma métrica será calculada nesta etapa.<div class="actions" style="margin-top:.7rem"><button class="btn primary" id="buildGold">Construir e validar gold standard</button><a class="btn" href="/validation/adjudicate.html">Ver adjudicação</a></div></div>`
   }
-  if (round.status !== 'gold_validated') return ''
+  if (!['gold_validated','validation_metrics_complete'].includes(round.status)) return ''
   if (!gold || gold.error || !gold.validated) {
     return `<div class="notice danger" style="margin-top:1rem"><strong>Gold marcado como validado, mas o relatório canônico não pôde ser confirmado.</strong><div class="small">${esc(gold?.error || 'Relatório ausente ou inconsistente.')}</div></div>`
   }
-  const agreementPct = gold.raw_exact_agreement_fraction == null ? '—' : `${Math.round(Number(gold.raw_exact_agreement_fraction) * 1000) / 10}%`
-  return `<section class="card" style="margin-top:1rem"><div class="section-head"><div><span class="eyebrow">gate canônico</span><h2>Gold standard validado</h2></div><span class="badge success">PASS</span></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:1rem"><div class="kpi"><strong>${Number(gold.final_labels || 0)}</strong><span>labels finais</span></div><div class="kpi"><strong>${Number(gold.unanimous_groups || 0)}</strong><span>concordâncias</span></div><div class="kpi"><strong>${Number(gold.conflict_groups || 0)}</strong><span>conflitos resolvidos</span></div><div class="kpi"><strong>${agreementPct}</strong><span>acordo bruto</span></div></div><div class="notice success" style="margin-top:1rem"><strong>Cobertura do pool: 100%.</strong> O PASS confirma cobertura, cegamento e consistência da adjudicação. Ainda não confirma desempenho científico do NutEV.</div><div class="notice" style="margin-top:.7rem"><strong>Próxima etapa:</strong> calcular as métricas pré-especificadas da camada <em>validation</em>. O <code>external_test</code> continua selado.</div></section>`
+  return `<section class="card" style="margin-top:1rem"><div class="section-head"><div><span class="eyebrow">gate canônico</span><h2>Gold standard validado</h2></div><span class="badge success">PASS</span></div>${goldSummary(gold)}<div class="notice success" style="margin-top:1rem"><strong>Cobertura do pool: 100%.</strong> O PASS confirma cobertura, cegamento e consistência da adjudicação. Ainda não confirma desempenho científico do NutEV.</div></section>${metricsHtml(round, metrics)}`
 }
 
-function roundHtml(round, readiness, gold) {
+function roundHtml(round, readiness, gold, metrics) {
   if (round?.error) return `<section class="card"><h2>Coordenação local</h2><div class="notice warn">${esc(round.error)}</div><p class="muted small">Abra esta tela no navegador da máquina que está executando o NutEV para preparar e acompanhar a rodada. Os links privados dos avaliadores podem ser abertos em outros dispositivos que alcancem este servidor.</p></section>`
   if (!round) {
     return `<section class="card featured"><span class="eyebrow">etapa 1</span><h2>Preparar rodada</h2><p>O NutEV criará automaticamente duas sessões isoladas e os links privados dos avaliadores. Nenhum avaliador precisa carregar arquivos.</p><button class="btn primary" id="prepareRound" ${readiness.ready ? '' : 'disabled'}>Preparar rodada científica</button>${readiness.ready ? '' : '<p class="small muted">O botão será liberado quando a checagem científica acima estiver pronta.</p>'}</section>`
@@ -111,10 +149,11 @@ function roundHtml(round, readiness, gold) {
   const adjudicationActive = ['ready_for_adjudication','adjudicating'].includes(round.status)
   const adjudicationComplete = round.status === 'adjudication_complete'
   const goldValidated = round.status === 'gold_validated'
-  const completed = adjudicationActive || adjudicationComplete || goldValidated
-  const roundBadge = goldValidated ? 'gold validado' : adjudicationComplete ? 'adjudicação concluída' : adjudicationActive ? 'A/B concluídos' : 'em avaliação'
+  const metricsComplete = round.status === 'validation_metrics_complete'
+  const completed = adjudicationActive || adjudicationComplete || goldValidated || metricsComplete
+  const roundBadge = metricsComplete ? 'validation calculada' : goldValidated ? 'gold validado' : adjudicationComplete ? 'adjudicação concluída' : adjudicationActive ? 'A/B concluídos' : 'em avaliação'
   const adjudicationAction = adjudicationActive ? `<div class="notice success" style="margin-top:1rem"><strong>Avaliação inicial concluída.</strong> Os dois envios estão travados. Agora o adjudicador verá somente as discordâncias.<div class="actions" style="margin-top:.7rem"><a class="btn primary" href="/validation/adjudicate.html">Resolver conflitos</a></div></div>` : ''
-  return `<section class="card"><div class="section-head"><div><span class="eyebrow">rodada ativa</span><h2>Avaliação A/B</h2></div><span class="badge ${completed ? 'success' : ''}">${roundBadge}</span></div><p>Distribua cada link somente ao avaliador correspondente. Nunca envie os dois links à mesma pessoa.</p></section><div class="grid two" style="margin-top:1rem">${reviewers}</div>${adjudicationAction}${goldHtml(round, gold)}`
+  return `<section class="card"><div class="section-head"><div><span class="eyebrow">rodada ativa</span><h2>Avaliação A/B</h2></div><span class="badge ${completed ? 'success' : ''}">${roundBadge}</span></div><p>Distribua cada link somente ao avaliador correspondente. Nunca envie os dois links à mesma pessoa.</p></section><div class="grid two" style="margin-top:1rem">${reviewers}</div>${adjudicationAction}${goldHtml(round, gold, metrics)}`
 }
 
 async function prepareRound() {
@@ -145,6 +184,20 @@ async function buildGold() {
   }
 }
 
+async function runMetrics() {
+  const button = document.querySelector('#runMetrics')
+  if (button) { button.disabled = true; button.textContent = 'Calculando…' }
+  try {
+    const response = await fetch('/api/validation/metrics/run', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' })
+    const payload = await response.json()
+    if (!response.ok) throw new Error(payload.message || payload.error || 'Falha nas métricas da validation')
+    await renderChooser()
+  } catch (error) {
+    alert(error.message || String(error))
+    if (button) { button.disabled = false; button.textContent = 'Calcular métricas da validation' }
+  }
+}
+
 async function copyPrivateLink(button) {
   const link = button.dataset.link || ''
   try {
@@ -159,14 +212,16 @@ async function renderChooser() {
   const onlineConfigured = Boolean(localStorage.getItem(ONLINE_CONFIG_KEY))
   const [readiness, round] = await Promise.all([loadReadiness(), loadRound()])
   const gold = await loadGold(round)
+  const metrics = await loadMetrics(round)
   app.innerHTML = shell(`
     <section class="card validation-hero"><span class="eyebrow">fluxo científico</span><h2>Validar o NutEV sem arquivos para o avaliador</h2><p>O coordenador prepara a rodada uma vez. Cada avaliador recebe um link privado, julga somente o próprio conjunto e envia. Depois entram adjudicação, gold standard e métricas.</p><div class="status-note"><span class="status-dot"></span><span>O benchmark congelado e o external test continuam separados da busca comum.</span></div>${readinessHtml(readiness)}</section>
-    <section class="validation-flow" aria-label="Etapas da validação científica"><div class="flow-step"><div class="step-number">1</div><strong>Preparar</strong><span>O servidor verifica a rodada e cria dois links privados.</span></div><div class="flow-step"><div class="step-number">2</div><strong>Avaliar A/B</strong><span>Cada pessoa abre seu link, marca 0/1/2 e justifica.</span></div><div class="flow-step"><div class="step-number">3</div><strong>Adjudicar</strong><span>Depois dos dois envios travados, somente conflitos são mostrados.</span></div><div class="flow-step"><div class="step-number">4</div><strong>Resultado</strong><span>Gold validado, métricas calculadas e decisão científica exibida.</span></div></section>
-    <div id="roundPanel">${roundHtml(round, readiness, gold)}</div>
-    <details class="technical"><summary>Configuração avançada e contingência</summary><p>A sessão principal acima salva as decisões no servidor local privado e usa links com tokens que não entram nos logs HTTP. O SQLite e os artefatos científicos ficam dentro de <code>project_output_reference</code>, fora do Git. O modo antigo baseado no navegador permanece apenas como contingência. O backend multiusuário dedicado continua adiado.</p><div class="actions"><button class="btn" id="legacyLocal">Abrir modo local legado</button>${onlineConfigured ? '<button class="btn" id="onlineBtn">Abrir backend multiusuário configurado</button>' : ''}</div></details>`)
+    <section class="validation-flow" aria-label="Etapas da validação científica"><div class="flow-step"><div class="step-number">1</div><strong>Preparar</strong><span>O servidor verifica a rodada e cria dois links privados.</span></div><div class="flow-step"><div class="step-number">2</div><strong>Avaliar A/B</strong><span>Cada pessoa abre seu link, marca 0/1/2 e justifica.</span></div><div class="flow-step"><div class="step-number">3</div><strong>Adjudicar</strong><span>Depois dos dois envios travados, somente conflitos são mostrados.</span></div><div class="flow-step"><div class="step-number">4</div><strong>Resultado</strong><span>Gold validado, métricas da validation e decisão bloqueada antes do external test.</span></div></section>
+    <div id="roundPanel">${roundHtml(round, readiness, gold, metrics)}</div>
+    <details class="technical"><summary>Configuração avançada e contingência</summary><p>A sessão principal salva decisões e artefatos científicos em áreas privadas. Rankings contendo sistema/rank ficam em custódia de coordenação e nunca são mostrados aos avaliadores. O SQLite e os outputs ficam fora do Git. O backend multiusuário dedicado continua adiado.</p><div class="actions"><button class="btn" id="legacyLocal">Abrir modo local legado</button>${onlineConfigured ? '<button class="btn" id="onlineBtn">Abrir backend multiusuário configurado</button>' : ''}</div></details>`)
 
   document.querySelector('#prepareRound')?.addEventListener('click', prepareRound)
   document.querySelector('#buildGold')?.addEventListener('click', buildGold)
+  document.querySelector('#runMetrics')?.addEventListener('click', runMetrics)
   document.querySelectorAll('.copy-link').forEach(button => button.addEventListener('click', () => copyPrivateLink(button)))
   document.querySelector('#legacyLocal')?.addEventListener('click', () => launch('local'))
   document.querySelector('#onlineBtn')?.addEventListener('click', () => launch('online'))
