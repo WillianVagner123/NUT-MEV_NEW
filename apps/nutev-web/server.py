@@ -28,6 +28,11 @@ from search_adapter import (
     load_search_run,
     search_evidence,
 )
+from validation_adjudication import (
+    adjudication_payload,
+    finalize_adjudication,
+    save_adjudication,
+)
 from validation_readiness import get_validation_readiness
 from validation_server import (
     prepare_round,
@@ -211,7 +216,7 @@ def _load_search_job(job_id: str) -> dict[str, object]:
 
 
 class NutEVHandler(SimpleHTTPRequestHandler):
-    server_version = "NutEVWeb/0.5"
+    server_version = "NutEVWeb/0.6"
 
     def end_headers(self) -> None:
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -256,7 +261,10 @@ class NutEVHandler(SimpleHTTPRequestHandler):
         if self._is_loopback():
             return True
         self._json(
-            {"error": "coordinator_local_only", "message": "A coordenação da rodada só pode ser feita no navegador local do servidor."},
+            {
+                "error": "coordinator_local_only",
+                "message": "A coordenação e a adjudicação só podem ser feitas no navegador local do servidor.",
+            },
             HTTPStatus.FORBIDDEN,
         )
         return False
@@ -277,6 +285,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "validation_available": VALIDATION_ROOT.is_dir(),
                     "progressive_search": True,
                     "server_backed_blind_review": True,
+                    "human_adjudication": True,
                 }
             )
             return
@@ -290,6 +299,16 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 self._json(round_status())
             except FileNotFoundError:
                 self._json({"error": "validation_round_not_prepared"}, HTTPStatus.NOT_FOUND)
+            return
+        if path == "/api/validation/adjudication":
+            if not self._require_loopback():
+                return
+            try:
+                self._json(adjudication_payload())
+            except FileNotFoundError as exc:
+                self._json({"error": "validation_round_not_prepared", "message": str(exc)}, HTTPStatus.NOT_FOUND)
+            except ValueError as exc:
+                self._json({"error": "adjudication_not_ready", "message": str(exc)}, HTTPStatus.CONFLICT)
             return
         if path == "/api/validation/reviewer":
             try:
@@ -308,7 +327,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
             )
             return
         if path.startswith("/api/search/jobs/"):
-            job_id = unquote(path[len("/api/search/jobs/") :]).strip()
+            job_id = unquote(path[len("/api/search/jobs/"):]).strip()
             try:
                 self._json(_load_search_job(job_id))
             except KeyError:
@@ -323,7 +342,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
             self._json({"searches": list_search_runs(limit=limit)})
             return
         if path.startswith("/api/searches/"):
-            search_id = unquote(path[len("/api/searches/") :]).strip()
+            search_id = unquote(path[len("/api/searches/"):]).strip()
             try:
                 self._json(load_search_run(search_id))
             except (FileNotFoundError, ValueError):
@@ -343,6 +362,16 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 self._json({"error": "validation_round_not_ready", "message": str(exc)}, HTTPStatus.CONFLICT)
             except Exception as exc:
                 self._json({"error": "validation_round_prepare_failed", "message": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if path in {"/api/validation/adjudication/save", "/api/validation/adjudication/finalize"}:
+            if not self._require_loopback():
+                return
+            try:
+                payload = self._read_json()
+                result = save_adjudication(payload) if path.endswith("/save") else finalize_adjudication()
+                self._json(result)
+            except ValueError as exc:
+                self._json({"error": "invalid_adjudication", "message": str(exc)}, HTTPStatus.CONFLICT)
             return
         if path in {"/api/validation/reviewer/save", "/api/validation/reviewer/submit"}:
             try:
@@ -374,23 +403,17 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 max_results=int(payload.get("max_results", 100)),
             )
         except ValueError as exc:
-            self._json(
-                {"error": "invalid_request", "message": str(exc)},
-                HTTPStatus.BAD_REQUEST,
-            )
+            self._json({"error": "invalid_request", "message": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
         except Exception as exc:
-            self._json(
-                {"error": "search_failed", "message": f"{type(exc).__name__}: {exc}"},
-                HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
+            self._json({"error": "search_failed", "message": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
         self._json(result)
 
     def translate_path(self, path: str) -> str:
         clean = urlparse(path).path
         if clean.startswith("/validation"):
-            suffix = clean[len("/validation") :].lstrip("/")
+            suffix = clean[len("/validation"):].lstrip("/")
             target = VALIDATION_ROOT / (suffix or "index.html")
             if target.is_dir():
                 target = target / "index.html"
@@ -406,9 +429,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Serve the unified NutEV search + validation web interface."
-    )
+    parser = argparse.ArgumentParser(description="Serve the unified NutEV search + validation web interface.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true")

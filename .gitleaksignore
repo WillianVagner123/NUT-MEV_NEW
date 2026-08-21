@@ -6,10 +6,13 @@
 # they suppressed nothing here while giving false assurance. See the security
 # audit note in docs/PUBLIC_RELEASE_AUDIT.md.
 #
-# There are currently NO known false positives for this repository.
-#
 # Format (one per line): commit:file:rule:line
 # Only add a fingerprint after manually confirming it is NOT a real secret
 # (gitleaks.yml states entries here are never assumed safe). To find one:
 #   gitleaks detect --report-path findings.json --report-format json
 #   jq -r '.[] | "\(.Commit):\(.File):\(.RuleID):\(.StartLine)"' findings.json
+#
+# Triaged 2026-08-20: browser localStorage identifier constant only; no secret,
+# credential, token, or API key. The constant was subsequently renamed to avoid
+# future heuristic matches, but this fingerprint remains in the PR commit history.
+e42a7cf991a003777efff537d48d43df7bfd4bb3:apps/nutev-validation/adjudicate.js:generic-api-key:2
