@@ -16,6 +16,21 @@ def test_web_app_exposes_search_and_validation_without_csv_ui() -> None:
         assert forbidden not in index.casefold()
 
 
+def test_global_search_is_a_first_class_all_provider_action() -> None:
+    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
+    css = (WEB_ROOT / "styles.css").read_text(encoding="utf-8")
+    assert 'id="globalSearchBtn"' in index
+    assert "Busca global" in index
+    assert "Não significa cobertura de toda a literatura existente" in index
+    assert "GLOBAL_PER_PROVIDER=100" in app
+    assert "GLOBAL_MAX_RESULTS=300" in app
+    assert "state.providers.map(p=>p.id)" in app
+    assert "activateGlobalSearchControls" in app
+    assert "runSearch({global:true})" in app
+    assert ".global-search" in css
+
+
 def test_web_search_reuses_canonical_engine_primitives_and_latin_pipeline() -> None:
     adapter = (WEB_ROOT / "search_adapter.py").read_text(encoding="utf-8")
     progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
