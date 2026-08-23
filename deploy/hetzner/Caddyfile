@@ -1,0 +1,32 @@
+{$NUTEV_DOMAIN} {
+    encode zstd gzip
+
+    # Reviewer links remain token-authenticated and do not require the
+    # coordinator's Basic Auth credentials.
+    @reviewer {
+        path /validation/review.html
+        path /validation/styles.css
+        path /validation/server-review.css
+        path /validation/server-review.js
+        path /api/validation/reviewer
+        path /api/validation/reviewer/save
+        path /api/validation/reviewer/submit
+    }
+
+    handle @reviewer {
+        reverse_proxy nutev:8765
+    }
+
+    # Search, history and every coordinator action are private.
+    handle {
+        basic_auth {
+            {$NUTEV_BASIC_USER} {$NUTEV_BASIC_HASH}
+        }
+
+        reverse_proxy nutev:8765 {
+            # This value is never supplied by the browser. Caddy injects it
+            # only after successful coordinator authentication.
+            header_up X-NutEV-Coordinator-Secret {$NUTEV_PROXY_COORDINATOR_SECRET}
+        }
+    }
+}
