@@ -1,15 +1,32 @@
 # NutEV no Hetzner — Production v1
 
-Este stack publica o NutEV atrás de Caddy, com HTTPS automático, autenticação do coordenador e persistência dos outputs privados.
+Este stack publica o NutEV com HTTPS/autenticação quando o VPS é dedicado e também oferece um modo seguro para encaixar o NutEV em um Hetzner que já hospeda outros sistemas.
+
+## Primeiro: descubra se o VPS é dedicado ou compartilhado
+
+Antes de instalar/subir qualquer proxy novo, rode no servidor:
+
+```bash
+hostname
+ss -lntup | grep -E ':(22|80|443|8765)\b' || true
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}' || true
+systemctl --type=service --state=running | grep -Ei 'nginx|caddy|apache|traefik|docker' || true
+df -h
+free -h
+```
+
+Se 80/443 já estiverem ocupadas por Nginx, Caddy, Traefik ou outro stack, use **Modo B — servidor compartilhado**. Não tente subir o Caddy embutido do NutEV por cima.
 
 ## Arquitetura
+
+### Modo A — VPS dedicado ao NutEV
 
 ```text
 Internet
   |
   | :80 / :443
   v
-Caddy
+Caddy do NutEV
   |-- reviewer page/API -> token privado do avaliador
   |-- demais rotas -> Basic Auth do coordenador
   |                    + segredo interno injetado no proxy
@@ -20,18 +37,35 @@ NutEV production_server.py :8765 (somente rede Docker)
 volume nutev_data -> /app/project_output_reference
 ```
 
-A porta 8765 não deve ser publicada no host.
+### Modo B — VPS compartilhado
+
+```text
+Internet
+  |
+  v
+proxy que já existe no servidor
+  |
+  | HTTPS + autenticação do coordenador
+  | + header X-NutEV-Coordinator-Secret
+  v
+127.0.0.1:8765
+  |
+  v
+NutEV container
+```
+
+No modo compartilhado, 8765 fica ligada **somente ao loopback do host**.
 
 ## 1. Servidor e firewall
 
-Recomendação inicial: Ubuntu 24.04 LTS, 4+ vCPU, 8+ GB RAM e SSD suficiente para as buscas globais.
+Recomendação inicial para Busca Global pesada: Ubuntu 24.04 LTS, 4+ vCPU, 8+ GB RAM e SSD suficiente para os resultados.
 
-No Hetzner Cloud Firewall permita somente:
+No Hetzner Cloud Firewall permita somente o necessário:
 
 - TCP 22 a partir do seu IP administrativo;
-- TCP 80 de qualquer origem;
+- TCP 80 de qualquer origem se o proxy público usa HTTP/ACME;
 - TCP 443 de qualquer origem;
-- UDP 443 de qualquer origem (opcional, HTTP/3 do Caddy).
+- UDP 443 de qualquer origem somente se o proxy usa HTTP/3.
 
 Mantenha saída liberada para que os providers científicos possam ser consultados.
 
@@ -43,11 +77,13 @@ Crie um registro A para o domínio escolhido apontando para o IPv4 do servidor, 
 nutev.seudominio.com -> 203.0.113.10
 ```
 
-Se usar IPv6, adicione também AAAA.
+Se usar IPv6, adicione AAAA.
 
 ## 3. Instalar Docker Engine + Compose no Ubuntu
 
-Execute como root ou com sudo:
+Se Docker já existir, apenas confirme `docker compose version` e não reinstale.
+
+Em servidor novo, execute como root ou com sudo:
 
 ```bash
 apt update
@@ -74,13 +110,12 @@ docker compose version
 ## 4. Clonar o NutEV
 
 ```bash
-mkdir -p /opt/nutev
 cd /opt
 git clone https://github.com/WillianVagner123/NutEV-Evidence-Engine.git nutev
 cd /opt/nutev
 ```
 
-Use `main` para produção. Para testar uma PR antes do merge, faça checkout explicitamente da branch correspondente e trate o ambiente como staging.
+Use `main` para produção. Branch/PR é apenas staging.
 
 ## 5. Preparar dados privados
 
@@ -89,7 +124,7 @@ mkdir -p /opt/nutev-private/validation_assessor_packets
 chmod 700 /opt/nutev-private
 ```
 
-Quando a rodada científica for realmente executada, coloque nesse diretório somente os pacotes privados necessários. Nunca versione esses arquivos.
+Quando a rodada científica for executada, coloque nesse diretório somente os pacotes privados necessários. Nunca versione esses arquivos.
 
 ## 6. Criar o arquivo de ambiente
 
@@ -126,7 +161,7 @@ Preencha obrigatoriamente:
 
 Adicione chaves opcionais dos providers se disponíveis.
 
-## 7. Validar configuração antes de subir
+## 7. Validar Compose
 
 ```bash
 docker compose \
@@ -137,10 +172,15 @@ docker compose \
 
 Não prossiga se houver variável vazia, erro de YAML ou caminho privado incorreto.
 
-## 8. Build e start
+# Modo A — VPS dedicado
+
+Use somente se 80/443 estiverem livres.
+
+## 8A. Subir NutEV + Caddy
 
 ```bash
 docker compose \
+  --profile edge \
   --env-file deploy/hetzner/.env \
   -f deploy/hetzner/compose.yaml \
   up -d --build
@@ -150,21 +190,11 @@ Verifique:
 
 ```bash
 docker compose \
+  --profile edge \
   --env-file deploy/hetzner/.env \
   -f deploy/hetzner/compose.yaml \
   ps
 ```
-
-Logs:
-
-```bash
-docker compose \
-  --env-file deploy/hetzner/.env \
-  -f deploy/hetzner/compose.yaml \
-  logs -f --tail=200
-```
-
-## 9. Testes pós-deploy
 
 Sem credenciais, a home deve responder 401:
 
@@ -172,41 +202,94 @@ Sem credenciais, a home deve responder 401:
 curl -I https://SEU_DOMINIO/
 ```
 
-No navegador, acesse:
+No navegador, acesse `https://SEU_DOMINIO/` e use o usuário/senha do coordenador.
 
-```text
-https://SEU_DOMINIO/
+Os links privados dos avaliadores não exigem a senha do coordenador; continuam protegidos pelo token cego da rodada.
+
+# Modo B — servidor Hetzner compartilhado
+
+Use quando já existe Nginx/Caddy/Traefik/site em 80/443.
+
+## 8B. Subir somente o backend NutEV
+
+```bash
+docker compose \
+  --env-file deploy/hetzner/.env \
+  -f deploy/hetzner/compose.yaml \
+  -f deploy/hetzner/compose.shared.yaml \
+  up -d --build nutev
 ```
 
-O navegador solicitará usuário e senha do coordenador.
+Confirme que o backend está apenas no loopback:
 
-Teste também:
+```bash
+ss -lntp | grep 8765
+curl http://127.0.0.1:8765/api/health
+```
+
+O resultado esperado no `ss` é `127.0.0.1:8765`, nunca `0.0.0.0:8765`.
+
+Depois configure o reverse proxy existente para:
+
+1. servir `NUTEV_DOMAIN` por HTTPS;
+2. exigir autenticação do coordenador nas rotas normais;
+3. permitir publicamente somente:
+   - `/validation/review.html`;
+   - `/validation/styles.css`;
+   - `/validation/server-review.css`;
+   - `/validation/server-review.js`;
+   - `/api/validation/reviewer`;
+   - `/api/validation/reviewer/save`;
+   - `/api/validation/reviewer/submit`;
+4. encaminhar as rotas autenticadas para `http://127.0.0.1:8765` adicionando:
+
+```text
+X-NutEV-Coordinator-Secret: <mesmo valor de NUTEV_PROXY_COORDINATOR_SECRET>
+```
+
+Não adicione esse header nas rotas públicas do avaliador.
+
+Se o proxy atual for Caddy, o arquivo `deploy/hetzner/Caddyfile` serve como referência. Se for Nginx/Traefik, replique exatamente a mesma separação de rotas e segredo interno.
+
+## 9. Logs
+
+Modo dedicado:
+
+```bash
+docker compose --profile edge --env-file deploy/hetzner/.env -f deploy/hetzner/compose.yaml logs -f --tail=200
+```
+
+Modo compartilhado:
+
+```bash
+docker compose --env-file deploy/hetzner/.env -f deploy/hetzner/compose.yaml -f deploy/hetzner/compose.shared.yaml logs -f --tail=200 nutev
+```
+
+## 10. Testes funcionais
+
+Depois do domínio estar respondendo:
 
 - Buscar evidências;
 - Minhas buscas;
 - Validação científica;
 - `GET /api/health` após autenticação;
-- link privado real de avaliador quando uma rodada existir.
+- preparar uma rodada somente quando os materiais privados reais estiverem instalados;
+- abrir um link privado de avaliador em janela anônima e confirmar que ele não recebe credenciais de coordenador.
 
-O link do avaliador não usa a senha do coordenador; ele continua protegido pelo token no fragmento e pelo Bearer token interno da UI.
+## 11. Atualizar produção
 
-## 10. Atualizar produção
-
-Nunca atualize no meio de uma Busca Global longa na versão v1.
+Nunca atualize no meio de uma Busca Global longa na Production v1.
 
 ```bash
 cd /opt/nutev
 git fetch origin
 git checkout main
 git pull --ff-only origin main
-
-docker compose \
-  --env-file deploy/hetzner/.env \
-  -f deploy/hetzner/compose.yaml \
-  up -d --build
 ```
 
-## 11. Backup do estado persistente
+Depois repita o `docker compose ... up -d --build` do modo escolhido.
+
+## 12. Backup do estado persistente
 
 ```bash
 mkdir -p /opt/nutev-backups
@@ -219,26 +302,19 @@ docker run --rm \
 
 Esse volume contém histórico de buscas persistidas e o estado privado da validação server-backed.
 
-## 12. Restore
-
-Pare o stack antes de restore:
-
-```bash
-docker compose --env-file deploy/hetzner/.env -f deploy/hetzner/compose.yaml down
-```
-
-Restaure um backup somente depois de verificar o arquivo escolhido e mantenha uma cópia do estado atual antes de sobrescrever o volume.
-
 ## Limitação conhecida da Production v1
 
-Os resultados concluídos e a base server-backed da validação são persistidos em volume. Porém o registro de um job de busca **em andamento** ainda vive na memória do processo web. Fechar o notebook do usuário não afeta a busca porque ela roda no Hetzner, mas reiniciar/redeployar o container no meio da busca pode interromper o job atual.
+Resultados concluídos e a base server-backed da validação são persistidos em volume. Porém o registro de um job de busca **em andamento** ainda vive na memória do processo web.
 
-Antes de tratar Busca Global como workload durável de muitas horas/dias, a próxima hardening deve mover a fila de jobs para armazenamento persistente/worker recuperável.
+Fechar o notebook do usuário não afeta a busca porque ela roda no Hetzner. Porém reiniciar/redeployar o container no meio da busca pode interromper o job atual.
+
+A próxima hardening é mover fila/status de busca para armazenamento persistente e worker recuperável.
 
 ## Segurança
 
-- Não publique `8765:8765` no Compose.
-- Não envie `NUTEV_PROXY_COORDINATOR_SECRET` para navegador, logs compartilhados ou avaliadores.
+- Em VPS dedicado, não publique `8765:8765`.
+- Em VPS compartilhado, publique somente `127.0.0.1:8765:8765`.
+- Não envie `NUTEV_PROXY_COORDINATOR_SECRET` ao navegador, logs compartilhados ou avaliadores.
 - Não coloque pacotes cegos, banco SQLite privado ou outputs de validação no Git.
 - Reviewer token continua em fragmento URL e não deve ser convertido em query string.
 - Scopus/Web of Science não devem ser simulados quando não houver acesso licenciado.
