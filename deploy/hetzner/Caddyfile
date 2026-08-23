@@ -3,15 +3,7 @@
 
     # Reviewer links remain token-authenticated and do not require the
     # coordinator's Basic Auth credentials.
-    @reviewer {
-        path /validation/review.html
-        path /validation/styles.css
-        path /validation/server-review.css
-        path /validation/server-review.js
-        path /api/validation/reviewer
-        path /api/validation/reviewer/save
-        path /api/validation/reviewer/submit
-    }
+    @reviewer path /validation/review.html /validation/styles.css /validation/server-review.css /validation/server-review.js /api/validation/reviewer /api/validation/reviewer/save /api/validation/reviewer/submit
 
     handle @reviewer {
         reverse_proxy nutev:8765
