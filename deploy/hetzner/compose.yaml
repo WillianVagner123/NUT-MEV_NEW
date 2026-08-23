@@ -1,0 +1,53 @@
+services:
+  nutev:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    environment:
+      NUTEV_PROXY_COORDINATOR_SECRET: ${NUTEV_PROXY_COORDINATOR_SECRET}
+    expose:
+      - "8765"
+    volumes:
+      - nutev_data:/app/project_output_reference
+      - ${NUTEV_VALIDATION_PACKET_HOST_DIR}:/app/validation/data/validation_assessor_packets:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=5).read()
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      nutev:
+        condition: service_healthy
+    environment:
+      NUTEV_DOMAIN: ${NUTEV_DOMAIN}
+      NUTEV_BASIC_USER: ${NUTEV_BASIC_USER}
+      NUTEV_BASIC_HASH: ${NUTEV_BASIC_HASH}
+      NUTEV_PROXY_COORDINATOR_SECRET: ${NUTEV_PROXY_COORDINATOR_SECRET}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  nutev_data:
+    name: nutev_data
+  caddy_data:
+    name: nutev_caddy_data
+  caddy_config:
+    name: nutev_caddy_config
