@@ -1,0 +1,97 @@
+name: hetzner-deploy-smoke
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "deploy/hetzner/**"
+      - "apps/nutev-web/**"
+      - "pyproject.toml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "deploy/hetzner/**"
+      - "apps/nutev-web/**"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate Compose and Caddy configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nutev-validation-packets
+          TEST_HASH="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext nutev-ci-only --algorithm bcrypt)"
+          cat > deploy/hetzner/.env <<EOF
+          NUTEV_DOMAIN=nutev.example.invalid
+          NUTEV_BASIC_USER=ci
+          NUTEV_BASIC_HASH='$TEST_HASH'
+          NUTEV_PROXY_COORDINATOR_SECRET=ci-only-coordinator-secret-not-production
+          NUTEV_VALIDATION_PACKET_HOST_DIR=/tmp/nutev-validation-packets
+          NCBI_EMAIL=ci@example.invalid
+          ENTREZ_EMAIL=
+          NCBI_API_KEY=
+          NCBI_TOOL=nutev_reference_engine
+          CROSSREF_MAILTO=ci@example.invalid
+          OPENALEX_MAILTO=ci@example.invalid
+          S2_API_KEY=
+          GOOGLE_API_KEY=
+          GOOGLE_CSE_ID=
+          BRAVE_API_KEY=
+          SERPAPI_API_KEY=
+          NUTEV_DISABLE_NETWORK=1
+          EOF
+
+          docker compose \
+            --env-file deploy/hetzner/.env \
+            -f deploy/hetzner/compose.yaml \
+            config >/tmp/nutev-compose-rendered.yaml
+
+          docker compose \
+            --env-file deploy/hetzner/.env \
+            -f deploy/hetzner/compose.yaml \
+            -f deploy/hetzner/compose.shared.yaml \
+            config >/tmp/nutev-compose-shared-rendered.yaml
+
+          docker run --rm \
+            -e NUTEV_DOMAIN=nutev.example.invalid \
+            -e NUTEV_BASIC_USER=ci \
+            -e NUTEV_BASIC_HASH="$TEST_HASH" \
+            -e NUTEV_PROXY_COORDINATOR_SECRET=ci-only-coordinator-secret-not-production \
+            -v "$PWD/deploy/hetzner/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Build production image and smoke health endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build -t nutev-hetzner-ci .
+          docker run -d --name nutev-hetzner-ci \
+            -e NUTEV_PROXY_COORDINATOR_SECRET=ci-only-coordinator-secret-not-production \
+            -e NUTEV_DISABLE_NETWORK=1 \
+            -p 127.0.0.1:18765:8765 \
+            nutev-hetzner-ci
+          trap 'docker rm -f nutev-hetzner-ci >/dev/null 2>&1 || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18765/api/health >/tmp/nutev-health.json; then
+              cat /tmp/nutev-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs nutev-hetzner-ci
+          exit 1
