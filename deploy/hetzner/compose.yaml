@@ -25,6 +25,7 @@ services:
       start_period: 30s
 
   caddy:
+    profiles: ["edge"]
     image: caddy:2-alpine
     depends_on:
       nutev:
