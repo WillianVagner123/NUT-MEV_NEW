@@ -26,6 +26,7 @@ from search_adapter import (
 )
 
 ProgressCallback = Callable[[dict[str, Any]], None]
+EXHAUSTIVE_SENTINEL = 2_147_483_647
 
 
 def _emit(callback: ProgressCallback | None, event: dict[str, Any]) -> None:
@@ -67,11 +68,13 @@ def search_evidence_progressive(
     output_root: Path | None = None,
     on_progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
-    """Run the existing NutEV search sequentially while emitting provider progress.
+    """Run NutEV search sequentially while emitting provider progress.
 
-    This function deliberately reuses the same provider clients, Latin-source runner,
-    canonical deduplication and score helpers as the synchronous web search. Progress
-    reporting is presentation-only and does not alter scientific behavior.
+    A zero value for both ``per_provider`` and ``max_results`` is the explicit
+    web sentinel for exhaustive global search. In that mode NutEV removes its own
+    result ceilings and asks each direct provider connector to paginate until the
+    provider is exhausted or the provider itself refuses/limits further access.
+    Normal interactive searches keep the historical bounded behavior.
     """
 
     question = _clean_query(query)
@@ -82,8 +85,16 @@ def search_evidence_progressive(
     if not chosen:
         raise ValueError("Selecione pelo menos um provider.")
 
-    per_provider = max(1, min(int(per_provider), MAX_PER_PROVIDER))
-    max_results = max(1, min(int(max_results), MAX_RESULTS))
+    raw_per_provider = int(per_provider)
+    raw_max_results = int(max_results)
+    exhaustive = raw_per_provider == 0 and raw_max_results == 0
+    if exhaustive:
+        provider_limit = EXHAUSTIVE_SENTINEL
+        result_limit: int | None = None
+    else:
+        provider_limit = max(1, min(raw_per_provider, MAX_PER_PROVIDER))
+        result_limit = max(1, min(raw_max_results, MAX_RESULTS))
+
     search_id = (
         "web_"
         + datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
@@ -104,6 +115,7 @@ def search_evidence_progressive(
             "search_id": search_id,
             "query": question,
             "total_providers": len(chosen),
+            "exhaustive": exhaustive,
         },
     )
 
@@ -117,6 +129,7 @@ def search_evidence_progressive(
                 "label": PROVIDER_LABELS[provider],
                 "completed_providers": index - 1,
                 "total_providers": len(chosen),
+                "exhaustive": exhaustive,
             },
         )
 
@@ -137,7 +150,7 @@ def search_evidence_progressive(
             }
         elif provider in DIRECT_PROVIDERS:
             try:
-                raw = _provider_call(provider, question, per_provider)()
+                raw = _provider_call(provider, question, provider_limit)()
                 rows, status, total_found, error = _normalize_provider_result(raw)
             except Exception as exc:
                 rows = []
@@ -183,8 +196,21 @@ def search_evidence_progressive(
                     "started_at": started,
                     "finished_at": _now(),
                 }
+            if exhaustive:
+                status_item["exhaustive_complete"] = False
+                status_item["coverage_note"] = (
+                    "Native HTML route exposes only the records returned by the public interface; "
+                    "NutEV records this as non-demonstrably-exhaustive rather than inventing coverage."
+                )
         else:
             raise ValueError(f"Provider não suportado: {provider}")
+
+        if exhaustive and provider in DIRECT_PROVIDERS:
+            total_found = status_item.get("total_found")
+            status_item["exhaustive_complete"] = (
+                bool(status_item.get("status") in {"completed", "empty", "completed_no_candidates_parsed"})
+                and (total_found is None or int(total_found) <= len(rows))
+            )
 
         combined.extend(
             _decorate_rows(
@@ -205,6 +231,7 @@ def search_evidence_progressive(
                 "provider": status_item,
                 "completed_providers": index,
                 "total_providers": len(chosen),
+                "exhaustive": exhaustive,
             },
         )
 
@@ -215,26 +242,35 @@ def search_evidence_progressive(
             "completed_providers": len(chosen),
             "total_providers": len(chosen),
             "records_before_dedup": len(combined),
+            "exhaustive": exhaustive,
         },
     )
 
     unique = dedupe_records(combined)
     ranked = _score_rows(unique) if unique else []
-    returned = ranked[:max_results]
+    returned = ranked if result_limit is None else ranked[:result_limit]
     failed = [item["provider"] for item in provider_status if item["status"] == "failed"]
     unavailable = [
         item["provider"] for item in provider_status if item["status"] == "unavailable"
     ]
+    non_exhaustive = [
+        item["provider"]
+        for item in provider_status
+        if exhaustive and item.get("exhaustive_complete") is False
+    ]
 
     result = {
-        "schema_version": 2,
+        "schema_version": 3 if exhaustive else 2,
         "search_id": search_id,
         "query": question,
         "created_at": _now(),
-        "status": "COMPLETE_WITH_PROVIDER_GAPS" if (failed or unavailable) else "COMPLETE",
+        "search_mode": "global_exhaustive" if exhaustive else "interactive_bounded",
+        "exhaustive_requested": exhaustive,
+        "status": "COMPLETE_WITH_PROVIDER_GAPS" if (failed or unavailable or non_exhaustive) else "COMPLETE",
         "providers": provider_status,
         "failed_providers": failed,
         "unavailable_providers": unavailable,
+        "non_exhaustive_providers": non_exhaustive,
         "records_before_dedup": len(combined),
         "unique_records": len(unique),
         "returned_records": len(returned),
@@ -243,7 +279,8 @@ def search_evidence_progressive(
         "latin_summary_path": latin_summary_paths[-1] if latin_summary_paths else None,
         "latin_summary_paths": latin_summary_paths,
         "interactive_limitations": [
-            "LILACS/BVS e SciELO usam as interfaces públicas nativas; bloqueios HTTP são registrados como indisponibilidade e nunca substituídos por resultados fabricados.",
+            "Busca global não aplica teto interno de quantidade: cada conector direto pagina até esgotar a fonte ou até a própria fonte impor um limite/erro.",
+            "LILACS/BVS e SciELO usam as interfaces públicas nativas; se a interface não demonstrar paginação exaustiva, o provider é marcado como não exaustivo em vez de receber cobertura fabricada.",
             "Scopus e Web of Science não são simulados e exigem acesso licenciado separado.",
         ],
         "results": returned,
@@ -256,6 +293,7 @@ def search_evidence_progressive(
             "search_id": search_id,
             "completed_providers": len(chosen),
             "total_providers": len(chosen),
+            "exhaustive": exhaustive,
         },
     )
     return result
