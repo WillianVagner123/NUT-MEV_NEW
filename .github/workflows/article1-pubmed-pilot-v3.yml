@@ -1,0 +1,37 @@
+name: article1-pubmed-pilot-v3
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - audit/a1-pubmed-pilot-2026-08-25
+    paths:
+      - tools/article1_pubmed_pilot_v3.py
+      - .github/workflows/article1-pubmed-pilot-v3.yml
+
+permissions:
+  contents: read
+
+env:
+  A1_PILOT_OUT: a1_pubmed_pilot_v3_artifacts
+
+jobs:
+  pilot-v3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install runtime dependency
+        run: python -m pip install requests
+      - name: Run prospectively frozen Article 1 PubMed PILOT v3
+        run: python tools/article1_pubmed_pilot_v3.py
+      - name: Upload audit package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: article1-pubmed-pilot-v3-${{ github.run_id }}
+          path: a1_pubmed_pilot_v3_artifacts/
+          if-no-files-found: error
