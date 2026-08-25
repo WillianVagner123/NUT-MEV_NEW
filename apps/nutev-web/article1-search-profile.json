@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "profile_id": "article1-full-search-2026-08-25",
+  "review_title": "Artigo 1 — pesquisa completa multi-base",
+  "question": "Quais parâmetros nutricionais, competências alimentares e contextos sociais da alimentação são atualmente recomendados, estruturados e utilizados por diretrizes e modelos operacionais para orientar avaliação, aconselhamento, prescrição e monitoramento alimentar aplicáveis à Medicina do Estilo de Vida?",
+  "formal_gate": {
+    "gf10_authorized": false,
+    "status": "PREFREEZE_ONLY",
+    "guardrail": "Enquanto GF-10 não estiver explicitamente autorizado, o botão global executa somente PREFLIGHT. Nenhuma contagem desta etapa alimenta PRISMA."
+  },
+  "canonical_keywords": {
+    "nutrition_core": ["diet*", "dietary", "nutrition*", "medical nutrition therapy", "nutrition care", "dietary care", "healthy eating", "dietary pattern*", "food-based", "food based"],
+    "normative_markers": ["guideline*", "clinical practice guideline*", "consensus", "consensus statement*", "position statement*", "scientific statement*", "professional statement*", "expert consensus", "clinical guidance", "standards of care", "practice standard*", "professional standard*", "clinical recommendation*", "practice recommendation*", "dietary recommendation*"],
+    "structural_care": ["nutrition care process", "nutrition care model*", "nutrition care framework*", "nutrition care pathway*", "nutrition pathway*", "medical nutrition therapy", "diet prescription*", "dietary prescription*", "nutrition prescription*", "food prescription*", "meal plan*", "nutrition counseling", "nutrition counselling", "dietetic care", "dietitian-led", "scope of practice", "professional standard*", "practice standard*", "clinical decision framework*", "model of care", "lifestyle medicine"],
+    "food_competence": ["food literacy", "nutrition literacy", "culinary literacy", "food skill*", "cooking skill*", "meal planning skill*", "food competence", "food competency", "food competencies", "culinary competenc*", "food agency", "food resource management", "meal preparation skill*", "shopping skill*"],
+    "professional_competence": ["nutrition competenc*", "dietitian competence", "dietitian competency", "dietitian competencies", "nutritionist competence", "nutritionist competency", "nutritionist competencies", "clinical nutrition skill", "clinical nutrition skills", "competency framework*", "nutrition counseling skill*", "nutrition counselling skill*", "dietetic competenc*"],
+    "structural_qualifiers": ["framework*", "model*", "process*", "pathway*", "standard*", "guideline*", "consensus", "statement*", "protocol*", "practice point*", "scope of practice", "lifestyle medicine"],
+    "competence_qualifiers": ["framework*", "model*", "standard*", "guideline*", "curriculum", "toolkit*", "consensus", "statement*", "scope of practice", "scope of competence"],
+    "implementation": ["implementation framework*", "implementation strateg*", "implementation guide*", "implementation toolkit*", "implementation plan*", "implementation model*", "implementation project*", "dissemination framework*", "dissemination strateg*", "guideline implementation", "practice implementation", "quality improvement framework*", "quality improvement strateg*", "monitoring framework*", "monitoring system*", "implementation monitoring", "implementation evaluation"],
+    "dietary_orientation": ["dietary pattern*", "food pattern*", "healthy eating pattern*", "dietary approach*", "dietary strateg*", "eating pattern*", "meal pattern*", "dietary model*", "food-based approach*"],
+    "orientation_qualifiers": ["guideline*", "recommendation*", "prescription*", "standard*", "consensus", "practice point*"]
+  },
+  "regional_query": "(diet OR dietary OR nutrition OR \"healthy eating\") AND (guideline OR guidance OR recommendation OR consensus OR statement OR standard)",
+  "manual_queries": {
+    "scopus": {
+      "B-NORM": "TITLE-ABS-KEY(diet* OR dietary OR nutrition* OR \"medical nutrition therapy\" OR \"nutrition care\" OR \"dietary care\" OR \"healthy eating\" OR \"dietary pattern*\") AND TITLE-ABS-KEY(guideline* OR \"clinical practice guideline*\" OR consensus OR \"consensus statement*\" OR \"position statement*\" OR \"scientific statement*\" OR \"professional statement*\" OR \"expert consensus\" OR \"clinical guidance\" OR advisory OR \"standards of care\" OR \"practice standard*\" OR \"professional standard*\" OR \"clinical recommendation*\" OR \"practice recommendation*\" OR recommendation*)",
+      "C-STRUCT": "TITLE-ABS-KEY(diet* OR dietary OR nutrition* OR \"medical nutrition therapy\" OR \"nutrition care\") AND (TITLE-ABS-KEY(framework* OR \"model of care\" OR \"care model*\" OR \"nutrition care process\" OR \"nutrition care model*\" OR \"clinical pathway*\" OR \"care pathway*\" OR \"nutrition pathway*\" OR \"clinical protocol*\" OR \"care protocol*\" OR toolkit* OR algorithm* OR \"competency framework*\" OR \"competence framework*\" OR \"practice standard*\" OR \"professional standard*\" OR \"scope of practice\" OR \"implementation framework*\" OR \"implementation guide*\" OR \"implementation strateg*\" OR \"dietary prescription*\" OR \"nutrition prescription*\") OR (TITLE-ABS-KEY(\"food literacy\" OR \"nutrition literacy\" OR \"culinary literacy\" OR \"food competenc*\" OR \"nutrition competenc*\" OR \"dietitian competenc*\" OR \"nutritionist competenc*\" OR \"clinical nutrition competenc*\") AND TITLE-ABS-KEY(framework* OR model* OR standard* OR guideline*)))"
+    },
+    "wos": {
+      "B-NORM": "TS=(diet* OR dietary OR nutrition* OR \"medical nutrition therapy\" OR \"nutrition care\" OR \"dietary care\" OR \"healthy eating\" OR \"dietary pattern*\") AND TS=(guideline* OR \"clinical practice guideline*\" OR consensus OR \"consensus statement*\" OR \"position statement*\" OR \"scientific statement*\" OR \"professional statement*\" OR \"expert consensus\" OR \"clinical guidance\" OR advisory OR \"standards of care\" OR \"practice standard*\" OR \"professional standard*\" OR \"clinical recommendation*\" OR \"practice recommendation*\" OR recommendation*)",
+      "C-STRUCT": "TS=(diet* OR dietary OR nutrition* OR \"medical nutrition therapy\" OR \"nutrition care\") AND (TS=(framework* OR \"model of care\" OR \"care model*\" OR \"nutrition care process\" OR \"nutrition care model*\" OR \"clinical pathway*\" OR \"care pathway*\" OR \"nutrition pathway*\" OR \"clinical protocol*\" OR \"care protocol*\" OR toolkit* OR algorithm* OR \"competency framework*\" OR \"competence framework*\" OR \"practice standard*\" OR \"professional standard*\" OR \"scope of practice\" OR \"implementation framework*\" OR \"implementation guide*\" OR \"implementation strateg*\" OR \"dietary prescription*\" OR \"nutrition prescription*\") OR (TS=(\"food literacy\" OR \"nutrition literacy\" OR \"culinary literacy\" OR \"food competenc*\" OR \"nutrition competenc*\" OR \"dietitian competenc*\" OR \"nutritionist competenc*\" OR \"clinical nutrition competenc*\") AND TS=(framework* OR model* OR standard* OR guideline*)))"
+    }
+  },
+  "databases": [
+    {"id":"pubmed","label":"PubMed / MEDLINE","execution":"CONNECTED","article1_role":"FORMAL_CANDIDATE","routes":["B-NORM","C-STRUCT"]},
+    {"id":"lilacs_bvs_native","label":"LILACS / BVS","execution":"CONNECTED_WITH_BROWSER_FALLBACK","article1_role":"FORMAL_CANDIDATE","routes":["B-NORM"]},
+    {"id":"scielo_native","label":"SciELO","execution":"CONNECTED_WITH_BROWSER_FALLBACK","article1_role":"FORMAL_SUPPLEMENTARY","routes":["B-SUPP"]},
+    {"id":"scopus","label":"Scopus","execution":"MANUAL_LICENSED","article1_role":"OPTIONAL_LICENSED","routes":["B-NORM","C-STRUCT"]},
+    {"id":"wos","label":"Web of Science Core Collection","execution":"MANUAL_LICENSED","article1_role":"OPTIONAL_LICENSED","routes":["B-NORM","C-STRUCT"]},
+    {"id":"europepmc","label":"Europe PMC","execution":"CONNECTED","article1_role":"DISCOVERY_ONLY","routes":["B-NORM","C-STRUCT"]},
+    {"id":"openalex","label":"OpenAlex","execution":"CONNECTED","article1_role":"DISCOVERY_ONLY","routes":["B-NORM","C-STRUCT"]},
+    {"id":"crossref","label":"Crossref","execution":"CONNECTED","article1_role":"DISCOVERY_ONLY","routes":["B-NORM","C-STRUCT"]},
+    {"id":"doaj","label":"DOAJ","execution":"CONNECTED","article1_role":"DISCOVERY_ONLY","routes":["B-NORM","C-STRUCT"]},
+    {"id":"semantic_scholar","label":"Semantic Scholar","execution":"CONNECTED","article1_role":"DISCOVERY_ONLY","routes":["B-NORM","C-STRUCT"]}
+  ]
+}
