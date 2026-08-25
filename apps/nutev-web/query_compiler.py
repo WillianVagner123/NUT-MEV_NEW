@@ -11,9 +11,11 @@ SUPPORTED_FRAMEWORKS = {
     "PECO": ("Population", "Exposure", "Comparator", "Outcome"),
 }
 SUPPORTED_TERM_KINDS = {"free", "mesh", "decs"}
+SUPPORTED_RUN_CLASSES = {"PREFLIGHT", "PILOT", "FORMAL", "SUPPLEMENTARY", "DEVELOPMENT"}
 MAX_CONCEPTS = 8
 MAX_TERMS_PER_CONCEPT = 80
 MAX_TERM_LENGTH = 180
+MAX_EXACT_QUERY_LENGTH = 20_000
 _SPACE_RE = re.compile(r"\s+")
 
 
@@ -34,6 +36,17 @@ def _clean_text(value: object, *, max_length: int = MAX_TERM_LENGTH) -> str:
     if len(text) > max_length:
         raise ValueError(f"Texto excede o limite de {max_length} caracteres")
     return text
+
+
+def _clean_exact_query(value: object) -> str:
+    query = str(value or "").strip()
+    if not query:
+        raise ValueError("Consulta exata não pode ficar vazia")
+    if len(query) > MAX_EXACT_QUERY_LENGTH:
+        raise ValueError(
+            f"Consulta exata excede o limite de {MAX_EXACT_QUERY_LENGTH} caracteres"
+        )
+    return query
 
 
 def _normalize_term(value: object) -> ReviewTerm | None:
@@ -98,6 +111,45 @@ def normalize_strategy(strategy: object) -> dict[str, Any] | None:
     if not concepts:
         return None
     return {"framework": framework, "concepts": concepts}
+
+
+def _normalize_exact_strategy(
+    strategy: object,
+    providers: list[str],
+) -> dict[str, Any] | None:
+    if not isinstance(strategy, dict) or str(strategy.get("mode") or "").lower() != "exact":
+        return None
+    strategy_id = _clean_text(strategy.get("strategy_id") or "UNVERSIONED", max_length=120)
+    strategy_version = _clean_text(strategy.get("strategy_version") or "UNVERSIONED", max_length=80)
+    run_class = str(strategy.get("run_class") or "PILOT").strip().upper()
+    if run_class not in SUPPORTED_RUN_CLASSES:
+        raise ValueError(
+            "run_class deve ser PREFLIGHT, PILOT, FORMAL, SUPPLEMENTARY ou DEVELOPMENT"
+        )
+    raw_queries = strategy.get("provider_queries")
+    if not isinstance(raw_queries, dict) or not raw_queries:
+        raise ValueError("Modo exato exige pelo menos uma consulta por base")
+
+    selected = set(providers)
+    exact: dict[str, str] = {}
+    for provider, value in raw_queries.items():
+        provider_id = str(provider).strip()
+        if provider_id not in selected:
+            continue
+        exact[provider_id] = _clean_exact_query(value)
+    if not exact:
+        raise ValueError("Nenhuma consulta exata corresponde às bases selecionadas")
+    missing = [provider for provider in providers if provider not in exact]
+    if missing:
+        raise ValueError(
+            "Modo exato exige query para cada base selecionada: " + ", ".join(missing)
+        )
+    return {
+        "strategy_id": strategy_id,
+        "strategy_version": strategy_version,
+        "run_class": run_class,
+        "provider_queries": exact,
+    }
 
 
 def _escape_phrase(text: str) -> str:
@@ -179,6 +231,32 @@ def compile_query_plan(
     strategy: object = None,
 ) -> dict[str, Any]:
     question_text = _clean_text(question, max_length=500)
+
+    exact = _normalize_exact_strategy(strategy, providers)
+    if exact is not None:
+        return {
+            "schema_version": 2,
+            "mode": "exact_review",
+            "question": question_text,
+            "framework": None,
+            "concepts": [],
+            "strategy_id": exact["strategy_id"],
+            "strategy_version": exact["strategy_version"],
+            "run_class": exact["run_class"],
+            "provider_queries": {
+                provider: {
+                    "query": exact["provider_queries"][provider],
+                    "dialect": "exact_provider_syntax",
+                }
+                for provider in providers
+            },
+            "controlled_vocabulary_terms": None,
+            "warnings": [
+                "Modo exato: a consulta de cada base é preservada literalmente; o NutEV não reescreve campos, operadores, headings, filtros ou janela temporal.",
+                "FORMAL é apenas uma classificação de execução; a interface não substitui autorização de freeze/gates científicos externos.",
+            ],
+        }
+
     normalized = normalize_strategy(strategy)
     if normalized is None:
         return {
