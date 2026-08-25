@@ -3,40 +3,114 @@ const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const GLOBAL_EXHAUSTIVE_SENTINEL=0;
 const RESULT_BATCH=100;
+const FRAMEWORKS={
+  PCC:['Population','Concept','Context'],
+  PICO:['Population','Intervention','Comparator','Outcome'],
+  PECO:['Population','Exposure','Comparator','Outcome']
+};
 
 function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
 function switchView(name){$$('.view').forEach(x=>x.classList.add('hidden'));$$('.nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===name));$(`#${name}View`).classList.remove('hidden');if(name==='history')renderHistory()}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function statusLabel(status){return ({queued:'aguardando',running:'buscando',completed:'concluído',empty:'sem resultados',completed_no_candidates_parsed:'sem candidatos',unavailable:'indisponível',failed:'falhou',skipped:'ignorada'})[status]||status||'aguardando'}
 function badgeClass(status){return ['failed','unavailable'].includes(status)?'failed':''}
+function providerLabel(id){return (state.providers.find(p=>p.id===id)||{}).label||id}
 
 async function init(){
   $$('.nav-item[data-view]').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
   $('#refreshHistory').onclick=renderHistory;
   $('#searchBtn').onclick=()=>runSearch();
   $('#globalSearchBtn').onclick=()=>runSearch({global:true});
-  try{const [health,providers]=await Promise.all([fetch('/api/health').then(r=>r.json()),fetch('/api/providers').then(r=>r.json())]);$('#health').textContent=health.status==='ok'?'engine conectado':'engine indisponível';$('#health').classList.add(health.status==='ok'?'ok':'bad');state.providers=providers.providers||[];renderProviders()}catch(e){$('#health').textContent='engine indisponível';$('#health').classList.add('bad');$('#searchBtn').disabled=true;$('#globalSearchBtn').disabled=true}
+  $('#structuredReviewToggle').onchange=toggleStructuredReview;
+  $('#frameworkSelect').onchange=()=>renderConceptBuilder(true);
+  $('#compileStrategyBtn').onclick=compileStrategyPreview;
+  renderConceptBuilder(false);
+  try{const [health,providers]=await Promise.all([fetch('/api/health').then(r=>r.json()),fetch('/api/providers').then(r=>r.json())]);$('#health').textContent=health.status==='ok'?'engine conectado':'engine indisponível';$('#health').classList.add(health.status==='ok'?'ok':'bad');state.providers=providers.providers||[];renderProviders()}catch(e){$('#health').textContent='engine indisponível';$('#health').classList.add('bad');$('#searchBtn').disabled=true;$('#globalSearchBtn').disabled=true;$('#compileStrategyBtn').disabled=true}
   const params=new URLSearchParams(location.search);
   if(params.get('view')==='history')switchView('history');
-  if(params.get('q')){$('#question').value=params.get('q');switchView('search');runSearch()}
+  if(params.get('q')){$('#question').value=params.get('q');switchView('search')}
 }
+
 function renderProviders(){const root=$('#providerGrid');root.innerHTML=state.providers.map(p=>`<label class="provider-chip"><input type="checkbox" value="${esc(p.id)}" checked> ${esc(p.label)}</label>`).join('');$('#searchHint').textContent=`${state.providers.length} fontes conectadas no modo web`}
 function selectedProviders(){return $$('#providerGrid input:checked').map(x=>x.value)}
 function activateGlobalSearchControls(){$$('#providerGrid input').forEach(input=>{input.checked=true})}
+
+function toggleStructuredReview(){
+  const enabled=$('#structuredReviewToggle').checked;
+  $('#strategyBuilder').classList.toggle('hidden',!enabled);
+  $('#strategyStatus').textContent=enabled?'Estratégia estruturada ativa. Revise os blocos antes de executar.':'A estratégia só será usada quando este modo estiver ativado.';
+}
+
+function currentConceptValues(){
+  return $$('#conceptBuilder .concept-card').map(card=>({
+    label:card.querySelector('.concept-label')?.value||'',
+    terms:card.querySelector('.concept-terms')?.value||''
+  }));
+}
+
+function renderConceptBuilder(preserve){
+  const framework=$('#frameworkSelect')?.value||'PCC';
+  const labels=FRAMEWORKS[framework]||FRAMEWORKS.PCC;
+  const previous=preserve?currentConceptValues():[];
+  $('#conceptBuilder').innerHTML=labels.map((label,index)=>{
+    const old=previous[index]||{};
+    return `<div class="concept-card"><div class="concept-card-head"><span class="concept-index">${index+1}</span><input class="concept-label" value="${esc(old.label||label)}" aria-label="Nome do bloco conceitual"></div><textarea class="concept-terms" rows="5" placeholder="Ex.:\nfree:termo livre\nmesh:Descritor MeSH\ndecs:Descritor DeCS">${esc(old.terms||'')}</textarea></div>`;
+  }).join('');
+  $('#strategyPreview').classList.add('hidden');
+  $('#strategyPreview').innerHTML='';
+}
+
+function buildStrategy(){
+  if(!$('#structuredReviewToggle').checked)return null;
+  const framework=$('#frameworkSelect').value;
+  const concepts=$$('#conceptBuilder .concept-card').map(card=>({
+    label:card.querySelector('.concept-label').value.trim(),
+    terms:card.querySelector('.concept-terms').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean)
+  })).filter(block=>block.terms.length>0);
+  if(!concepts.length)throw new Error('Adicione pelo menos um termo em um bloco da estratégia estruturada.');
+  return {framework,concepts};
+}
+
+async function compileStrategyPreview(){
+  const query=$('#question').value.trim();
+  if(!query)return alert('Digite primeiro a pergunta da revisão.');
+  let strategy;
+  try{strategy=buildStrategy()}catch(e){return alert(e.message)}
+  if(!strategy)return alert('Ative o modo revisão de escopo / estratégia estruturada.');
+  const providers=selectedProviders().length?selectedProviders():state.providers.map(p=>p.id);
+  const btn=$('#compileStrategyBtn');btn.disabled=true;$('#strategyStatus').textContent='Compilando estratégia…';
+  try{
+    const res=await fetch('/api/query/compile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,providers,strategy})});
+    const plan=await res.json();if(!res.ok)throw new Error(plan.message||plan.error||'Falha ao compilar estratégia');
+    renderStrategyPreview(plan);$('#strategyStatus').textContent=`Estratégia compilada · ${plan.controlled_vocabulary_terms||0} termos controlados explícitos.`;
+  }catch(e){$('#strategyStatus').textContent=`Falha: ${e.message}`}
+  finally{btn.disabled=false}
+}
+
+function renderStrategyPreview(plan){
+  const root=$('#strategyPreview');
+  const queries=plan.provider_queries||{};
+  root.classList.remove('hidden');
+  root.innerHTML=`<div class="strategy-preview-head"><strong>Preview auditável</strong><span>${esc(plan.framework||'')} · ${Number(plan.controlled_vocabulary_terms||0)} MeSH/DeCS explícitos</span></div><div class="compiled-query-list">${Object.entries(queries).map(([provider,item])=>`<details class="compiled-query"><summary>${esc(providerLabel(provider))} <span>${esc(item.dialect||'')}</span></summary><code>${esc(item.query||'')}</code></details>`).join('')}</div>${(plan.warnings||[]).map(w=>`<div class="strategy-warning">${esc(w)}</div>`).join('')}`;
+}
 
 async function runSearch(options={}){
   const query=$('#question').value.trim();if(!query)return alert('Digite uma pergunta de busca.');
   const global=options.global===true;
   if(global)activateGlobalSearchControls();
   const providers=global?state.providers.map(p=>p.id):selectedProviders();if(!providers.length)return alert('Selecione pelo menos uma fonte.');
-  const searchBtn=$('#searchBtn'),globalBtn=$('#globalSearchBtn');searchBtn.disabled=true;globalBtn.disabled=true;state.currentJob=null;state.currentMode=global?'global':'custom';state.visibleResults=RESULT_BATCH;$('#summary').classList.add('hidden');$('#results').innerHTML='';
-  $('#searchState').className='loading';$('#searchState').innerHTML=global?'<strong>Iniciando Busca global exaustiva…</strong><div class="small-state">Todas as fontes conectadas · sem teto interno de quantidade</div>':'Iniciando busca…';
+  let strategy=null;
+  try{strategy=buildStrategy()}catch(e){return alert(e.message)}
+  const searchBtn=$('#searchBtn'),globalBtn=$('#globalSearchBtn'),compileBtn=$('#compileStrategyBtn');
+  searchBtn.disabled=true;globalBtn.disabled=true;compileBtn.disabled=true;state.currentJob=null;state.currentMode=strategy?(global?'structured-global':'structured'):(global?'global':'custom');state.visibleResults=RESULT_BATCH;$('#summary').classList.add('hidden');$('#results').innerHTML='';
+  const opening=state.currentMode==='structured-global'?'<strong>Iniciando revisão estruturada + Busca global…</strong><div class="small-state">Query específica por provider · todas as fontes · sem teto interno</div>':state.currentMode==='structured'?'<strong>Iniciando revisão estruturada…</strong><div class="small-state">Query específica por provider</div>':global?'<strong>Iniciando Busca global exaustiva…</strong><div class="small-state">Todas as fontes conectadas · sem teto interno de quantidade</div>':'Iniciando busca…';
+  $('#searchState').className='loading';$('#searchState').innerHTML=opening;
   try{
-    const res=await fetch('/api/search/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,providers,per_provider:global?GLOBAL_EXHAUSTIVE_SENTINEL:Number($('#perProvider').value||25),max_results:global?GLOBAL_EXHAUSTIVE_SENTINEL:Number($('#maxResults').value||100)})});
+    const res=await fetch('/api/search/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,providers,strategy,per_provider:global?GLOBAL_EXHAUSTIVE_SENTINEL:Number($('#perProvider').value||25),max_results:global?GLOBAL_EXHAUSTIVE_SENTINEL:Number($('#maxResults').value||100)})});
     const job=await res.json();if(!res.ok)throw new Error(job.message||job.error||'Falha ao iniciar busca');
     state.currentJob=job.job_id;renderJob(job);await pollSearchJob(job.job_id);
   }catch(e){$('#searchState').className='error';$('#searchState').textContent=`Falha na busca: ${e.message}`}
-  finally{searchBtn.disabled=false;globalBtn.disabled=false;state.currentJob=null}
+  finally{searchBtn.disabled=false;globalBtn.disabled=false;compileBtn.disabled=false;state.currentJob=null}
 }
 
 async function pollSearchJob(jobId){
@@ -55,18 +129,27 @@ async function pollSearchJob(jobId){
 
 function renderJob(job){
   const completed=Number(job.completed_providers||0),total=Number(job.total_providers||0);
-  const prefix=state.currentMode==='global'?'Busca global exaustiva · ':'';
+  const prefix=state.currentMode==='structured-global'?'Revisão estruturada · Busca global · ':state.currentMode==='structured'?'Revisão estruturada · ':state.currentMode==='global'?'Busca global exaustiva · ':'';
   const stage=job.stage==='finalizing'?'Deduplicando e priorizando todas as referências…':job.stage==='persisting'?'Salvando resultado completo…':`Consultando fontes: ${completed}/${total}`;
   $('#searchState').className='loading';
   $('#searchState').innerHTML=`<div><strong>${esc(prefix+stage)}</strong></div><div class="provider-status">${(job.providers||[]).map(p=>`<span class="provider-badge ${badgeClass(p.status)}" title="${esc(p.error||p.coverage_note||'')}">${esc(p.label)} · ${esc(statusLabel(p.status))}${['queued','running'].includes(p.status)?'':` · ${Number(p.returned||0)}`}</span>`).join('')}</div>`;
+}
+
+function renderExecutedPlan(plan){
+  if(!plan||plan.mode!=='structured_review')return '';
+  const queries=plan.provider_queries||{};
+  return `<details class="plan-audit"><summary>Estratégia executada por base · ${esc(plan.framework||'')}</summary><div class="compiled-query-list">${Object.entries(queries).map(([provider,item])=>`<div class="executed-query"><strong>${esc(providerLabel(provider))}</strong><span>${esc(item.dialect||'')}</span><code>${esc(item.query||'')}</code></div>`).join('')}</div></details>`;
 }
 
 function renderSearch(data){
   $('#searchState').className='hidden';state.last=data;state.visibleResults=RESULT_BATCH;
   const gaps=(data.failed_providers||[]).length+(data.unavailable_providers||[]).length+(data.non_exhaustive_providers||[]).length;
   $('#summary').classList.remove('hidden');
-  const mode=data.search_mode==='global_exhaustive'?'<div class="warning"><strong>Busca global exaustiva.</strong> O NutEV não aplicou teto interno de quantidade. Providers que não conseguem demonstrar exaustão aparecem como lacuna de cobertura.</div>':'';
-  $('#summary').innerHTML=`<div class="summary-grid"><div class="kpi"><strong>${data.unique_records}</strong><span>referências únicas</span></div><div class="kpi"><strong>${data.records_before_dedup}</strong><span>antes da deduplicação</span></div><div class="kpi"><strong>${data.returned_records}</strong><span>recuperadas e ranqueadas</span></div><div class="kpi"><strong>${gaps}</strong><span>lacunas/limites de fonte</span></div></div><div class="provider-status">${(data.providers||[]).map(p=>`<span class="provider-badge ${badgeClass(p.status)}" title="${esc(p.error||p.coverage_note||'')}">${esc(p.label)} · ${esc(statusLabel(p.status))} · ${p.returned}</span>`).join('')}</div>${mode}<div class="warning">${esc(data.ranking_warning)} ${(data.interactive_limitations||[]).map(esc).join(' ')}</div>`;
+  const globalMode=String(data.search_mode||'').includes('global_exhaustive');
+  const structured=String(data.search_mode||'').startsWith('structured_review');
+  const mode=globalMode?'<div class="warning"><strong>Busca global exaustiva.</strong> O NutEV não aplicou teto interno de quantidade. Providers que não conseguem demonstrar exaustão aparecem como lacuna de cobertura.</div>':'';
+  const review=structured?'<div class="review-result-note"><strong>Revisão estruturada.</strong> Cada fonte recebeu sua própria query compilada; a estratégia exata está preservada abaixo e no result.json.</div>':'';
+  $('#summary').innerHTML=`<div class="summary-grid"><div class="kpi"><strong>${data.unique_records}</strong><span>referências únicas</span></div><div class="kpi"><strong>${data.records_before_dedup}</strong><span>antes da deduplicação</span></div><div class="kpi"><strong>${data.returned_records}</strong><span>recuperadas e ranqueadas</span></div><div class="kpi"><strong>${gaps}</strong><span>lacunas/limites de fonte</span></div></div><div class="provider-status">${(data.providers||[]).map(p=>`<span class="provider-badge ${badgeClass(p.status)}" title="${esc(p.error||p.coverage_note||'')}">${esc(p.label)} · ${esc(statusLabel(p.status))} · ${p.returned}</span>`).join('')}</div>${review}${mode}${renderExecutedPlan(data.query_plan)}<div class="warning">${esc(data.ranking_warning)} ${(data.interactive_limitations||[]).map(esc).join(' ')}</div>`;
   renderResultBatch();
 }
 
