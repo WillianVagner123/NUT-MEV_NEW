@@ -14,7 +14,6 @@ permissions:
 
 env:
   A1_PILOT_OUT: a1_pubmed_pilot_artifacts
-  NCBI_EMAIL: willian.vagner.research@example.com
 
 jobs:
   pilot:
