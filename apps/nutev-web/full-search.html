@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>NutEV — Pesquisa completa A1</title>
+  <meta name="description" content="Compilação e pré-validação multi-base das estratégias do Artigo 1.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./full-search.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <a class="nav-item" href="/">⌕ <span>Buscar evidências</span></a>
+        <a class="nav-item active" href="/full-search.html">◉ <span>Pesquisa completa</span></a>
+        <a class="nav-item" href="/?view=history">◷ <span>Minhas buscas</span></a>
+        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
+        <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
+        <a class="nav-item" href="/regional-routes.html">⌁ <span>Rotas regionais</span></a>
+        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+      </nav>
+      <div class="sidebar-note">A pesquisa completa separa compilação, pré-validação, execução e elegibilidade PRISMA. Bases indisponíveis nunca são simuladas.</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><h1>Pesquisa completa — Artigo 1</h1><p>Um perfil canônico de palavras-chave, traduzido deterministicamente para cada banco.</p></div>
+        <span class="status-pill" id="fullHealth">carregando…</span>
+      </header>
+
+      <section class="full-layout">
+        <div class="card full-card">
+          <div class="section-head"><div><h2>1. Estratégia canônica</h2><p>B-NORM + C-STRUCT permanecem rotas separadas. O sistema adapta apenas a sintaxe da base.</p></div><button id="refreshPlan" class="ghost" type="button">Atualizar</button></div>
+          <div id="gateState" class="full-state">Carregando gate…</div>
+          <div id="questionCard" class="full-question"></div>
+          <details open><summary><strong>Palavras-chave padrão</strong></summary><div id="keywordGroups" class="keyword-groups"></div></details>
+        </div>
+
+        <div class="card full-card">
+          <div class="section-head"><div><h2>2. Tradução por banco</h2><p>PubMed usa a query exata aprovada. Demais bases recebem tradução específica ou rota canônica/manual registrada.</p></div><button id="validateAll" class="primary" type="button">Validar tudo</button></div>
+          <div id="validationSummary" class="full-state">Aguardando compilação.</div>
+          <div id="databasePlan" class="database-plan"></div>
+          <div class="full-actions"><button id="downloadPlan" class="ghost" type="button" disabled>Exportar pacote completo JSON</button></div>
+        </div>
+
+        <div class="card full-card">
+          <div class="section-head"><div><h2>3. Rodar bancos conectados</h2><p>Executa um PREFLIGHT limitado em todos os conectores disponíveis. A busca FORMAL exaustiva permanece bloqueada até GF-10.</p></div></div>
+          <div class="run-grid">
+            <button id="runPreflight" class="primary" type="button" disabled>Rodar todos — PREFLIGHT</button>
+            <button id="runFormal" class="ghost" type="button" disabled>Rodar todos — FORMAL</button>
+          </div>
+          <div id="runState" class="full-state">Valide o plano antes de executar.</div>
+          <div id="runResults" class="run-results"></div>
+        </div>
+
+        <div class="card full-card">
+          <div class="section-head"><div><h2>4. Bancos licenciados/manuais</h2><p>Scopus e Web of Science recebem a estratégia pronta, mas o NutEV não simula acesso sem licença.</p></div></div>
+          <div id="manualPlan"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./full-search.js"></script>
+</body>
+</html>
