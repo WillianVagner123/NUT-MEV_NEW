@@ -10,6 +10,7 @@ from typing import Any
 
 
 DEFAULT_PACKET_SEED = "nutev-assessor-packet-v1"
+DEFAULT_ASSESSOR_COUNT = 2
 FORBIDDEN_LEAKAGE_COLUMNS = {
     "system",
     "rank",
@@ -64,6 +65,36 @@ def _safe_filename(value: str) -> str:
     if not safe:
         raise AssessorPacketError(f"Invalid assessor_id for file naming: {value!r}")
     return safe
+
+
+def generated_assessor_ids(
+    count: int,
+    *,
+    pool_sha256: str,
+    seed: str = DEFAULT_PACKET_SEED,
+) -> tuple[str, ...]:
+    """Generate deterministic opaque assessor IDs without storing person identities.
+
+    IDs are derived only from the frozen pool digest, packet seed and ordinal. They
+    are operational identifiers, not names, e-mails or account identifiers.
+    """
+    if count < 2:
+        raise AssessorPacketError(
+            "Benchmark-grade preparation requires at least two assessors"
+        )
+    if count > 50:
+        raise AssessorPacketError("assessor_count is unreasonably large")
+    digest = _clean(pool_sha256)
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", digest):
+        raise AssessorPacketError("pool_sha256 must be a SHA-256 hex digest")
+    ids = tuple(
+        "assessor_"
+        + sha256(f"{seed}|{digest.lower()}|{ordinal}".encode("utf-8")).hexdigest()[:12]
+        for ordinal in range(1, count + 1)
+    )
+    if len(set(ids)) != len(ids):
+        raise AssessorPacketError("generated assessor IDs are not unique")
+    return ids
 
 
 def load_blinded_pool(path: Path) -> list[dict[str, str]]:
@@ -170,21 +201,63 @@ def main() -> int:
         description="Create independently shuffled blinded assessment packets from a NutEV judgment pool."
     )
     parser.add_argument("--pool", required=True, type=Path)
-    parser.add_argument("--assessor-id", action="append", required=True)
+    parser.add_argument(
+        "--assessor-id",
+        action="append",
+        default=[],
+        help=(
+            "Optional opaque assessor ID. Repeat for each assessor. Do not use names, "
+            "e-mails or other person identifiers. Mutually exclusive with --assessor-count."
+        ),
+    )
+    parser.add_argument(
+        "--assessor-count",
+        type=int,
+        default=None,
+        help=(
+            "Generate this many deterministic opaque assessor IDs. Defaults to 2 when "
+            "no explicit opaque IDs are supplied."
+        ),
+    )
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--seed", default=DEFAULT_PACKET_SEED)
     args = parser.parse_args()
 
     try:
-        assessor_ids = tuple(dict.fromkeys(_clean(value) for value in args.assessor_id))
-        if any(not value for value in assessor_ids):
+        explicit_ids = tuple(
+            dict.fromkeys(_clean(value) for value in args.assessor_id)
+        )
+        if any(not value for value in explicit_ids):
             raise AssessorPacketError("assessor_id cannot be blank")
-        if len(assessor_ids) < 2:
+        if explicit_ids and args.assessor_count is not None:
             raise AssessorPacketError(
-                "Benchmark-grade preparation requires at least two assessor IDs"
+                "Use either --assessor-id or --assessor-count, not both"
             )
+
         pool_rows = load_blinded_pool(args.pool)
+        pool_sha256 = sha256(args.pool.read_bytes()).hexdigest()
+
+        if explicit_ids:
+            assessor_ids = explicit_ids
+            identity_mode = "explicit_opaque_ids"
+            if len(assessor_ids) < 2:
+                raise AssessorPacketError(
+                    "Benchmark-grade preparation requires at least two assessor IDs"
+                )
+        else:
+            assessor_count = (
+                DEFAULT_ASSESSOR_COUNT
+                if args.assessor_count is None
+                else args.assessor_count
+            )
+            assessor_ids = generated_assessor_ids(
+                assessor_count,
+                pool_sha256=pool_sha256,
+                seed=args.seed,
+            )
+            identity_mode = "generated_opaque_ids"
+
         outputs: list[dict[str, Any]] = []
         for assessor_id in assessor_ids:
             packet_rows = build_packet(pool_rows, assessor_id, seed=args.seed)
@@ -203,11 +276,18 @@ def main() -> int:
             "packet_type": "BLINDED_INDEPENDENT_ASSESSMENT",
             "label_blind": True,
             "minimum_assessors_required": 2,
+            "assessor_count": len(assessor_ids),
+            "assessor_identity_mode": identity_mode,
             "assessor_ids": list(assessor_ids),
+            "participant_identity_policy": (
+                "assessor_id values are opaque operational identifiers only; person names, "
+                "e-mails and participant identity mappings must remain outside Git and outside "
+                "the blinded benchmark artifacts"
+            ),
             "independent_order_per_assessor": True,
             "packet_seed": args.seed,
             "pool_path": str(args.pool),
-            "pool_sha256": sha256(args.pool.read_bytes()).hexdigest(),
+            "pool_sha256": pool_sha256,
             "pool_rows": len(pool_rows),
             "outputs": outputs,
             "forbidden_fields_checked": sorted(FORBIDDEN_LEAKAGE_COLUMNS),
