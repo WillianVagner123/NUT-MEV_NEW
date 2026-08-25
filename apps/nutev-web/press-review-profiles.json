@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "profile_id": "article1-pubmed-press-2026-08-25",
+      "review_title": "Artigo 1 — PRESS independente das estratégias PubMed",
+      "gate_id": "GF-03",
+      "gate_status_before_review": "PENDING_EXTERNAL_PRESS",
+      "reviewer_requirement": "Revisor PRESS independente",
+      "freeze_guardrail": "PRESS concluído não autoriza freeze, busca formal ou PRISMA. Qualquer alteração material da estratégia retorna ao ciclo de PILOT/versionamento.",
+      "strategies": [
+        {
+          "strategy_id": "B-NORM-PUBMED",
+          "strategy_version": "v0.7",
+          "provider": "pubmed",
+          "role": "Rota normativa/sociedades/diretrizes",
+          "status": "ESTABILIZADA PARA PRESS",
+          "pilot_evidence": {
+            "count": 6681,
+            "sentinels_expected": 4,
+            "sentinels_found": 4,
+            "decision": "AVANÇAR PARA PRESS",
+            "source_decision": "D-129",
+            "source_run": "32841489807"
+          },
+          "version_history": [
+            "v0.5: 93.333 registros; REVISAR por rescue amplo/off-target sistemático.",
+            "v0.6: 9.210 registros; REVISAR por ruído textual/arquitetural ainda corrigível.",
+            "v0.7: 6.681 registros; 4/4 sentinelas; ruído residual heterogêneo destinado à triagem humana; AVANÇAR PARA PRESS."
+          ],
+          "query": "(diet*[ti] OR dietary[ti] OR nutrition*[ti] OR \"healthy eating\"[ti] OR \"medical nutrition therapy\"[ti] OR \"nutrition care\"[ti] OR \"dietary care\"[ti] OR \"dietary pattern*\"[ti] OR \"food-based\"[ti] OR \"food based\"[ti] OR \"Nutrition Therapy\"[Majr] OR \"Diet Therapy\"[Majr] OR \"Nutrition Policy\"[Majr] OR ((diet*[tiab] OR dietary[tiab] OR \"healthy eating\"[tiab] OR \"medical nutrition therapy\"[tiab] OR \"nutrition care\"[tiab] OR \"dietary care\"[tiab] OR \"dietary pattern*\"[tiab] OR \"food-based\"[tiab] OR \"food based\"[tiab]) AND (nutrition*[tiab] OR recommend*[tiab] OR prescrib*[tiab] OR counsel*[tiab] OR guideline*[tiab]))) AND (guideline[pt] OR \"practice guideline\"[pt] OR guideline*[ti] OR consensus[ti] OR \"consensus statement*\"[ti] OR \"position statement*\"[ti] OR \"scientific statement*\"[ti] OR \"professional statement*\"[ti] OR \"expert consensus\"[ti] OR \"clinical guidance\"[ti] OR \"standards of care\"[ti] OR \"practice standard*\"[ti] OR \"professional standard*\"[ti] OR \"clinical recommendation*\"[ti] OR \"practice recommendation*\"[ti] OR \"dietary recommendation*\"[ti])"
+        },
+        {
+          "strategy_id": "C-STRUCT-PUBMED",
+          "strategy_version": "v0.5.1",
+          "provider": "pubmed",
+          "role": "Rota estruturada/operacional/implementação/competências",
+          "status": "ESTABILIZADA PARA PRESS APÓS MICRO-PILOT SYNTAX-CLEAN",
+          "pilot_evidence": {
+            "count": 1600,
+            "baseline_version": "v0.5",
+            "baseline_count": 1526,
+            "delta": 74,
+            "sentinels_expected": 1,
+            "sentinels_found": 1,
+            "technical_gate": "PASS",
+            "decision": "AVANÇAR PARA PRESS",
+            "source_decision": "D-131 + micro-PILOT v0.5.1",
+            "source_search_id": "web_20260825T105806-0300_fae97c2c"
+          },
+          "version_history": [
+            "v0.3: 91.789 registros; REVISAR por termos genéricos de framework/model/implementation/strategy.",
+            "v0.4: 6.363 registros; REVISAR por ruído sistemático ainda corrigível.",
+            "v0.5: 1.526 registros; 1/1 sentinela; AVANÇAR PARA PRESS.",
+            "v0.5.1: correção syntax-clean de termos descartados pela query translation; 1.600 registros; Search Details sem warnings; 1/1 sentinela; QA técnico PASS; sem novo mecanismo sistemático de ruído corrigível sem overfitting."
+          ],
+          "query": "((\"Diet\"[Mesh] OR \"Nutrition Therapy\"[Mesh] OR \"Diet Therapy\"[Mesh] OR diet*[tiab] OR dietary[tiab] OR nutrition*[tiab] OR \"medical nutrition therapy\"[tiab] OR \"nutrition care\"[tiab] OR \"dietary care\"[tiab] OR \"healthy eating\"[tiab] OR \"dietary pattern*\"[tiab] OR \"food-based\"[tiab] OR \"food based\"[tiab]) AND ((((\"nutrition care process\"[tiab] OR \"nutrition care model*\"[tiab] OR (\"nutrition care\"[tiab] AND framework*[tiab]) OR \"nutrition care pathway*\"[tiab] OR \"nutrition pathway*\"[tiab] OR \"medical nutrition therapy\"[tiab] OR \"diet prescription*\"[tiab] OR \"dietary prescription*\"[tiab] OR \"nutrition prescription*\"[tiab] OR \"food prescription*\"[tiab] OR \"meal plan*\"[tiab] OR \"nutrition counseling\"[tiab] OR \"nutrition counselling\"[tiab] OR \"dietetic care\"[tiab] OR \"dietitian-led\"[tiab] OR \"dietitian led\"[tiab] OR \"scope of practice\"[tiab] OR \"professional standard*\"[tiab] OR \"practice standard*\"[tiab] OR \"clinical decision framework*\"[tiab] OR \"model of care\"[tiab] OR \"lifestyle medicine\"[tiab]) AND (framework*[ti] OR model*[ti] OR process*[ti] OR pathway*[ti] OR standard*[ti] OR guideline*[ti] OR consensus[ti] OR statement*[ti] OR protocol*[ti] OR \"practice point*\"[ti] OR \"scope of practice\"[ti] OR \"lifestyle medicine\"[ti])) OR ((\"food literacy\"[tiab] OR \"nutrition literacy\"[tiab] OR \"culinary literacy\"[tiab] OR \"food skill*\"[tiab] OR \"cooking skill*\"[tiab] OR \"meal planning skill*\"[tiab] OR (food[tiab] AND (competence[tiab] OR competency[tiab] OR competencies[tiab])) OR \"culinary competenc*\"[tiab] OR \"food agency\"[tiab] OR \"food resource management\"[tiab] OR \"meal preparation skill*\"[tiab] OR \"shopping skill*\"[tiab]) AND (framework*[ti] OR model*[ti] OR standard*[ti] OR guideline*[ti] OR curriculum[ti] OR toolkit*[ti] OR consensus[ti] OR statement*[ti])) OR ((\"nutrition competenc*\"[tiab] OR (dietitian*[tiab] AND (competence[tiab] OR competency[tiab] OR competencies[tiab])) OR (nutritionist*[tiab] AND (competence[tiab] OR competency[tiab] OR competencies[tiab])) OR (\"clinical nutrition\"[tiab] AND (skill[tiab] OR skills[tiab])) OR \"competency framework*\"[tiab] OR \"nutrition counseling skill*\"[tiab] OR \"nutrition counselling skill*\"[tiab] OR \"dietetic competenc*\"[tiab]) AND (framework*[ti] OR standard*[ti] OR guideline*[ti] OR consensus[ti] OR statement*[ti] OR curriculum[ti] OR \"scope of practice\"[ti] OR \"scope of competence\"[ti])) OR ((\"implementation framework*\"[ti] OR \"implementation strateg*\"[ti] OR \"implementation guide*\"[ti] OR \"implementation toolkit*\"[ti] OR \"implementation plan*\"[ti] OR \"implementation model*\"[ti] OR \"implementation project*\"[ti] OR \"dissemination framework*\"[ti] OR \"dissemination strateg*\"[ti] OR \"guideline implementation\"[ti] OR \"practice implementation\"[ti]) OR (\"quality improvement framework*\"[ti] OR \"quality improvement strateg*\"[ti] OR \"monitoring framework*\"[ti] OR \"monitoring system*\"[ti] OR \"implementation monitoring\"[ti] OR \"implementation evaluation\"[ti])) OR ((\"dietary pattern*\"[ti] OR \"food pattern*\"[ti] OR \"healthy eating pattern*\"[ti] OR \"dietary approach*\"[ti] OR \"dietary strateg*\"[ti] OR \"eating pattern*\"[ti] OR \"meal pattern*\"[ti] OR \"dietary model*\"[ti] OR \"food-based approach*\"[ti]) AND (guideline*[ti] OR recommendation*[ti] OR prescription*[ti] OR standard*[ti] OR consensus[ti] OR \"practice point*\"[ti])))) AND (\"2000/01/01\"[Date - Publication] : \"2026/08/25\"[Date - Publication])"
+        }
+      ],
+      "checklist": [
+        {"id": "P01", "label": "Pergunta/objetivo da revisão está coerente com a estratégia e com as duas rotas complementares B-NORM e C-STRUCT."},
+        {"id": "P02", "label": "Os conceitos principais estão representados sem introdução de conceitos não previstos no protocolo."},
+        {"id": "P03", "label": "Headings/vocabulário controlado usados na estratégia são adequados e não há headings essenciais obviamente ausentes."},
+        {"id": "P04", "label": "Termos de texto livre e sinônimos são adequados ao objetivo e suficientemente sensíveis."},
+        {"id": "P05", "label": "Operadores Booleanos, parênteses e combinações entre blocos representam a lógica pretendida."},
+        {"id": "P06", "label": "Tags/campos PubMed ([ti], [tiab], [Majr], [pt], [Mesh], Date - Publication) estão corretos e metodologicamente justificados."},
+        {"id": "P07", "label": "Truncamentos, aspas e frases não introduzem erro de sintaxe ou perda não intencional; Search Details/warnings foram considerados."},
+        {"id": "P08", "label": "Limites e janela temporal são coerentes com o protocolo e não foram definidos após observar resultados para melhorar artificialmente a precisão."},
+        {"id": "P09", "label": "As rotas B-NORM e C-STRUCT são complementares e não devem ser fundidas silenciosamente por OR em uma única rota."},
+        {"id": "P10", "label": "Histórico de versões e decisões de PILOT permitem entender por que termos foram removidos, estreitados ou reescritos."},
+        {"id": "P11", "label": "Recuperação de sentinelas e amostras de ruído sustentam a passagem para PRESS sem evidência de overfitting deliberado."},
+        {"id": "P12", "label": "A estratégia é reproduzível: consulta exata, versão, base, data, evidência do PILOT e trilha de auditoria estão preservadas."},
+        {"id": "P13", "label": "O revisor registrou explicitamente termos ausentes, erros, redundâncias ou sugestões, quando aplicável."},
+        {"id": "P14", "label": "Qualquer sugestão de alteração foi classificada como não material ou material; alteração material exige nova versão + novo PILOT."}
+      ],
+      "decision_options": [
+        {"value": "ACCEPT", "label": "Aceitar sem alterações"},
+        {"value": "ACCEPT_MINOR", "label": "Aceitar com observações não materiais"},
+        {"value": "MATERIAL_REVISION", "label": "Alteração material necessária — retornar ao PILOT"},
+        {"value": "REJECT", "label": "Não aprovar para freeze"}
+      ]
+    }
+  ]
+}
