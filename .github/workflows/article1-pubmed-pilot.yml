@@ -7,6 +7,7 @@ on:
       - audit/a1-pubmed-pilot-2026-08-25
     paths:
       - tools/article1_pubmed_pilot.py
+      - tools/run_article1_pubmed_pilot.py
       - .github/workflows/article1-pubmed-pilot.yml
 
 permissions:
@@ -27,7 +28,7 @@ jobs:
       - name: Install runtime dependency
         run: python -m pip install requests
       - name: Run Article 1 PubMed PILOT QA
-        run: python tools/article1_pubmed_pilot.py
+        run: python tools/run_article1_pubmed_pilot.py
       - name: Upload audit package
         if: always()
         uses: actions/upload-artifact@v4
