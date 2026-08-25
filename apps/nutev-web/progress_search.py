@@ -27,7 +27,7 @@ from search_adapter import (
 
 ProgressCallback = Callable[[dict[str, Any]], None]
 EXHAUSTIVE_SENTINEL = 2_147_483_647
-MAX_PROVIDER_QUERY_LENGTH = 12_000
+MAX_PROVIDER_QUERY_LENGTH = 20_000
 
 
 def _emit(callback: ProgressCallback | None, event: dict[str, Any]) -> None:
@@ -95,8 +95,8 @@ def search_evidence_progressive(
     provider is exhausted or the provider itself refuses/limits further access.
 
     When ``provider_queries`` is supplied, each provider receives its own compiled
-    query. The original review question remains the human-readable run identity and
-    the exact provider queries are persisted in the audit result.
+    or exact query. The original review question remains the human-readable run
+    identity and the exact provider queries are persisted in the audit result.
     """
 
     question = _clean_query(query)
@@ -117,7 +117,10 @@ def search_evidence_progressive(
         provider_limit = max(1, min(raw_per_provider, MAX_PER_PROVIDER))
         result_limit = max(1, min(raw_max_results, MAX_RESULTS))
 
-    structured_review = bool((query_plan or {}).get("mode") == "structured_review")
+    plan_mode = str((query_plan or {}).get("mode") or "")
+    structured_review = plan_mode == "structured_review"
+    exact_review = plan_mode == "exact_review"
+    review_mode = structured_review or exact_review
     search_id = (
         "web_"
         + datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
@@ -140,6 +143,7 @@ def search_evidence_progressive(
             "total_providers": len(chosen),
             "exhaustive": exhaustive,
             "structured_review": structured_review,
+            "exact_review": exact_review,
         },
     )
 
@@ -156,6 +160,7 @@ def search_evidence_progressive(
                 "total_providers": len(chosen),
                 "exhaustive": exhaustive,
                 "structured_review": structured_review,
+                "exact_review": exact_review,
             },
         )
 
@@ -269,6 +274,7 @@ def search_evidence_progressive(
                 "total_providers": len(chosen),
                 "exhaustive": exhaustive,
                 "structured_review": structured_review,
+                "exact_review": exact_review,
             },
         )
 
@@ -281,6 +287,7 @@ def search_evidence_progressive(
             "records_before_dedup": len(combined),
             "exhaustive": exhaustive,
             "structured_review": structured_review,
+            "exact_review": exact_review,
         },
     )
 
@@ -297,7 +304,11 @@ def search_evidence_progressive(
         if exhaustive and item.get("exhaustive_complete") is False
     ]
 
-    if structured_review and exhaustive:
+    if exact_review and exhaustive:
+        search_mode = "exact_review_global_exhaustive"
+    elif exact_review:
+        search_mode = "exact_review_bounded"
+    elif structured_review and exhaustive:
         search_mode = "structured_review_global_exhaustive"
     elif structured_review:
         search_mode = "structured_review_bounded"
@@ -311,14 +322,19 @@ def search_evidence_progressive(
         "LILACS/BVS e SciELO usam as interfaces públicas nativas; se a interface não demonstrar paginação exaustiva, o provider é marcado como não exaustivo em vez de receber cobertura fabricada.",
         "Scopus e Web of Science não são simulados e exigem acesso licenciado separado.",
     ]
-    if structured_review:
+    if exact_review:
+        limitations.insert(
+            0,
+            "Modo revisão exata: o NutEV preserva literalmente a sintaxe fornecida para cada provider e registra strategy_id, strategy_version, run_class, query e dialect no query_plan.",
+        )
+    elif structured_review:
         limitations.insert(
             0,
             "Modo revisão estruturada: cada provider recebe a query compilada registrada no query_plan; vocabulário controlado só é usado quando explicitamente informado/aprovado.",
         )
 
     result = {
-        "schema_version": 4 if structured_review else (3 if exhaustive else 2),
+        "schema_version": 5 if exact_review else (4 if structured_review else (3 if exhaustive else 2)),
         "search_id": search_id,
         "query": question,
         "created_at": _now(),
@@ -352,6 +368,8 @@ def search_evidence_progressive(
             "total_providers": len(chosen),
             "exhaustive": exhaustive,
             "structured_review": structured_review,
+            "exact_review": exact_review,
+            "review_mode": review_mode,
         },
     )
     return result
