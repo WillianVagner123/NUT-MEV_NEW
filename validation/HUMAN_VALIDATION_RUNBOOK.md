@@ -2,6 +2,14 @@
 
 This runbook executes the first benchmark-grade attempt to move NutEV above **B — DEMOTE** without circular validation.
 
+Canonical participant identity and custody rules are defined in:
+
+```text
+validation/RUNTIME_PARTICIPANT_IDENTITY_AND_CUSTODY_PROTOCOL.md
+```
+
+That protocol is normative for participant setup. Real assessor, adjudicator and custodian identities are private runtime/operational data and must not be hard-coded or committed as production configuration.
+
 Frozen runtime under test:
 
 ```text
@@ -22,7 +30,7 @@ according to `validation/QUESTION_SET_PROTOCOL.md`.
 
 No script in this repository is authorized to invent final independent questions or human relevance labels.
 
-Assign an **external-test custodian** before labeling. This person/team may hold sealed external-test packets and labels, but must not provide them to the analyst/developer making the validation-stage continuation decision.
+Assign an **external-test custodian** before labeling. The real identity and contact mapping for this role remain private operational data outside Git. This person/team may hold sealed external-test packets and labels, but must not provide them to the analyst/developer making the validation-stage continuation decision.
 
 ## 1. Produce a real frozen-runtime output
 
@@ -112,18 +120,23 @@ Development may be built analogously with `--split development`, but development
 
 ## 5. Generate independent assessor packets
 
-For validation:
+The canonical production path generates opaque assessor IDs at runtime. It does not require names, emails, GitHub accounts or fixed `assessor_A` / `assessor_B` identities in source control.
+
+For validation, with the current scientific minimum of two independent assessors:
 
 ```bash
 python tools/build_assessor_packets.py \
   --pool validation/data/VALIDATION_BLINDED_POOL.csv \
-  --assessor-id assessor_A \
-  --assessor-id assessor_B \
+  --assessor-count 2 \
   --output-dir validation/data/validation_assessor_packets \
   --manifest validation/data/VALIDATION_ASSESSOR_PACKETS_MANIFEST.json
 ```
 
-For external test, run the same tool against `<SEALED>/EXTERNAL_BLINDED_POOL.csv` and write all outputs under `<SEALED>`.
+`--assessor-count` is runtime configurable and may be greater than two without changing application source code. The real-person mapping from each generated opaque ID to the human participant must remain in a private operational registry outside Git.
+
+An advanced path may supply explicit `--assessor-id` values only when they are already opaque, non-identifying runtime IDs. Synthetic labels such as `assessor_A` may remain in unit tests/examples but are not the canonical production identity model.
+
+For external test, run the same tool against `<SEALED>/EXTERNAL_BLINDED_POOL.csv` and write all outputs under `<SEALED>` under custodian control.
 
 Each assessor receives only their own packet plus the frozen question definitions/relevance instructions. Do not provide:
 
@@ -139,7 +152,7 @@ Each assessor independently completes every row in their packet:
 - `relevance_grade`: `0`, `1`, or `2`;
 - `reason`: concise justification;
 - `decision_timestamp`;
-- keep `assessor_id` unchanged;
+- keep the generated opaque `assessor_id` unchanged;
 - keep `blind_to_nutev = true` only if the assessor actually remained blind.
 
 Scale:
@@ -187,7 +200,9 @@ External final gold, kept sealed:
 For every pool item:
 
 - unanimous assessors: common grade + `adjudication_status = AGREED`;
-- disagreement: human adjudicator supplies final `relevance_grade`, `adjudication_status = RESOLVED`, `adjudicator_id`, and `adjudication_timestamp`.
+- disagreement: human adjudicator supplies final `relevance_grade`, `adjudication_status = RESOLVED`, opaque `adjudicator_id`, and `adjudication_timestamp`.
+
+The real adjudicator identity remains private operational data outside Git unless separately disclosed through an approved scientific reporting process.
 
 A script must not choose the winning assessor or resolve conflicts automatically.
 
@@ -324,6 +339,8 @@ For each benchmark round preserve hashes/copies of at least:
 - paired comparison outputs;
 - locked validation continuation decision;
 - exact Git SHAs of frozen runtime and benchmark tooling.
+
+Participant real-identity/contact mappings and reviewer credentials remain private operational records and are not part of the public artifact bundle.
 
 Never rewrite unfavorable benchmark artifacts to create a cleaner narrative. A failed validation round is scientific evidence and must remain auditable.
 
