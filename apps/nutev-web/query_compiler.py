@@ -119,17 +119,17 @@ def _normalize_exact_strategy(
 ) -> dict[str, Any] | None:
     if not isinstance(strategy, dict) or str(strategy.get("mode") or "").lower() != "exact":
         return None
+    run_class = str(strategy.get("run_class") or "PILOT").strip().upper()
+    if run_class not in SUPPORTED_RUN_CLASSES:
+        raise ValueError(
+            "run_class deve ser PREFLIGHT, PILOT, FORMAL, SUPPLEMENTARY ou DEVELOPMENT"
+        )
     strategy_id = _clean_text(strategy.get("strategy_id"), max_length=120)
     strategy_version = _clean_text(strategy.get("strategy_version"), max_length=80)
     if not strategy_id or strategy_id.casefold() == "unversioned":
         raise ValueError("Modo exato exige Strategy ID explícito e versionado")
     if not strategy_version or strategy_version.casefold() == "unversioned":
         raise ValueError("Modo exato exige Versão explícita; UNVERSIONED não é permitido")
-    run_class = str(strategy.get("run_class") or "PILOT").strip().upper()
-    if run_class not in SUPPORTED_RUN_CLASSES:
-        raise ValueError(
-            "run_class deve ser PREFLIGHT, PILOT, FORMAL, SUPPLEMENTARY ou DEVELOPMENT"
-        )
     raw_queries = strategy.get("provider_queries")
     if not isinstance(raw_queries, dict) or not raw_queries:
         raise ValueError("Modo exato exige pelo menos uma consulta por base")
