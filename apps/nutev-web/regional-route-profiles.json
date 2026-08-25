@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "profile_id": "article1-regional-prefreeze-2026-08-25",
+      "review_title": "Artigo 1 — validação pré-freeze das rotas regionais",
+      "gate_id": "GF-01",
+      "mode": "PREFREEZE_ROUTE_VALIDATION",
+      "formal_search": false,
+      "prisma_eligible": false,
+      "guardrail": "Esta etapa valida a rota técnica. Não é busca formal, não alimenta PRISMA e não autoriza freeze. A busca formal deve ser executada do zero somente após GF-10.",
+      "routes": [
+        {
+          "route_id": "B-NORM-LILACS",
+          "provider": "LILACS via BVS",
+          "role": "Bibliográfica regional principal complementar",
+          "official_base_url": "https://pesquisa.bvsalud.org/portal/",
+          "query": "(diet OR dietary OR nutrition OR \"healthy eating\") AND (guideline OR guidance OR recommendation OR consensus OR statement OR standard)",
+          "url_mode": "bvs_lilacs",
+          "required_evidence": [
+            "Consulta exata preservada",
+            "Data real da execução",
+            "Contagem exibida pela interface oficial",
+            "Arquivo exportado/captura da rota oficial quando aplicável",
+            "SHA-256 do arquivo selecionado",
+            "Confirmação explícita de que 403/unavailable não foi tratado como zero resultados"
+          ],
+          "notes": "Usar o Portal de Pesquisa BVS com filtro LILACS. Esta rota é complementar e não substitui Scopus/Web of Science."
+        },
+        {
+          "route_id": "B-SUPP-SCIELO",
+          "provider": "SciELO",
+          "role": "Bibliográfica regional suplementar",
+          "official_base_url": "https://search.scielo.org/",
+          "query": "(diet OR dietary OR nutrition OR \"healthy eating\") AND (guideline OR guidance OR recommendation OR consensus OR statement OR standard)",
+          "url_mode": "scielo_subject",
+          "required_evidence": [
+            "Consulta exata preservada",
+            "Data real da execução",
+            "Contagem exibida pela interface oficial",
+            "Arquivo exportado/captura da rota oficial quando aplicável",
+            "SHA-256 do arquivo selecionado",
+            "Confirmação explícita de que 403/unavailable não foi tratado como zero resultados"
+          ],
+          "notes": "Usar SciELO Search nativo com subject:(...). A rota é suplementar e não equivale a um índice proprietário."
+        }
+      ]
+    }
+  ]
+}
