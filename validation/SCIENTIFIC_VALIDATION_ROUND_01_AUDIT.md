@@ -15,6 +15,25 @@ Current scientific verdict: **B — DEMOTE**.
 
 The stable `v1.0.0` release and Zenodo archive remain immutable and outside this validation round.
 
+## Configuration rule — no participant hard-coding
+
+Human participants are **runtime/private configuration**, never source-code constants and never repository metadata.
+
+Do not commit reviewer names, e-mails, phone numbers, personal identifiers, custodian identity, or adjudicator identity to Git.
+
+The validation system must use:
+
+- a generated `round_id` for each scientific round;
+- opaque per-participant `assessor_id` values supplied/generated at round preparation time;
+- private reviewer tokens generated at runtime;
+- participant-to-role mapping stored only in the private operational layer;
+- a minimum of two independent assessors enforced by validation logic, without assuming exactly two forever;
+- role capabilities (`assessor`, `adjudicator`, `external_custodian`) as configuration/state, not hard-coded people.
+
+Labels such as “A/B” in documentation are explanatory placeholders only. They are not canonical IDs and must not be embedded as production identities.
+
+The existing packet builder already accepts repeated runtime `--assessor-id` arguments, and the validation server creates unique round IDs and private reviewer tokens dynamically. The canonical operating flow must preserve that behavior.
+
 ## Release boundary
 
 The following are already closed for this round:
@@ -34,16 +53,17 @@ The remaining blocker is **independent human scientific evidence**.
 
 The round is not complete until blinded human judgments produce an adjudicated gold standard and NutEV is compared against the preregistered lexical baseline.
 
-## Human gates
+## Human-role gate
 
-Before execution, record the following roles:
+Before execution, configure the required roles in the private/runtime layer:
 
-- [ ] Assessor A
-- [ ] Assessor B
-- [ ] External-test custodian
-- [ ] Human adjudicator
+- [ ] at least two independent assessors;
+- [ ] one external-test custodian;
+- [ ] one human adjudicator or an explicitly documented adjudication arrangement.
 
-The external-test custodian must keep external labels, gold, metrics, and error analysis sealed from the analyst responsible for the validation-stage continuation decision.
+A person may only hold multiple roles where the preregistered blinding and custody rules still remain valid. External-test information must remain inaccessible to the validation-stage analyst until the continuation decision is locked.
+
+No real person identity belongs in this repository.
 
 ## Phase 1 — frozen runtime reproduction
 
@@ -85,7 +105,7 @@ External test:
 
 ## Phase 4 — independent human assessment
 
-Each assessor receives only their own packet plus frozen question definitions and relevance instructions.
+Each assessor receives only their own private session/packet plus frozen question definitions and relevance instructions.
 
 They must not receive:
 
@@ -99,7 +119,7 @@ For every item, each assessor records:
 - `relevance_grade`: 0, 1, or 2;
 - concise reason;
 - timestamp;
-- unchanged assessor identifier;
+- unchanged opaque assessor identifier;
 - truthful blindness status.
 
 Interpretation:
@@ -110,7 +130,7 @@ Interpretation:
 
 ## Phase 5 — consolidation and adjudication
 
-- [ ] Preserve completed raw assessor packets immutably.
+- [ ] Preserve completed raw assessor packets/sessions immutably.
 - [ ] Build `VALIDATION_ASSESSMENTS.csv`.
 - [ ] Mark unanimous judgments `AGREED`.
 - [ ] Resolve disagreements only through a human adjudicator.
@@ -222,7 +242,7 @@ Scientific Validation Round 01 is complete only when all applicable items below 
 
 - [ ] frozen runtime output and audit manifest;
 - [ ] label-blind benchmark rankings and manifest;
-- [ ] independent assessor packets and completed judgments;
+- [ ] runtime-configured independent assessor sessions and completed judgments;
 - [ ] 100% judged validation pool;
 - [ ] human adjudication of every conflict;
 - [ ] validated gold standard;
@@ -236,12 +256,11 @@ Scientific Validation Round 01 is complete only when all applicable items below 
 
 ## Immediate owner actions
 
-The only non-automatable actions required to start the round are:
+The only non-automatable actions required to start the round are operational, not code changes:
 
-1. designate Assessor A;
-2. designate Assessor B;
-3. designate the external-test custodian;
-4. designate the adjudicator;
-5. send each person only the blinded materials appropriate to their role.
+1. choose the qualified people who will fill the required roles;
+2. configure them in the private/runtime layer using opaque IDs;
+3. distribute each private reviewer link only to its intended participant;
+4. keep the external-test custody mapping outside Git and inaccessible to the validation-stage analyst.
 
 Everything downstream should follow the canonical validation tooling and fail closed when required artifacts or human decisions are absent.
