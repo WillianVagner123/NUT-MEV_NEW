@@ -1,0 +1,5 @@
+{
+  "assessor_count": 2,
+  "identity_mode": "generated_opaque_ids",
+  "note": "Example only. Do not store real participant identities in Git."
+}
