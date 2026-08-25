@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>NutEV — Rotas regionais</title>
+  <meta name="description" content="Validação pré-freeze assistida das rotas regionais LILACS/BVS e SciELO.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./exact-strategy.css">
+  <link rel="stylesheet" href="./review-qa.css">
+  <link rel="stylesheet" href="./regional-routes.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <a class="nav-item" href="/">⌕ <span>Buscar evidências</span></a>
+        <a class="nav-item" href="/?view=history">◷ <span>Minhas buscas</span></a>
+        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
+        <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
+        <a class="nav-item active" href="/regional-routes.html">⌁ <span>Rotas regionais</span></a>
+        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+      </nav>
+      <div class="sidebar-note">Validação de rota pré-freeze. Não é busca formal e não alimenta PRISMA.</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><h1>Rotas regionais</h1><p>Valide LILACS/BVS e SciELO pela interface oficial quando o acesso automatizado for bloqueado.</p></div>
+        <span class="status-pill" id="regionalHealth">carregando…</span>
+      </header>
+
+      <section class="regional-layout">
+        <div class="card regional-card">
+          <div class="section-head"><div><h2>1. Perfil pré-freeze</h2><p>O sistema preserva as queries canônicas e exige evidência auditável da execução humana/visual.</p></div><button id="refreshRegional" type="button" class="ghost">Atualizar</button></div>
+          <div id="regionalProfileState" class="qa-state">Carregando perfil…</div>
+          <div id="regionalGuardrail" class="qa-state"></div>
+        </div>
+
+        <section id="regionalRoutes"></section>
+
+        <div class="card regional-card">
+          <div class="section-head"><div><h2>3. Avaliar GF-01</h2><p>O NutEV verifica apenas a completude da evidência técnica. O CONTROL CENTER continua sendo a fonte canônica do gate.</p></div></div>
+          <div class="regional-actions">
+            <button id="evaluateRegionalBtn" type="button" class="primary">Avaliar rotas</button>
+            <button id="downloadRegionalBtn" type="button" class="ghost" disabled>Exportar relatório JSON</button>
+          </div>
+          <div id="regionalGate" class="qa-state">Aguardando evidência das duas rotas.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./regional-routes.js"></script>
+</body>
+</html>
