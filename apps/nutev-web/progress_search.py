@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from nutev.reference_identity import dedupe_records
 
+from pubmed_search_details import collect_pubmed_search_details
 from search_adapter import (
     DIRECT_PROVIDERS,
     LATIN_PROVIDERS,
@@ -27,7 +28,7 @@ from search_adapter import (
 
 ProgressCallback = Callable[[dict[str, Any]], None]
 EXHAUSTIVE_SENTINEL = 2_147_483_647
-MAX_PROVIDER_QUERY_LENGTH = 12_000
+MAX_PROVIDER_QUERY_LENGTH = 20_000
 
 
 def _emit(callback: ProgressCallback | None, event: dict[str, Any]) -> None:
@@ -36,7 +37,6 @@ def _emit(callback: ProgressCallback | None, event: dict[str, Any]) -> None:
     try:
         callback(event)
     except Exception:
-        # UI/progress reporting must never change retrieval or ranking semantics.
         return
 
 
@@ -76,6 +76,24 @@ def _decorate_rows(
     return decorated
 
 
+def _pubmed_audit_gap(status_item: dict[str, Any]) -> str | None:
+    if status_item.get("provider") != "pubmed":
+        return None
+    audit_error = str(status_item.get("search_details_error") or "").strip()
+    if audit_error:
+        return audit_error
+    details = status_item.get("search_details")
+    if not isinstance(details, dict) or not details.get("search_details_complete"):
+        return "pubmed_search_details_missing"
+    if details.get("errors_present"):
+        return "pubmed_search_details_errors_present"
+    count = details.get("count")
+    total_found = status_item.get("total_found")
+    if count is not None and total_found is not None and int(count) != int(total_found):
+        return f"pubmed_count_mismatch:{count}!={total_found}"
+    return None
+
+
 def search_evidence_progressive(
     query: object,
     *,
@@ -89,14 +107,10 @@ def search_evidence_progressive(
 ) -> dict[str, Any]:
     """Run NutEV search sequentially while emitting provider progress.
 
-    A zero value for both ``per_provider`` and ``max_results`` is the explicit
-    web sentinel for exhaustive global search. In that mode NutEV removes its own
-    result ceilings and asks each direct provider connector to paginate until the
-    provider is exhausted or the provider itself refuses/limits further access.
-
-    When ``provider_queries`` is supplied, each provider receives its own compiled
-    query. The original review question remains the human-readable run identity and
-    the exact provider queries are persisted in the audit result.
+    ``0/0`` removes NutEV's internal result ceilings. Provider-specific review
+    queries are persisted exactly. Review-grade PubMed runs also preserve ESearch
+    Search Details (translation, warnings, errors and count) separately from the
+    retrieval result so syntax warnings cannot be silently lost.
     """
 
     question = _clean_query(query)
@@ -117,7 +131,10 @@ def search_evidence_progressive(
         provider_limit = max(1, min(raw_per_provider, MAX_PER_PROVIDER))
         result_limit = max(1, min(raw_max_results, MAX_RESULTS))
 
-    structured_review = bool((query_plan or {}).get("mode") == "structured_review")
+    plan_mode = str((query_plan or {}).get("mode") or "")
+    structured_review = plan_mode == "structured_review"
+    exact_review = plan_mode == "exact_review"
+    review_mode = structured_review or exact_review
     search_id = (
         "web_"
         + datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
@@ -140,6 +157,7 @@ def search_evidence_progressive(
             "total_providers": len(chosen),
             "exhaustive": exhaustive,
             "structured_review": structured_review,
+            "exact_review": exact_review,
         },
     )
 
@@ -156,12 +174,21 @@ def search_evidence_progressive(
                 "total_providers": len(chosen),
                 "exhaustive": exhaustive,
                 "structured_review": structured_review,
+                "exact_review": exact_review,
             },
         )
 
         rows: list[dict[str, Any]] = []
         status_item: dict[str, Any]
         latin_summary_path: str | None = None
+        search_details: dict[str, Any] | None = None
+        search_details_error = ""
+
+        if review_mode and provider == "pubmed" and not network_disabled:
+            try:
+                search_details = collect_pubmed_search_details(effective_query)
+            except Exception as exc:
+                search_details_error = f"{type(exc).__name__}: {exc}"
 
         if network_disabled:
             status_item = {
@@ -236,6 +263,9 @@ def search_evidence_progressive(
             provider_plan = (query_plan.get("provider_queries") or {}).get(provider) or {}
             if isinstance(provider_plan, dict):
                 status_item["query_dialect"] = provider_plan.get("dialect")
+        if provider == "pubmed" and review_mode:
+            status_item["search_details"] = search_details
+            status_item["search_details_error"] = search_details_error
 
         if exhaustive and provider in DIRECT_PROVIDERS:
             total_found = status_item.get("total_found")
@@ -269,6 +299,7 @@ def search_evidence_progressive(
                 "total_providers": len(chosen),
                 "exhaustive": exhaustive,
                 "structured_review": structured_review,
+                "exact_review": exact_review,
             },
         )
 
@@ -281,6 +312,7 @@ def search_evidence_progressive(
             "records_before_dedup": len(combined),
             "exhaustive": exhaustive,
             "structured_review": structured_review,
+            "exact_review": exact_review,
         },
     )
 
@@ -296,8 +328,18 @@ def search_evidence_progressive(
         for item in provider_status
         if exhaustive and item.get("exhaustive_complete") is False
     ]
+    audit_gaps: list[dict[str, str]] = []
+    if review_mode:
+        for item in provider_status:
+            gap = _pubmed_audit_gap(item)
+            if gap:
+                audit_gaps.append({"provider": str(item.get("provider") or ""), "reason": gap})
 
-    if structured_review and exhaustive:
+    if exact_review and exhaustive:
+        search_mode = "exact_review_global_exhaustive"
+    elif exact_review:
+        search_mode = "exact_review_bounded"
+    elif structured_review and exhaustive:
         search_mode = "structured_review_global_exhaustive"
     elif structured_review:
         search_mode = "structured_review_bounded"
@@ -311,26 +353,42 @@ def search_evidence_progressive(
         "LILACS/BVS e SciELO usam as interfaces públicas nativas; se a interface não demonstrar paginação exaustiva, o provider é marcado como não exaustivo em vez de receber cobertura fabricada.",
         "Scopus e Web of Science não são simulados e exigem acesso licenciado separado.",
     ]
-    if structured_review:
+    if exact_review:
+        limitations.insert(
+            0,
+            "Modo revisão exata: o NutEV preserva literalmente a sintaxe fornecida para cada provider e registra strategy_id, strategy_version, run_class, query e dialect no query_plan.",
+        )
+    elif structured_review:
         limitations.insert(
             0,
             "Modo revisão estruturada: cada provider recebe a query compilada registrada no query_plan; vocabulário controlado só é usado quando explicitamente informado/aprovado.",
         )
+    if review_mode and "pubmed" in chosen:
+        limitations.insert(
+            1,
+            "PubMed review audit preserva query translation, warninglist, errorlist e count do ESearch em providers[].search_details.",
+        )
+
+    if audit_gaps:
+        overall_status = "COMPLETE_WITH_AUDIT_GAPS"
+    elif failed or unavailable or non_exhaustive:
+        overall_status = "COMPLETE_WITH_PROVIDER_GAPS"
+    else:
+        overall_status = "COMPLETE"
 
     result = {
-        "schema_version": 4 if structured_review else (3 if exhaustive else 2),
+        "schema_version": 6 if exact_review else (4 if structured_review else (3 if exhaustive else 2)),
         "search_id": search_id,
         "query": question,
         "created_at": _now(),
         "search_mode": search_mode,
         "exhaustive_requested": exhaustive,
-        "status": "COMPLETE_WITH_PROVIDER_GAPS"
-        if (failed or unavailable or non_exhaustive)
-        else "COMPLETE",
+        "status": overall_status,
         "providers": provider_status,
         "failed_providers": failed,
         "unavailable_providers": unavailable,
         "non_exhaustive_providers": non_exhaustive,
+        "audit_gaps": audit_gaps,
         "records_before_dedup": len(combined),
         "unique_records": len(unique),
         "returned_records": len(returned),
@@ -352,6 +410,8 @@ def search_evidence_progressive(
             "total_providers": len(chosen),
             "exhaustive": exhaustive,
             "structured_review": structured_review,
+            "exact_review": exact_review,
+            "review_mode": review_mode,
         },
     )
     return result

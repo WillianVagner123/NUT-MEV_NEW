@@ -1,13 +1,9 @@
-const state={providers:[],last:null,currentJob:null,currentMode:null,visibleResults:100};
+const state={providers:[],last:null,currentJob:null,currentMode:null,visibleResults:100,exactQueries:{}};
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const GLOBAL_EXHAUSTIVE_SENTINEL=0;
 const RESULT_BATCH=100;
-const FRAMEWORKS={
-  PCC:['Population','Concept','Context'],
-  PICO:['Population','Intervention','Comparator','Outcome'],
-  PECO:['Population','Exposure','Comparator','Outcome']
-};
+const FRAMEWORKS={PCC:['Population','Concept','Context'],PICO:['Population','Intervention','Comparator','Outcome'],PECO:['Population','Exposure','Comparator','Outcome']};
 
 function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
 function switchView(name){$$('.view').forEach(x=>x.classList.add('hidden'));$$('.nav-item[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===name));$(`#${name}View`).classList.remove('hidden');if(name==='history')renderHistory()}
@@ -15,6 +11,8 @@ function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function statusLabel(status){return ({queued:'aguardando',running:'buscando',completed:'concluído',empty:'sem resultados',completed_no_candidates_parsed:'sem candidatos',unavailable:'indisponível',failed:'falhou',skipped:'ignorada'})[status]||status||'aguardando'}
 function badgeClass(status){return ['failed','unavailable'].includes(status)?'failed':''}
 function providerLabel(id){return (state.providers.find(p=>p.id===id)||{}).label||id}
+function selectedProviders(){return $$('#providerGrid input:checked').map(x=>x.value)}
+function strategyType(){return document.querySelector('input[name="strategyType"]:checked')?.value||'structured'}
 
 async function init(){
   $$('.nav-item[data-view]').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
@@ -23,144 +21,80 @@ async function init(){
   $('#globalSearchBtn').onclick=()=>runSearch({global:true});
   $('#structuredReviewToggle').onchange=toggleStructuredReview;
   $('#frameworkSelect').onchange=()=>renderConceptBuilder(true);
+  $$('input[name="strategyType"]').forEach(r=>r.onchange=toggleStrategyType);
   $('#compileStrategyBtn').onclick=compileStrategyPreview;
   renderConceptBuilder(false);
-  try{const [health,providers]=await Promise.all([fetch('/api/health').then(r=>r.json()),fetch('/api/providers').then(r=>r.json())]);$('#health').textContent=health.status==='ok'?'engine conectado':'engine indisponível';$('#health').classList.add(health.status==='ok'?'ok':'bad');state.providers=providers.providers||[];renderProviders()}catch(e){$('#health').textContent='engine indisponível';$('#health').classList.add('bad');$('#searchBtn').disabled=true;$('#globalSearchBtn').disabled=true;$('#compileStrategyBtn').disabled=true}
-  const params=new URLSearchParams(location.search);
-  if(params.get('view')==='history')switchView('history');
-  if(params.get('q')){$('#question').value=params.get('q');switchView('search')}
+  try{
+    const [health,providers]=await Promise.all([fetch('/api/health').then(r=>r.json()),fetch('/api/providers').then(r=>r.json())]);
+    $('#health').textContent=health.status==='ok'?'engine conectado':'engine indisponível';$('#health').classList.add(health.status==='ok'?'ok':'bad');state.providers=providers.providers||[];renderProviders();renderExactQueryBuilder();
+  }catch(e){$('#health').textContent='engine indisponível';$('#health').classList.add('bad');$('#searchBtn').disabled=true;$('#globalSearchBtn').disabled=true;$('#compileStrategyBtn').disabled=true}
+  const params=new URLSearchParams(location.search);if(params.get('view')==='history')switchView('history');if(params.get('q')){$('#question').value=params.get('q');switchView('search')}
 }
 
-function renderProviders(){const root=$('#providerGrid');root.innerHTML=state.providers.map(p=>`<label class="provider-chip"><input type="checkbox" value="${esc(p.id)}" checked> ${esc(p.label)}</label>`).join('');$('#searchHint').textContent=`${state.providers.length} fontes conectadas no modo web`}
-function selectedProviders(){return $$('#providerGrid input:checked').map(x=>x.value)}
-function activateGlobalSearchControls(){$$('#providerGrid input').forEach(input=>{input.checked=true})}
-
-function toggleStructuredReview(){
-  const enabled=$('#structuredReviewToggle').checked;
-  $('#strategyBuilder').classList.toggle('hidden',!enabled);
-  $('#strategyStatus').textContent=enabled?'Estratégia estruturada ativa. Revise os blocos antes de executar.':'A estratégia só será usada quando este modo estiver ativado.';
+function renderProviders(){
+  const root=$('#providerGrid');root.innerHTML=state.providers.map(p=>`<label class="provider-chip"><input type="checkbox" value="${esc(p.id)}" checked> ${esc(p.label)}</label>`).join('');
+  root.querySelectorAll('input').forEach(input=>input.onchange=()=>{renderExactQueryBuilder();$('#strategyPreview').classList.add('hidden')});
+  $('#searchHint').textContent=`${state.providers.length} fontes conectadas no modo web`;
 }
+function activateGlobalSearchControls(){$$('#providerGrid input').forEach(input=>{input.checked=true});renderExactQueryBuilder()}
 
-function currentConceptValues(){
-  return $$('#conceptBuilder .concept-card').map(card=>({
-    label:card.querySelector('.concept-label')?.value||'',
-    terms:card.querySelector('.concept-terms')?.value||''
-  }));
-}
+function toggleStructuredReview(){const enabled=$('#structuredReviewToggle').checked;$('#strategyBuilder').classList.toggle('hidden',!enabled);$('#strategyStatus').textContent=enabled?'Modo revisão ativo. Escolha construtor ou estratégia exata.':'A estratégia só será usada quando este modo estiver ativado.'}
+function toggleStrategyType(){const exact=strategyType()==='exact';$('#structuredStrategyPanel').classList.toggle('hidden',exact);$('#exactStrategyPanel').classList.toggle('hidden',!exact);$('#strategyPreview').classList.add('hidden');$('#strategyStatus').textContent=exact?'Modo exato: selecione somente bases com string aprovada e preserve ID/versão.':'Modo estruturado: revise PCC/PICO/PECO e termos antes de executar.';if(exact)renderExactQueryBuilder()}
 
-function renderConceptBuilder(preserve){
-  const framework=$('#frameworkSelect')?.value||'PCC';
-  const labels=FRAMEWORKS[framework]||FRAMEWORKS.PCC;
-  const previous=preserve?currentConceptValues():[];
-  $('#conceptBuilder').innerHTML=labels.map((label,index)=>{
-    const old=previous[index]||{};
-    return `<div class="concept-card"><div class="concept-card-head"><span class="concept-index">${index+1}</span><input class="concept-label" value="${esc(old.label||label)}" aria-label="Nome do bloco conceitual"></div><textarea class="concept-terms" rows="5" placeholder="Ex.:\nfree:termo livre\nmesh:Descritor MeSH\ndecs:Descritor DeCS">${esc(old.terms||'')}</textarea></div>`;
-  }).join('');
-  $('#strategyPreview').classList.add('hidden');
-  $('#strategyPreview').innerHTML='';
+function currentConceptValues(){return $$('#conceptBuilder .concept-card').map(card=>({label:card.querySelector('.concept-label')?.value||'',terms:card.querySelector('.concept-terms')?.value||''}))}
+function renderConceptBuilder(preserve){const framework=$('#frameworkSelect')?.value||'PCC';const labels=FRAMEWORKS[framework]||FRAMEWORKS.PCC;const previous=preserve?currentConceptValues():[];$('#conceptBuilder').innerHTML=labels.map((label,index)=>{const old=previous[index]||{};return `<div class="concept-card"><div class="concept-card-head"><span class="concept-index">${index+1}</span><input class="concept-label" value="${esc(old.label||label)}" aria-label="Nome do bloco conceitual"></div><textarea class="concept-terms" rows="5" placeholder="Ex.:\nfree:termo livre\nmesh:Descritor MeSH\ndecs:Descritor DeCS">${esc(old.terms||'')}</textarea></div>`}).join('');$('#strategyPreview').classList.add('hidden');$('#strategyPreview').innerHTML=''}
+
+function renderExactQueryBuilder(){
+  const root=$('#exactQueryBuilder');if(!root||!state.providers.length)return;
+  root.querySelectorAll('textarea[data-provider]').forEach(t=>{state.exactQueries[t.dataset.provider]=t.value});
+  const selected=new Set(selectedProviders());const providers=state.providers.filter(p=>selected.has(p.id));
+  root.innerHTML=providers.length?providers.map(p=>`<div class="exact-query-card"><div><strong>${esc(p.label)}</strong><span>query literal</span></div><textarea data-provider="${esc(p.id)}" rows="7" placeholder="Cole aqui a estratégia exata para ${esc(p.label)}">${esc(state.exactQueries[p.id]||'')}</textarea></div>`).join(''):'<div class="strategy-warning">Selecione pelo menos uma fonte em “Fontes e limites”.</div>';
+  root.querySelectorAll('textarea[data-provider]').forEach(t=>t.oninput=()=>{state.exactQueries[t.dataset.provider]=t.value});
 }
 
 function buildStrategy(){
   if(!$('#structuredReviewToggle').checked)return null;
-  const framework=$('#frameworkSelect').value;
-  const concepts=$$('#conceptBuilder .concept-card').map(card=>({
-    label:card.querySelector('.concept-label').value.trim(),
-    terms:card.querySelector('.concept-terms').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean)
-  })).filter(block=>block.terms.length>0);
-  if(!concepts.length)throw new Error('Adicione pelo menos um termo em um bloco da estratégia estruturada.');
-  return {framework,concepts};
+  if(strategyType()==='exact'){
+    renderExactQueryBuilder();const providers=selectedProviders();if(!providers.length)throw new Error('Selecione pelo menos uma base para a estratégia exata.');
+    const provider_queries={};for(const provider of providers){const value=String(state.exactQueries[provider]||'').trim();if(!value)throw new Error(`Cole a query exata de ${providerLabel(provider)} ou desmarque essa base.`);provider_queries[provider]=value}
+    return {mode:'exact',strategy_id:$('#strategyId').value.trim()||'UNVERSIONED',strategy_version:$('#strategyVersion').value.trim()||'UNVERSIONED',run_class:$('#runClassSelect').value,provider_queries};
+  }
+  const framework=$('#frameworkSelect').value;const concepts=$$('#conceptBuilder .concept-card').map(card=>({label:card.querySelector('.concept-label').value.trim(),terms:card.querySelector('.concept-terms').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean)})).filter(block=>block.terms.length>0);if(!concepts.length)throw new Error('Adicione pelo menos um termo em um bloco da estratégia estruturada.');return {framework,concepts};
 }
 
 async function compileStrategyPreview(){
-  const query=$('#question').value.trim();
-  if(!query)return alert('Digite primeiro a pergunta da revisão.');
-  let strategy;
-  try{strategy=buildStrategy()}catch(e){return alert(e.message)}
-  if(!strategy)return alert('Ative o modo revisão de escopo / estratégia estruturada.');
-  const providers=selectedProviders().length?selectedProviders():state.providers.map(p=>p.id);
-  const btn=$('#compileStrategyBtn');btn.disabled=true;$('#strategyStatus').textContent='Compilando estratégia…';
-  try{
-    const res=await fetch('/api/query/compile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,providers,strategy})});
-    const plan=await res.json();if(!res.ok)throw new Error(plan.message||plan.error||'Falha ao compilar estratégia');
-    renderStrategyPreview(plan);$('#strategyStatus').textContent=`Estratégia compilada · ${plan.controlled_vocabulary_terms||0} termos controlados explícitos.`;
-  }catch(e){$('#strategyStatus').textContent=`Falha: ${e.message}`}
-  finally{btn.disabled=false}
+  const query=$('#question').value.trim();if(!query)return alert('Digite primeiro a pergunta humana da revisão.');let strategy;try{strategy=buildStrategy()}catch(e){return alert(e.message)}if(!strategy)return alert('Ative o modo revisão científica.');const providers=selectedProviders();
+  const btn=$('#compileStrategyBtn');btn.disabled=true;$('#strategyStatus').textContent='Validando estratégia…';
+  try{const res=await fetch('/api/query/compile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,providers,strategy})});const plan=await res.json();if(!res.ok)throw new Error(plan.message||plan.error||'Falha ao compilar estratégia');renderStrategyPreview(plan);$('#strategyStatus').textContent=plan.mode==='exact_review'?`Estratégia exata validada · ${plan.strategy_id} ${plan.strategy_version} · ${plan.run_class}.`:`Estratégia compilada · ${plan.controlled_vocabulary_terms||0} termos controlados explícitos.`}catch(e){$('#strategyStatus').textContent=`Falha: ${e.message}`}finally{btn.disabled=false}
 }
-
-function renderStrategyPreview(plan){
-  const root=$('#strategyPreview');
-  const queries=plan.provider_queries||{};
-  root.classList.remove('hidden');
-  root.innerHTML=`<div class="strategy-preview-head"><strong>Preview auditável</strong><span>${esc(plan.framework||'')} · ${Number(plan.controlled_vocabulary_terms||0)} MeSH/DeCS explícitos</span></div><div class="compiled-query-list">${Object.entries(queries).map(([provider,item])=>`<details class="compiled-query"><summary>${esc(providerLabel(provider))} <span>${esc(item.dialect||'')}</span></summary><code>${esc(item.query||'')}</code></details>`).join('')}</div>${(plan.warnings||[]).map(w=>`<div class="strategy-warning">${esc(w)}</div>`).join('')}`;
-}
+function renderStrategyPreview(plan){const root=$('#strategyPreview');const queries=plan.provider_queries||{};const meta=plan.mode==='exact_review'?`${esc(plan.strategy_id||'')} ${esc(plan.strategy_version||'')} · ${esc(plan.run_class||'')}`:`${esc(plan.framework||'')} · ${Number(plan.controlled_vocabulary_terms||0)} MeSH/DeCS explícitos`;root.classList.remove('hidden');root.innerHTML=`<div class="strategy-preview-head"><strong>Preview auditável</strong><span>${meta}</span></div><div class="compiled-query-list">${Object.entries(queries).map(([provider,item])=>`<details class="compiled-query"><summary>${esc(providerLabel(provider))} <span>${esc(item.dialect||'')}</span></summary><code>${esc(item.query||'')}</code></details>`).join('')}</div>${(plan.warnings||[]).map(w=>`<div class="strategy-warning">${esc(w)}</div>`).join('')}`}
 
 async function runSearch(options={}){
-  const query=$('#question').value.trim();if(!query)return alert('Digite uma pergunta de busca.');
-  const global=options.global===true;
-  if(global)activateGlobalSearchControls();
-  const providers=global?state.providers.map(p=>p.id):selectedProviders();if(!providers.length)return alert('Selecione pelo menos uma fonte.');
-  let strategy=null;
-  try{strategy=buildStrategy()}catch(e){return alert(e.message)}
-  const searchBtn=$('#searchBtn'),globalBtn=$('#globalSearchBtn'),compileBtn=$('#compileStrategyBtn');
-  searchBtn.disabled=true;globalBtn.disabled=true;compileBtn.disabled=true;state.currentJob=null;state.currentMode=strategy?(global?'structured-global':'structured'):(global?'global':'custom');state.visibleResults=RESULT_BATCH;$('#summary').classList.add('hidden');$('#results').innerHTML='';
-  const opening=state.currentMode==='structured-global'?'<strong>Iniciando revisão estruturada + Busca global…</strong><div class="small-state">Query específica por provider · todas as fontes · sem teto interno</div>':state.currentMode==='structured'?'<strong>Iniciando revisão estruturada…</strong><div class="small-state">Query específica por provider</div>':global?'<strong>Iniciando Busca global exaustiva…</strong><div class="small-state">Todas as fontes conectadas · sem teto interno de quantidade</div>':'Iniciando busca…';
-  $('#searchState').className='loading';$('#searchState').innerHTML=opening;
-  try{
-    const res=await fetch('/api/search/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,providers,strategy,per_provider:global?GLOBAL_EXHAUSTIVE_SENTINEL:Number($('#perProvider').value||25),max_results:global?GLOBAL_EXHAUSTIVE_SENTINEL:Number($('#maxResults').value||100)})});
-    const job=await res.json();if(!res.ok)throw new Error(job.message||job.error||'Falha ao iniciar busca');
-    state.currentJob=job.job_id;renderJob(job);await pollSearchJob(job.job_id);
-  }catch(e){$('#searchState').className='error';$('#searchState').textContent=`Falha na busca: ${e.message}`}
-  finally{searchBtn.disabled=false;globalBtn.disabled=false;compileBtn.disabled=false;state.currentJob=null}
+  const query=$('#question').value.trim();if(!query)return alert('Digite a pergunta humana da revisão.');const global=options.global===true;let strategy=null;try{strategy=buildStrategy()}catch(e){return alert(e.message)}
+  const exact=strategy?.mode==='exact';if(global&&!exact)activateGlobalSearchControls();const providers=exact?selectedProviders():(global?state.providers.map(p=>p.id):selectedProviders());if(!providers.length)return alert('Selecione pelo menos uma fonte.');
+  const searchBtn=$('#searchBtn'),globalBtn=$('#globalSearchBtn'),compileBtn=$('#compileStrategyBtn');searchBtn.disabled=true;globalBtn.disabled=true;compileBtn.disabled=true;state.currentJob=null;state.currentMode=exact?(global?'exact-global':'exact'):(strategy?(global?'structured-global':'structured'):(global?'global':'custom'));state.visibleResults=RESULT_BATCH;$('#summary').classList.add('hidden');$('#results').innerHTML='';
+  const opening=state.currentMode==='exact-global'?'<strong>Iniciando estratégia exata sem teto…</strong><div class="small-state">Somente bases selecionadas · sintaxe literal preservada</div>':state.currentMode==='exact'?'<strong>Iniciando estratégia exata…</strong><div class="small-state">Sintaxe literal e versão preservadas</div>':state.currentMode==='structured-global'?'<strong>Iniciando revisão estruturada + Busca global…</strong><div class="small-state">Query específica por provider · todas as fontes · sem teto interno</div>':state.currentMode==='structured'?'<strong>Iniciando revisão estruturada…</strong><div class="small-state">Query específica por provider</div>':global?'<strong>Iniciando Busca global exaustiva…</strong><div class="small-state">Todas as fontes conectadas · sem teto interno de quantidade</div>':'Iniciando busca…';$('#searchState').className='loading';$('#searchState').innerHTML=opening;
+  try{const res=await fetch('/api/search/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,providers,strategy,per_provider:global?GLOBAL_EXHAUSTIVE_SENTINEL:Number($('#perProvider').value||25),max_results:global?GLOBAL_EXHAUSTIVE_SENTINEL:Number($('#maxResults').value||100)})});const job=await res.json();if(!res.ok)throw new Error(job.message||job.error||'Falha ao iniciar busca');state.currentJob=job.job_id;renderJob(job);await pollSearchJob(job.job_id)}catch(e){$('#searchState').className='error';$('#searchState').textContent=`Falha na busca: ${e.message}`}finally{searchBtn.disabled=false;globalBtn.disabled=false;compileBtn.disabled=false;state.currentJob=null}
 }
 
-async function pollSearchJob(jobId){
-  while(state.currentJob===jobId){
-    const res=await fetch(`/api/search/jobs/${encodeURIComponent(jobId)}`,{cache:'no-store'});const job=await res.json();
-    if(!res.ok)throw new Error(job.message||job.error||'Job de busca não encontrado');
-    renderJob(job);
-    if(job.status==='completed'){
-      if(!job.result)throw new Error('Busca concluída sem resultado persistido');
-      state.last=job.result;renderSearch(job.result);return;
-    }
-    if(job.status==='failed')throw new Error(job.error||'A busca falhou');
-    await sleep(700);
-  }
-}
+async function pollSearchJob(jobId){while(state.currentJob===jobId){const res=await fetch(`/api/search/jobs/${encodeURIComponent(jobId)}`,{cache:'no-store'});const job=await res.json();if(!res.ok)throw new Error(job.message||job.error||'Job de busca não encontrado');renderJob(job);if(job.status==='completed'){if(!job.result)throw new Error('Busca concluída sem resultado persistido');state.last=job.result;renderSearch(job.result);return}if(job.status==='failed')throw new Error(job.error||'A busca falhou');await sleep(700)}}
+function renderJob(job){const completed=Number(job.completed_providers||0),total=Number(job.total_providers||0);const prefix=state.currentMode==='exact-global'?'Estratégia exata · sem teto · ':state.currentMode==='exact'?'Estratégia exata · ':state.currentMode==='structured-global'?'Revisão estruturada · Busca global · ':state.currentMode==='structured'?'Revisão estruturada · ':state.currentMode==='global'?'Busca global exaustiva · ':'';const stage=job.stage==='finalizing'?'Deduplicando e priorizando todas as referências…':job.stage==='persisting'?'Salvando resultado completo…':`Consultando fontes: ${completed}/${total}`;$('#searchState').className='loading';$('#searchState').innerHTML=`<div><strong>${esc(prefix+stage)}</strong></div><div class="provider-status">${(job.providers||[]).map(p=>`<span class="provider-badge ${badgeClass(p.status)}" title="${esc(p.error||p.coverage_note||'')}">${esc(p.label)} · ${esc(statusLabel(p.status))}${['queued','running'].includes(p.status)?'':` · ${Number(p.returned||0)}`}</span>`).join('')}</div>`}
 
-function renderJob(job){
-  const completed=Number(job.completed_providers||0),total=Number(job.total_providers||0);
-  const prefix=state.currentMode==='structured-global'?'Revisão estruturada · Busca global · ':state.currentMode==='structured'?'Revisão estruturada · ':state.currentMode==='global'?'Busca global exaustiva · ':'';
-  const stage=job.stage==='finalizing'?'Deduplicando e priorizando todas as referências…':job.stage==='persisting'?'Salvando resultado completo…':`Consultando fontes: ${completed}/${total}`;
-  $('#searchState').className='loading';
-  $('#searchState').innerHTML=`<div><strong>${esc(prefix+stage)}</strong></div><div class="provider-status">${(job.providers||[]).map(p=>`<span class="provider-badge ${badgeClass(p.status)}" title="${esc(p.error||p.coverage_note||'')}">${esc(p.label)} · ${esc(statusLabel(p.status))}${['queued','running'].includes(p.status)?'':` · ${Number(p.returned||0)}`}</span>`).join('')}</div>`;
-}
-
-function renderExecutedPlan(plan){
-  if(!plan||plan.mode!=='structured_review')return '';
-  const queries=plan.provider_queries||{};
-  return `<details class="plan-audit"><summary>Estratégia executada por base · ${esc(plan.framework||'')}</summary><div class="compiled-query-list">${Object.entries(queries).map(([provider,item])=>`<div class="executed-query"><strong>${esc(providerLabel(provider))}</strong><span>${esc(item.dialect||'')}</span><code>${esc(item.query||'')}</code></div>`).join('')}</div></details>`;
-}
+function renderExecutedPlan(plan){if(!plan||!['structured_review','exact_review'].includes(plan.mode))return '';const queries=plan.provider_queries||{};const label=plan.mode==='exact_review'?`Estratégia exata executada · ${esc(plan.strategy_id||'')} ${esc(plan.strategy_version||'')} · ${esc(plan.run_class||'')}`:`Estratégia executada por base · ${esc(plan.framework||'')}`;return `<details class="plan-audit"><summary>${label}</summary><div class="compiled-query-list">${Object.entries(queries).map(([provider,item])=>`<div class="executed-query"><strong>${esc(providerLabel(provider))}</strong><span>${esc(item.dialect||'')}</span><code>${esc(item.query||'')}</code></div>`).join('')}</div></details>`}
+function flattenMessages(messages){if(!messages||typeof messages!=='object')return[];return Object.entries(messages).flatMap(([kind,items])=>(Array.isArray(items)?items:[items]).map(item=>`${kind}: ${item}`))}
+function renderPubMedSearchDetails(data){const pubmed=(data.providers||[]).find(p=>p.provider==='pubmed');if(!pubmed)return'';if(pubmed.search_details_error)return `<div class="error"><strong>Auditoria PubMed incompleta.</strong> ${esc(pubmed.search_details_error)}</div>`;const details=pubmed.search_details;if(!details)return'';const warnings=flattenMessages(details.warninglist);const errors=flattenMessages(details.errorlist);const verdict=errors.length?'ERRO DE SINTAXE/SEARCH DETAILS':warnings.length?'WARNINGS PRESENTES':'SEM WARNINGS';const klass=errors.length?'error':warnings.length?'warning':'review-result-note';return `<details class="plan-audit" open><summary>PubMed Search Details · ${esc(verdict)} · count ${esc(details.count??'—')}</summary><div class="${klass}"><strong>Query translation</strong><code>${esc(details.query_translation||'(vazia)')}</code>${warnings.length?`<div><strong>Warnings</strong><ul>${warnings.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'<div><strong>Warnings:</strong> nenhum.</div>'}${errors.length?`<div><strong>Errors</strong><ul>${errors.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}</div></details>`}
 
 function renderSearch(data){
   $('#searchState').className='hidden';state.last=data;state.visibleResults=RESULT_BATCH;
-  const gaps=(data.failed_providers||[]).length+(data.unavailable_providers||[]).length+(data.non_exhaustive_providers||[]).length;
-  $('#summary').classList.remove('hidden');
-  const globalMode=String(data.search_mode||'').includes('global_exhaustive');
-  const structured=String(data.search_mode||'').startsWith('structured_review');
-  const mode=globalMode?'<div class="warning"><strong>Busca global exaustiva.</strong> O NutEV não aplicou teto interno de quantidade. Providers que não conseguem demonstrar exaustão aparecem como lacuna de cobertura.</div>':'';
-  const review=structured?'<div class="review-result-note"><strong>Revisão estruturada.</strong> Cada fonte recebeu sua própria query compilada; a estratégia exata está preservada abaixo e no result.json.</div>':'';
-  $('#summary').innerHTML=`<div class="summary-grid"><div class="kpi"><strong>${data.unique_records}</strong><span>referências únicas</span></div><div class="kpi"><strong>${data.records_before_dedup}</strong><span>antes da deduplicação</span></div><div class="kpi"><strong>${data.returned_records}</strong><span>recuperadas e ranqueadas</span></div><div class="kpi"><strong>${gaps}</strong><span>lacunas/limites de fonte</span></div></div><div class="provider-status">${(data.providers||[]).map(p=>`<span class="provider-badge ${badgeClass(p.status)}" title="${esc(p.error||p.coverage_note||'')}">${esc(p.label)} · ${esc(statusLabel(p.status))} · ${p.returned}</span>`).join('')}</div>${review}${mode}${renderExecutedPlan(data.query_plan)}<div class="warning">${esc(data.ranking_warning)} ${(data.interactive_limitations||[]).map(esc).join(' ')}</div>`;
+  const providerGaps=(data.failed_providers||[]).length+(data.unavailable_providers||[]).length+(data.non_exhaustive_providers||[]).length;const auditGaps=(data.audit_gaps||[]).length;$('#summary').classList.remove('hidden');
+  const globalMode=String(data.search_mode||'').includes('global_exhaustive');const structured=String(data.search_mode||'').startsWith('structured_review');const exact=String(data.search_mode||'').startsWith('exact_review');
+  const mode=globalMode?'<div class="warning"><strong>Busca sem teto interno.</strong> Providers que não conseguem demonstrar exaustão aparecem como lacuna de cobertura.</div>':'';
+  const review=exact?'<div class="review-result-note"><strong>Estratégia exata.</strong> A string de cada base foi enviada sem reescrita pelo NutEV e está preservada no audit trail.</div>':structured?'<div class="review-result-note"><strong>Revisão estruturada.</strong> Cada fonte recebeu sua própria query compilada; a estratégia está preservada abaixo e no result.json.</div>':'';
+  const audit=auditGaps?`<div class="error"><strong>GATE DE AUDITORIA NÃO FECHOU.</strong> ${auditGaps} lacuna(s): ${(data.audit_gaps||[]).map(x=>esc(`${x.provider}: ${x.reason}`)).join(' · ')}</div>`:'';
+  $('#summary').innerHTML=`<div class="summary-grid"><div class="kpi"><strong>${data.unique_records}</strong><span>referências únicas</span></div><div class="kpi"><strong>${data.records_before_dedup}</strong><span>antes da deduplicação</span></div><div class="kpi"><strong>${data.returned_records}</strong><span>recuperadas e ranqueadas</span></div><div class="kpi"><strong>${providerGaps+auditGaps}</strong><span>lacunas de fonte/auditoria</span></div></div><div class="provider-status">${(data.providers||[]).map(p=>`<span class="provider-badge ${badgeClass(p.status)}" title="${esc(p.error||p.coverage_note||'')}">${esc(p.label)} · ${esc(statusLabel(p.status))} · ${p.returned}</span>`).join('')}</div>${review}${mode}${audit}${renderPubMedSearchDetails(data)}${renderExecutedPlan(data.query_plan)}<div class="warning">${esc(data.ranking_warning)} ${(data.interactive_limitations||[]).map(esc).join(' ')}</div>`;
   renderResultBatch();
 }
-
-function renderResultBatch(){
-  const data=state.last||{};const all=data.results||[];const visible=all.slice(0,state.visibleResults);
-  $('#results').innerHTML=visible.map(resultCard).join('')||'<div class="card">Nenhuma referência foi recuperada pelas fontes selecionadas.</div>';
-  if(visible.length<all.length){
-    const more=document.createElement('div');more.className='card';more.innerHTML=`<div class="section-head"><div><strong>${visible.length.toLocaleString('pt-BR')} de ${all.length.toLocaleString('pt-BR')}</strong><p>Todos os resultados foram coletados; a tela carrega em blocos para não travar o navegador.</p></div><button class="ghost" id="loadMoreResults">Carregar mais ${Math.min(RESULT_BATCH,all.length-visible.length)}</button></div>`;$('#results').appendChild(more);$('#loadMoreResults').onclick=()=>{state.visibleResults+=RESULT_BATCH;renderResultBatch()};
-  }
-}
-
+function renderResultBatch(){const data=state.last||{};const all=data.results||[];const visible=all.slice(0,state.visibleResults);$('#results').innerHTML=visible.map(resultCard).join('')||'<div class="card">Nenhuma referência foi recuperada pelas fontes selecionadas.</div>';if(visible.length<all.length){const more=document.createElement('div');more.className='card';more.innerHTML=`<div class="section-head"><div><strong>${visible.length.toLocaleString('pt-BR')} de ${all.length.toLocaleString('pt-BR')}</strong><p>Todos os resultados foram coletados; a tela carrega em blocos para não travar o navegador.</p></div><button class="ghost" id="loadMoreResults">Carregar mais ${Math.min(RESULT_BATCH,all.length-visible.length)}</button></div>`;$('#results').appendChild(more);$('#loadMoreResults').onclick=()=>{state.visibleResults+=RESULT_BATCH;renderResultBatch()}}}
 function resultCard(r){const href=r.doi?`https://doi.org/${String(r.doi).replace(/^https?:\/\/doi\.org\//i,'').replace(/^doi:/i,'')}`:(r.url||'');const id=r.pmid?`PMID ${r.pmid}`:(r.doi?`DOI ${r.doi}`:'');return `<article class="result-card"><div class="result-top"><div class="rank">${esc(r.reference_rank)}</div><div style="flex:1"><h3>${esc(r.title||'(sem título)')}</h3><div class="meta"><span>${esc(r.journal||'—')}</span><span>${esc(r.year||'—')}</span><span>${esc(r.source_provider||r.source||'')}</span><span>${esc(id)}</span></div></div><div class="score"><strong>${Number(r.reference_score||0).toFixed(1)}</strong><span>prioridade</span></div></div>${r.abstract?`<div class="abstract">${esc(r.abstract).slice(0,900)}${String(r.abstract).length>900?'…':''}</div>`:''}${href?`<div class="links"><a href="${esc(href)}" target="_blank" rel="noopener noreferrer">Abrir fonte ↗</a></div>`:''}</article>`}
 async function renderHistory(){const root=$('#historyList');root.innerHTML='<p style="color:#667572">Carregando runs do Engine…</p>';try{const res=await fetch('/api/searches?limit=50');const data=await res.json();if(!res.ok)throw new Error(data.message||data.error||'Falha ao carregar histórico');const h=data.searches||[];if(!h.length){root.innerHTML='<p style="color:#667572">Nenhuma busca persistida ainda.</p>';return}root.innerHTML=h.map(x=>`<div class="history-item"><button data-id="${esc(x.search_id)}"><strong>${esc(x.query)}</strong><br><span style="color:#667572;font-size:.78rem">${x.unique_records} únicas · ${x.returned_records} recuperadas · ${esc(x.status||'')}</span></button><span class="history-meta">${esc(new Date(x.created_at).toLocaleString('pt-BR'))}</span></div>`).join('');root.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>openHistoryRun(b.dataset.id))}catch(e){root.innerHTML=`<p class="error">Falha ao carregar histórico: ${esc(e.message)}</p>`}}
 async function openHistoryRun(searchId){try{const res=await fetch(`/api/searches/${encodeURIComponent(searchId)}`);const data=await res.json();if(!res.ok)throw new Error(data.message||data.error||'Busca não encontrada');state.last=data;state.currentMode=null;$('#question').value=data.query||'';switchView('search');renderSearch(data)}catch(e){alert(`Falha ao abrir busca: ${e.message}`)}}
