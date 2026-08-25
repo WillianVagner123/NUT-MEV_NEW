@@ -286,6 +286,30 @@ def _normalize_summary(item: dict[str, Any], pmid: str, query: str) -> dict[str,
     }
 
 
+def _completed_checkpoint_satisfies_limit(
+    checkpoint: dict[str, Any],
+    limit: int,
+) -> bool:
+    """Return True only when a completed checkpoint covers the current request.
+
+    A checkpoint can be marked completed because an earlier bounded request reached
+    its own target (for example 25 of 1,600 hits). It must not be treated as a
+    complete answer to a later larger/exhaustive request.
+    """
+
+    rows = list(checkpoint.get("rows") or [])
+    try:
+        count = int(checkpoint.get("count") or 0)
+    except (TypeError, ValueError):
+        return False
+    target = min(max(0, int(limit)), max(0, count))
+    try:
+        retstart_done = int(checkpoint.get("retstart_done") or len(rows))
+    except (TypeError, ValueError):
+        retstart_done = len(rows)
+    return len(rows) >= target and retstart_done >= target
+
+
 class PubMedClient:
     name = "pubmed"
 
@@ -339,18 +363,29 @@ class PubMedClient:
         webenv = ""
         query_key = ""
         loaded = load_checkpoint(cp_path) if resume else None
+        checkpoint_restarted_for_larger_limit = False
         if loaded and loaded.get("status") == "completed":
-            cached_rows = loaded.get("rows") or []
-            return ProviderResult(
-                self.name,
-                query,
-                rows=cached_rows[:limit],
-                total_found=loaded.get("count"),
-                total_returned=min(len(cached_rows), limit),
-                status="completed",
-                checkpoint_path=str(cp_path),
-                meta={"resume_used": True, "query_hash": qh},
-            )
+            if _completed_checkpoint_satisfies_limit(loaded, limit):
+                cached_rows = loaded.get("rows") or []
+                return ProviderResult(
+                    self.name,
+                    query,
+                    rows=cached_rows[:limit],
+                    total_found=loaded.get("count"),
+                    total_returned=min(len(cached_rows), limit),
+                    status="completed",
+                    checkpoint_path=str(cp_path),
+                    meta={
+                        "resume_used": True,
+                        "query_hash": qh,
+                        "checkpoint_restarted_for_larger_limit": False,
+                    },
+                )
+            # Scientific runs must not mix a bounded completed snapshot with a new
+            # larger request. Restart from a fresh ESearch history and rebuild the
+            # requested result set from record zero.
+            checkpoint_restarted_for_larger_limit = True
+            loaded = None
         if loaded:
             retstart = int(loaded.get("retstart_done") or 0)
             rows = list(loaded.get("rows") or [])
@@ -500,7 +535,11 @@ class PubMedClient:
                 total_returned=len(rows[:limit]),
                 status="completed" if rows else "empty",
                 checkpoint_path=str(cp_path),
-                meta={"query_hash": qh, "resume_used": bool(loaded)},
+                meta={
+                    "query_hash": qh,
+                    "resume_used": bool(loaded),
+                    "checkpoint_restarted_for_larger_limit": checkpoint_restarted_for_larger_limit,
+                },
             )
         except Exception as exc:
             status = "partial" if rows else "failed"
@@ -533,7 +572,11 @@ class PubMedClient:
                 status=status,
                 error=str(exc),
                 checkpoint_path=str(cp_path),
-                meta={"query_hash": qh, "resume_used": bool(loaded)},
+                meta={
+                    "query_hash": qh,
+                    "resume_used": bool(loaded),
+                    "checkpoint_restarted_for_larger_limit": checkpoint_restarted_for_larger_limit,
+                },
             )
 
 
