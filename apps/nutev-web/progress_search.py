@@ -27,6 +27,7 @@ from search_adapter import (
 
 ProgressCallback = Callable[[dict[str, Any]], None]
 EXHAUSTIVE_SENTINEL = 2_147_483_647
+MAX_PROVIDER_QUERY_LENGTH = 12_000
 
 
 def _emit(callback: ProgressCallback | None, event: dict[str, Any]) -> None:
@@ -39,11 +40,27 @@ def _emit(callback: ProgressCallback | None, event: dict[str, Any]) -> None:
         return
 
 
+def _provider_query_for(
+    provider: str,
+    question: str,
+    provider_queries: dict[str, str] | None,
+) -> str:
+    query = str((provider_queries or {}).get(provider) or question).strip()
+    if not query:
+        query = question
+    if len(query) > MAX_PROVIDER_QUERY_LENGTH:
+        raise ValueError(
+            f"Query compilada para {provider} excede {MAX_PROVIDER_QUERY_LENGTH} caracteres"
+        )
+    return query
+
+
 def _decorate_rows(
     rows: list[dict[str, Any]],
     *,
     provider: str,
     question: str,
+    provider_query: str,
     search_id: str,
 ) -> list[dict[str, Any]]:
     decorated: list[dict[str, Any]] = []
@@ -52,7 +69,7 @@ def _decorate_rows(
         item.setdefault("source_provider", provider)
         item.setdefault("source", provider)
         item["query"] = question
-        item["provider_query"] = item.get("provider_query") or question
+        item["provider_query"] = provider_query
         item["interactive_search_id"] = search_id
         item["interactive_retrieved_at"] = _now()
         decorated.append(item)
@@ -65,6 +82,8 @@ def search_evidence_progressive(
     providers: list[str] | None = None,
     per_provider: int = 25,
     max_results: int = 100,
+    provider_queries: dict[str, str] | None = None,
+    query_plan: dict[str, Any] | None = None,
     output_root: Path | None = None,
     on_progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
@@ -74,7 +93,10 @@ def search_evidence_progressive(
     web sentinel for exhaustive global search. In that mode NutEV removes its own
     result ceilings and asks each direct provider connector to paginate until the
     provider is exhausted or the provider itself refuses/limits further access.
-    Normal interactive searches keep the historical bounded behavior.
+
+    When ``provider_queries`` is supplied, each provider receives its own compiled
+    query. The original review question remains the human-readable run identity and
+    the exact provider queries are persisted in the audit result.
     """
 
     question = _clean_query(query)
@@ -95,6 +117,7 @@ def search_evidence_progressive(
         provider_limit = max(1, min(raw_per_provider, MAX_PER_PROVIDER))
         result_limit = max(1, min(raw_max_results, MAX_RESULTS))
 
+    structured_review = bool((query_plan or {}).get("mode") == "structured_review")
     search_id = (
         "web_"
         + datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
@@ -116,11 +139,13 @@ def search_evidence_progressive(
             "query": question,
             "total_providers": len(chosen),
             "exhaustive": exhaustive,
+            "structured_review": structured_review,
         },
     )
 
     for index, provider in enumerate(chosen, start=1):
         started = _now()
+        effective_query = _provider_query_for(provider, question, provider_queries)
         _emit(
             on_progress,
             {
@@ -130,6 +155,7 @@ def search_evidence_progressive(
                 "completed_providers": index - 1,
                 "total_providers": len(chosen),
                 "exhaustive": exhaustive,
+                "structured_review": structured_review,
             },
         )
 
@@ -150,7 +176,7 @@ def search_evidence_progressive(
             }
         elif provider in DIRECT_PROVIDERS:
             try:
-                raw = _provider_call(provider, question, provider_limit)()
+                raw = _provider_call(provider, effective_query, provider_limit)()
                 rows, status, total_found, error = _normalize_provider_result(raw)
             except Exception as exc:
                 rows = []
@@ -170,7 +196,7 @@ def search_evidence_progressive(
         elif provider in LATIN_PROVIDERS:
             try:
                 rows, statuses, latin_summary_path = _latin_rows_and_status(
-                    question,
+                    effective_query,
                     [provider],
                     output_root=root,
                 )
@@ -205,10 +231,19 @@ def search_evidence_progressive(
         else:
             raise ValueError(f"Provider não suportado: {provider}")
 
+        status_item["provider_query"] = effective_query
+        if query_plan:
+            provider_plan = (query_plan.get("provider_queries") or {}).get(provider) or {}
+            if isinstance(provider_plan, dict):
+                status_item["query_dialect"] = provider_plan.get("dialect")
+
         if exhaustive and provider in DIRECT_PROVIDERS:
             total_found = status_item.get("total_found")
             status_item["exhaustive_complete"] = (
-                bool(status_item.get("status") in {"completed", "empty", "completed_no_candidates_parsed"})
+                bool(
+                    status_item.get("status")
+                    in {"completed", "empty", "completed_no_candidates_parsed"}
+                )
                 and (total_found is None or int(total_found) <= len(rows))
             )
 
@@ -217,6 +252,7 @@ def search_evidence_progressive(
                 rows,
                 provider=provider,
                 question=question,
+                provider_query=effective_query,
                 search_id=search_id,
             )
         )
@@ -232,6 +268,7 @@ def search_evidence_progressive(
                 "completed_providers": index,
                 "total_providers": len(chosen),
                 "exhaustive": exhaustive,
+                "structured_review": structured_review,
             },
         )
 
@@ -243,6 +280,7 @@ def search_evidence_progressive(
             "total_providers": len(chosen),
             "records_before_dedup": len(combined),
             "exhaustive": exhaustive,
+            "structured_review": structured_review,
         },
     )
 
@@ -259,14 +297,36 @@ def search_evidence_progressive(
         if exhaustive and item.get("exhaustive_complete") is False
     ]
 
+    if structured_review and exhaustive:
+        search_mode = "structured_review_global_exhaustive"
+    elif structured_review:
+        search_mode = "structured_review_bounded"
+    elif exhaustive:
+        search_mode = "global_exhaustive"
+    else:
+        search_mode = "interactive_bounded"
+
+    limitations = [
+        "Busca global não aplica teto interno de quantidade: cada conector direto pagina até esgotar a fonte ou até a própria fonte impor um limite/erro.",
+        "LILACS/BVS e SciELO usam as interfaces públicas nativas; se a interface não demonstrar paginação exaustiva, o provider é marcado como não exaustivo em vez de receber cobertura fabricada.",
+        "Scopus e Web of Science não são simulados e exigem acesso licenciado separado.",
+    ]
+    if structured_review:
+        limitations.insert(
+            0,
+            "Modo revisão estruturada: cada provider recebe a query compilada registrada no query_plan; vocabulário controlado só é usado quando explicitamente informado/aprovado.",
+        )
+
     result = {
-        "schema_version": 3 if exhaustive else 2,
+        "schema_version": 4 if structured_review else (3 if exhaustive else 2),
         "search_id": search_id,
         "query": question,
         "created_at": _now(),
-        "search_mode": "global_exhaustive" if exhaustive else "interactive_bounded",
+        "search_mode": search_mode,
         "exhaustive_requested": exhaustive,
-        "status": "COMPLETE_WITH_PROVIDER_GAPS" if (failed or unavailable or non_exhaustive) else "COMPLETE",
+        "status": "COMPLETE_WITH_PROVIDER_GAPS"
+        if (failed or unavailable or non_exhaustive)
+        else "COMPLETE",
         "providers": provider_status,
         "failed_providers": failed,
         "unavailable_providers": unavailable,
@@ -276,13 +336,10 @@ def search_evidence_progressive(
         "returned_records": len(returned),
         "ranking_policy": "query-conditioned retrieval + canonical NutEV reference priority score",
         "ranking_warning": "Ranking é prioridade de leitura; não representa recomendação clínica, elegibilidade científica ou qualidade metodológica.",
+        "query_plan": query_plan,
         "latin_summary_path": latin_summary_paths[-1] if latin_summary_paths else None,
         "latin_summary_paths": latin_summary_paths,
-        "interactive_limitations": [
-            "Busca global não aplica teto interno de quantidade: cada conector direto pagina até esgotar a fonte ou até a própria fonte impor um limite/erro.",
-            "LILACS/BVS e SciELO usam as interfaces públicas nativas; se a interface não demonstrar paginação exaustiva, o provider é marcado como não exaustivo em vez de receber cobertura fabricada.",
-            "Scopus e Web of Science não são simulados e exigem acesso licenciado separado.",
-        ],
+        "interactive_limitations": limitations,
         "results": returned,
     }
     _persist_search(result, root)
@@ -294,6 +351,7 @@ def search_evidence_progressive(
             "completed_providers": len(chosen),
             "total_providers": len(chosen),
             "exhaustive": exhaustive,
+            "structured_review": structured_review,
         },
     )
     return result
