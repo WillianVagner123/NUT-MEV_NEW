@@ -16,6 +16,28 @@ def test_web_app_exposes_search_and_validation_without_csv_ui() -> None:
         assert forbidden not in index.casefold()
 
 
+def test_global_search_is_a_first_class_exhaustive_action() -> None:
+    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
+    css = (WEB_ROOT / "styles.css").read_text(encoding="utf-8")
+    progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
+    assert 'id="globalSearchBtn"' in index
+    assert "Busca global" in index
+    assert "sem teto interno" in index
+    assert "Não há corte interno de 100, 300 ou outro número" in index
+    assert "GLOBAL_EXHAUSTIVE_SENTINEL=0" in app
+    assert "state.providers.map(p=>p.id)" in app
+    assert "runSearch({global:true})" in app
+    assert "RESULT_BATCH=100" in app
+    assert "Todos os resultados foram coletados" in app
+    assert "EXHAUSTIVE_SENTINEL = 2_147_483_647" in progressive
+    assert "raw_per_provider == 0 and raw_max_results == 0" in progressive
+    assert '"search_mode": "global_exhaustive" if exhaustive else "interactive_bounded"' in progressive
+    assert "returned = ranked if result_limit is None" in progressive
+    assert '"non_exhaustive_providers"' in progressive
+    assert ".global-search" in css
+
+
 def test_web_search_reuses_canonical_engine_primitives_and_latin_pipeline() -> None:
     adapter = (WEB_ROOT / "search_adapter.py").read_text(encoding="utf-8")
     progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
