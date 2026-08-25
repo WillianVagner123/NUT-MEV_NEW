@@ -92,6 +92,27 @@ def test_assessors_receive_same_items_with_assessor_specific_order_keys() -> Non
     ) != packets._order_key("fixed", "assessor_B", "q1", "doi:10.1000/a")
 
 
+def test_generated_assessor_ids_are_opaque_deterministic_and_configurable() -> None:
+    digest = "a" * 64
+    first = packets.generated_assessor_ids(3, pool_sha256=digest, seed="fixed")
+    second = packets.generated_assessor_ids(3, pool_sha256=digest, seed="fixed")
+    assert first == second
+    assert len(first) == 3
+    assert len(set(first)) == 3
+    assert all(value.startswith("assessor_") for value in first)
+    assert all("@" not in value and " " not in value for value in first)
+
+
+def test_generated_assessor_ids_require_at_least_two() -> None:
+    with pytest.raises(packets.AssessorPacketError, match="at least two"):
+        packets.generated_assessor_ids(1, pool_sha256="a" * 64, seed="fixed")
+
+
+def test_generated_assessor_ids_reject_invalid_pool_digest() -> None:
+    with pytest.raises(packets.AssessorPacketError, match="SHA-256"):
+        packets.generated_assessor_ids(2, pool_sha256="not-a-digest", seed="fixed")
+
+
 def test_leakage_column_in_input_fails_closed(tmp_path: Path) -> None:
     path = tmp_path / "bad_pool.csv"
     path.write_text(
