@@ -32,10 +32,33 @@ def test_global_search_is_a_first_class_exhaustive_action() -> None:
     assert "Todos os resultados foram coletados" in app
     assert "EXHAUSTIVE_SENTINEL = 2_147_483_647" in progressive
     assert "raw_per_provider == 0 and raw_max_results == 0" in progressive
-    assert '"search_mode": "global_exhaustive" if exhaustive else "interactive_bounded"' in progressive
+    assert 'search_mode = "global_exhaustive"' in progressive
     assert "returned = ranked if result_limit is None" in progressive
     assert '"non_exhaustive_providers"' in progressive
     assert ".global-search" in css
+
+
+def test_structured_review_builder_is_first_class_and_auditable() -> None:
+    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
+    server = (WEB_ROOT / "server.py").read_text(encoding="utf-8")
+    progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
+    compiler = (WEB_ROOT / "query_compiler.py").read_text(encoding="utf-8")
+    assert 'id="structuredReviewToggle"' in index
+    assert 'id="frameworkSelect"' in index
+    assert "PCC" in index and "PICO" in index and "PECO" in index
+    assert "mesh:Termo" in index
+    assert "decs:Termo" in index
+    assert "/api/query/compile" in app
+    assert 'path == "/api/query/compile"' in server
+    assert "compile_query_plan" in server
+    assert "provider_queries=_query_strings(query_plan)" in server
+    assert "provider_query=effective_query" in progressive
+    assert '"query_plan": query_plan' in progressive
+    assert 'search_mode = "structured_review_global_exhaustive"' in progressive
+    assert '"pubmed_mesh_title_abstract"' in compiler
+    assert '"bvs_decs_mesh_tw"' in compiler
+    assert "não inventa MeSH/DeCS" in compiler
 
 
 def test_web_search_reuses_canonical_engine_primitives_and_latin_pipeline() -> None:

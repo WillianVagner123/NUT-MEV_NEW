@@ -21,6 +21,7 @@ if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
 from progress_search import search_evidence_progressive
+from query_compiler import compile_query_plan
 from search_adapter import (
     PROVIDER_LABELS,
     PROVIDER_ORDER,
@@ -45,7 +46,7 @@ from validation_server import (
     submit_reviewer,
 )
 
-MAX_BODY_BYTES = 32 * 1024
+MAX_BODY_BYTES = 256 * 1024
 MAX_SEARCH_JOBS = 100
 _SEARCH_JOBS: dict[str, dict[str, object]] = {}
 _SEARCH_JOBS_LOCK = threading.Lock()
@@ -108,6 +109,21 @@ def _update_job(job_id: str, event: dict[str, object]) -> None:
         job["updated_at"] = _now()
 
 
+def _query_strings(query_plan: dict[str, object]) -> dict[str, str]:
+    raw = query_plan.get("provider_queries")
+    if not isinstance(raw, dict):
+        return {}
+    output: dict[str, str] = {}
+    for provider, value in raw.items():
+        if isinstance(value, dict):
+            query = str(value.get("query") or "").strip()
+        else:
+            query = str(value or "").strip()
+        if query:
+            output[str(provider)] = query
+    return output
+
+
 def _run_search_job(
     job_id: str,
     *,
@@ -115,6 +131,7 @@ def _run_search_job(
     providers: list[str],
     per_provider: int,
     max_results: int,
+    query_plan: dict[str, object],
 ) -> None:
     try:
         result = search_evidence_progressive(
@@ -122,6 +139,8 @@ def _run_search_job(
             providers=providers,
             per_provider=per_provider,
             max_results=max_results,
+            provider_queries=_query_strings(query_plan),
+            query_plan=query_plan,
             on_progress=lambda event: _update_job(job_id, event),
         )
     except Exception as exc:
@@ -145,7 +164,7 @@ def _run_search_job(
             job["updated_at"] = _now()
 
 
-def _create_search_job(payload: dict[str, object]) -> dict[str, object]:
+def _selected_providers(payload: dict[str, object]) -> list[str]:
     raw_providers = payload.get("providers")
     providers = (
         [str(value) for value in raw_providers]
@@ -158,12 +177,17 @@ def _create_search_job(payload: dict[str, object]) -> dict[str, object]:
         raise ValueError("Providers inválidos: " + ", ".join(invalid))
     if not providers:
         raise ValueError("Selecione pelo menos um provider.")
+    return providers
 
+
+def _create_search_job(payload: dict[str, object]) -> dict[str, object]:
+    providers = _selected_providers(payload)
     query = str(payload.get("query") or "").strip()
     if not query:
         raise ValueError("A pergunta de busca não pode ficar vazia.")
     per_provider = int(payload.get("per_provider", 25))
     max_results = int(payload.get("max_results", 100))
+    query_plan = compile_query_plan(query, providers, payload.get("strategy"))
 
     job_id = "job_" + uuid4().hex
     job: dict[str, object] = {
@@ -172,6 +196,7 @@ def _create_search_job(payload: dict[str, object]) -> dict[str, object]:
         "status": "queued",
         "stage": "queued",
         "query": query,
+        "query_plan": query_plan,
         "created_at": _now(),
         "updated_at": _now(),
         "completed_providers": 0,
@@ -202,6 +227,7 @@ def _create_search_job(payload: dict[str, object]) -> dict[str, object]:
             "providers": providers,
             "per_provider": per_provider,
             "max_results": max_results,
+            "query_plan": query_plan,
         },
         name=f"nutev-search-{job_id[-8:]}",
         daemon=True,
@@ -219,7 +245,7 @@ def _load_search_job(job_id: str) -> dict[str, object]:
 
 
 class NutEVHandler(SimpleHTTPRequestHandler):
-    server_version = "NutEVWeb/0.9"
+    server_version = "NutEVWeb/1.0"
 
     def end_headers(self) -> None:
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -287,6 +313,8 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "service": "nutev-web",
                     "validation_available": VALIDATION_ROOT.is_dir(),
                     "progressive_search": True,
+                    "structured_review_query_builder": True,
+                    "provider_specific_queries": True,
                     "server_backed_blind_review": True,
                     "human_adjudication": True,
                     "canonical_gold_validation": True,
@@ -388,6 +416,20 @@ class NutEVHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+        if path == "/api/query/compile":
+            try:
+                payload = self._read_json()
+                providers = _selected_providers(payload)
+                query = str(payload.get("query") or "").strip()
+                if not query:
+                    raise ValueError("A pergunta de busca não pode ficar vazia.")
+                self._json(
+                    compile_query_plan(query, providers, payload.get("strategy")),
+                    HTTPStatus.OK,
+                )
+            except ValueError as exc:
+                self._json({"error": "invalid_query_strategy", "message": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
         if path == "/api/validation/round/prepare":
             if not self._require_loopback():
                 return
