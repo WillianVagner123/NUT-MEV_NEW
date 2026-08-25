@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "profile_id": "article1-c-struct-pubmed-v0.5.1",
+      "strategy_id": "C-STRUCT-PUBMED",
+      "strategy_version": "v0.5.1",
+      "provider": "pubmed",
+      "run_class": "PILOT",
+      "baseline": {
+        "strategy_version": "v0.5",
+        "count": 1526
+      },
+      "sample_size": 10,
+      "sampling_order": "publication_date_desc",
+      "required_sentinels": [
+        {
+          "id": "NORM-062",
+          "label": "Academy Adult Weight Management EBPG — 2022",
+          "doi": "10.1016/j.jand.2022.11.014",
+          "required": true
+        }
+      ],
+      "informational_sentinels": [
+        {
+          "id": "NORM-061-JAND",
+          "label": "Academy Diabetes Type 1 and 2 guideline — manifestação JAND 2017",
+          "pmid": "28533169",
+          "required": false
+        }
+      ],
+      "branches": [
+        {
+          "id": "F4_F7",
+          "label": "Arquitetura de cuidado / processo / lifestyle medicine",
+          "query": "((\"Diet\"[Mesh] OR \"Nutrition Therapy\"[Mesh] OR \"Diet Therapy\"[Mesh] OR diet*[tiab] OR dietary[tiab] OR nutrition*[tiab] OR \"medical nutrition therapy\"[tiab] OR \"nutrition care\"[tiab] OR \"dietary care\"[tiab] OR \"healthy eating\"[tiab] OR \"dietary pattern*\"[tiab] OR \"food-based\"[tiab] OR \"food based\"[tiab])) AND (((\"nutrition care process\"[tiab] OR \"nutrition care model*\"[tiab] OR (\"nutrition care\"[tiab] AND framework*[tiab]) OR \"nutrition care pathway*\"[tiab] OR \"nutrition pathway*\"[tiab] OR \"medical nutrition therapy\"[tiab] OR \"diet prescription*\"[tiab] OR \"dietary prescription*\"[tiab] OR \"nutrition prescription*\"[tiab] OR \"food prescription*\"[tiab] OR \"meal plan*\"[tiab] OR \"nutrition counseling\"[tiab] OR \"nutrition counselling\"[tiab] OR \"dietetic care\"[tiab] OR \"dietitian-led\"[tiab] OR \"dietitian led\"[tiab] OR \"scope of practice\"[tiab] OR \"professional standard*\"[tiab] OR \"practice standard*\"[tiab] OR \"clinical decision framework*\"[tiab] OR \"model of care\"[tiab] OR \"lifestyle medicine\"[tiab])) AND ((framework*[ti] OR model*[ti] OR process*[ti] OR pathway*[ti] OR standard*[ti] OR guideline*[ti] OR consensus[ti] OR statement*[ti] OR protocol*[ti] OR \"practice point*\"[ti] OR \"scope of practice\"[ti] OR \"lifestyle medicine\"[ti]))) AND (\"2000/01/01\"[Date - Publication] : \"2026/08/25\"[Date - Publication])"
+        },
+        {
+          "id": "F5A",
+          "label": "Food literacy / competências alimentares",
+          "query": "((\"Diet\"[Mesh] OR \"Nutrition Therapy\"[Mesh] OR \"Diet Therapy\"[Mesh] OR diet*[tiab] OR dietary[tiab] OR nutrition*[tiab] OR \"medical nutrition therapy\"[tiab] OR \"nutrition care\"[tiab] OR \"dietary care\"[tiab] OR \"healthy eating\"[tiab] OR \"dietary pattern*\"[tiab] OR \"food-based\"[tiab] OR \"food based\"[tiab])) AND (((\"food literacy\"[tiab] OR \"nutrition literacy\"[tiab] OR \"culinary literacy\"[tiab] OR \"food skill*\"[tiab] OR \"cooking skill*\"[tiab] OR \"meal planning skill*\"[tiab] OR (food[tiab] AND (competence[tiab] OR competency[tiab] OR competencies[tiab])) OR \"culinary competenc*\"[tiab] OR \"food agency\"[tiab] OR \"food resource management\"[tiab] OR \"meal preparation skill*\"[tiab] OR \"shopping skill*\"[tiab])) AND ((framework*[ti] OR model*[ti] OR standard*[ti] OR guideline*[ti] OR curriculum[ti] OR toolkit*[ti] OR consensus[ti] OR statement*[ti]))) AND (\"2000/01/01\"[Date - Publication] : \"2026/08/25\"[Date - Publication])"
+        },
+        {
+          "id": "F5B",
+          "label": "Competências profissionais em nutrição/dietética",
+          "query": "((\"Diet\"[Mesh] OR \"Nutrition Therapy\"[Mesh] OR \"Diet Therapy\"[Mesh] OR diet*[tiab] OR dietary[tiab] OR nutrition*[tiab] OR \"medical nutrition therapy\"[tiab] OR \"nutrition care\"[tiab] OR \"dietary care\"[tiab] OR \"healthy eating\"[tiab] OR \"dietary pattern*\"[tiab] OR \"food-based\"[tiab] OR \"food based\"[tiab])) AND (((\"nutrition competenc*\"[tiab] OR (dietitian*[tiab] AND (competence[tiab] OR competency[tiab] OR competencies[tiab])) OR (nutritionist*[tiab] AND (competence[tiab] OR competency[tiab] OR competencies[tiab])) OR (\"clinical nutrition\"[tiab] AND (skill[tiab] OR skills[tiab])) OR \"competency framework*\"[tiab] OR \"nutrition counseling skill*\"[tiab] OR \"nutrition counselling skill*\"[tiab] OR \"dietetic competenc*\"[tiab])) AND ((framework*[ti] OR standard*[ti] OR guideline*[ti] OR consensus[ti] OR statement*[ti] OR curriculum[ti] OR \"scope of practice\"[ti] OR \"scope of competence\"[ti]))) AND (\"2000/01/01\"[Date - Publication] : \"2026/08/25\"[Date - Publication])"
+        },
+        {
+          "id": "F6",
+          "label": "Implementação / monitoramento / melhoria da qualidade",
+          "query": "((\"Diet\"[Mesh] OR \"Nutrition Therapy\"[Mesh] OR \"Diet Therapy\"[Mesh] OR diet*[tiab] OR dietary[tiab] OR nutrition*[tiab] OR \"medical nutrition therapy\"[tiab] OR \"nutrition care\"[tiab] OR \"dietary care\"[tiab] OR \"healthy eating\"[tiab] OR \"dietary pattern*\"[tiab] OR \"food-based\"[tiab] OR \"food based\"[tiab])) AND (((\"implementation framework*\"[ti] OR \"implementation strateg*\"[ti] OR \"implementation guide*\"[ti] OR \"implementation toolkit*\"[ti] OR \"implementation plan*\"[ti] OR \"implementation model*\"[ti] OR \"implementation project*\"[ti] OR \"dissemination framework*\"[ti] OR \"dissemination strateg*\"[ti] OR \"guideline implementation\"[ti] OR \"practice implementation\"[ti]) OR (\"quality improvement framework*\"[ti] OR \"quality improvement strateg*\"[ti] OR \"monitoring framework*\"[ti] OR \"monitoring system*\"[ti] OR \"implementation monitoring\"[ti] OR \"implementation evaluation\"[ti]))) AND (\"2000/01/01\"[Date - Publication] : \"2026/08/25\"[Date - Publication])"
+        },
+        {
+          "id": "F3",
+          "label": "Padrões / estratégias dietéticas orientadas por recomendação",
+          "query": "((\"Diet\"[Mesh] OR \"Nutrition Therapy\"[Mesh] OR \"Diet Therapy\"[Mesh] OR diet*[tiab] OR dietary[tiab] OR nutrition*[tiab] OR \"medical nutrition therapy\"[tiab] OR \"nutrition care\"[tiab] OR \"dietary care\"[tiab] OR \"healthy eating\"[tiab] OR \"dietary pattern*\"[tiab] OR \"food-based\"[tiab] OR \"food based\"[tiab])) AND (((\"dietary pattern*\"[ti] OR \"food pattern*\"[ti] OR \"healthy eating pattern*\"[ti] OR \"dietary approach*\"[ti] OR \"dietary strateg*\"[ti] OR \"eating pattern*\"[ti] OR \"meal pattern*\"[ti] OR \"dietary model*\"[ti] OR \"food-based approach*\"[ti])) AND ((guideline*[ti] OR recommendation*[ti] OR prescription*[ti] OR standard*[ti] OR consensus[ti] OR \"practice point*\"[ti]))) AND (\"2000/01/01\"[Date - Publication] : \"2026/08/25\"[Date - Publication])"
+        }
+      ],
+      "human_classification_options": [
+        "normativo_estruturante_plausivel",
+        "empirico_off_target",
+        "editorial_comment_erratum",
+        "sem_conteudo_alimentar_aparente",
+        "ambiguo"
+      ],
+      "guardrails": [
+        "QA/PILOT não alimenta PRISMA.",
+        "Amostra: até 10 exclusivos por ramo, ordenados por publication date decrescente, sem substituição oportunista.",
+        "O sistema não atribui elegibilidade científica nem decide AVANÇAR/REVISAR/BLOQUEAR automaticamente; a decisão final é humana."
+      ]
+    }
+  ]
+}
