@@ -21,12 +21,43 @@
     </aside>
 
     <main class="main">
-      <header class="topbar"><div><h1 id="pageTitle">Buscar evidências</h1><p id="pageSubtitle">Faça uma pergunta. Use a busca ajustável ou a Busca global para percorrer todas as fontes conectadas sem teto interno de quantidade.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
+      <header class="topbar"><div><h1 id="pageTitle">Buscar evidências</h1><p id="pageSubtitle">Faça uma pergunta. Para revisão de escopo, construa e audite a estratégia antes de executar a busca global.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
 
       <section id="searchView" class="view">
         <div class="hero card">
           <label for="question">Qual evidência você quer encontrar?</label>
           <textarea id="question" rows="4" placeholder="Ex.: Qual a evidência sobre padrões alimentares mediterrâneos e risco cardiovascular em adultos?"></textarea>
+
+          <div class="review-mode-switch">
+            <label><input id="structuredReviewToggle" type="checkbox"> <strong>Modo revisão de escopo / estratégia estruturada</strong></label>
+            <span>Use PCC, PICO ou PECO e registre termos livres, MeSH e DeCS antes da busca.</span>
+          </div>
+
+          <section id="strategyBuilder" class="strategy-builder hidden">
+            <div class="strategy-head">
+              <div>
+                <strong>Construtor de estratégia</strong>
+                <p>O NutEV compila uma query por base. Ele não inventa vocabulário controlado: MeSH/DeCS precisam estar explicitamente aprovados nesta estratégia.</p>
+              </div>
+              <label>Framework
+                <select id="frameworkSelect">
+                  <option value="PCC" selected>PCC</option>
+                  <option value="PICO">PICO</option>
+                  <option value="PECO">PECO</option>
+                </select>
+              </label>
+            </div>
+            <div class="term-help">
+              <strong>Um termo por linha.</strong> Use <code>mesh:Termo</code>, <code>decs:Termo</code> ou <code>free:termo livre</code>. Sem prefixo = texto livre. Sinônimos ficam no mesmo bloco e são unidos por OR; blocos diferentes são unidos por AND.
+            </div>
+            <div id="conceptBuilder" class="concept-builder"></div>
+            <div class="strategy-actions">
+              <button id="compileStrategyBtn" type="button" class="ghost">Visualizar estratégia por base</button>
+              <span id="strategyStatus">A estratégia só será usada quando este modo estiver ativado.</span>
+            </div>
+            <div id="strategyPreview" class="strategy-preview hidden"></div>
+          </section>
+
           <details class="advanced">
             <summary>Opções avançadas</summary>
             <div class="provider-grid" id="providerGrid"></div>
