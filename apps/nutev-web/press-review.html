@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>NutEV — PRESS da estratégia</title>
+  <meta name="description" content="Pacote e registro de revisão PRESS independente para estratégias eletrônicas versionadas.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./exact-strategy.css">
+  <link rel="stylesheet" href="./review-qa.css">
+  <link rel="stylesheet" href="./press-review.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <a class="nav-item" href="/">⌕ <span>Buscar evidências</span></a>
+        <a class="nav-item" href="/?view=history">◷ <span>Minhas buscas</span></a>
+        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
+        <a class="nav-item active" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
+        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+      </nav>
+      <div class="sidebar-note">PRESS é revisão independente da estratégia. Não autoriza freeze, busca formal ou PRISMA por si só.</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><h1>PRESS da estratégia</h1><p>Gera o pacote de revisão externa, registra o parecer e aplica o gate de materialidade sem alterar as queries.</p></div>
+        <span class="status-pill" id="pressHealth">carregando…</span>
+      </header>
+
+      <section class="press-layout">
+        <div class="card press-card">
+          <div class="section-head"><div><h2>1. Pacote canônico</h2><p>B-NORM + C-STRUCT com versão, query exata, histórico e evidência de PILOT.</p></div><button id="refreshPress" class="ghost" type="button">Atualizar</button></div>
+          <div id="pressProfileState" class="qa-state">Carregando perfil PRESS…</div>
+          <div id="pressPackage"></div>
+          <div class="press-actions"><button id="downloadPackageBtn" class="ghost" type="button" disabled>Exportar pacote para revisor</button></div>
+        </div>
+
+        <div class="card press-card">
+          <div class="section-head"><div><h2>2. Identificação do revisor</h2><p>O gate GF-03 exige revisão PRESS independente.</p></div></div>
+          <div class="press-form-grid">
+            <label>Nome do revisor<input id="reviewerName" type="text" autocomplete="name" placeholder="Nome completo"></label>
+            <label>Instituição / vínculo<input id="reviewerAffiliation" type="text" placeholder="Instituição ou vínculo profissional"></label>
+            <label>E-mail (opcional)<input id="reviewerEmail" type="email" autocomplete="email" placeholder="email@dominio"></label>
+            <label>Data da revisão<input id="reviewDate" type="date"></label>
+          </div>
+          <label class="press-attestation"><input id="independentAttestation" type="checkbox"> <span>Declaro que revisei as estratégias como revisor independente e que minhas observações não foram geradas pela equipe autora em meu nome.</span></label>
+        </div>
+
+        <div class="card press-card">
+          <div class="section-head"><div><h2>3. Checklist PRESS-alinhado</h2><p>Cada item exige uma conclusão e permite observação livre. O NutEV não decide o mérito no lugar do revisor.</p></div></div>
+          <div id="pressChecklist"></div>
+        </div>
+
+        <div class="card press-card">
+          <div class="section-head"><div><h2>4. Parecer final</h2><p>Alteração material força retorno ao ciclo de versionamento + PILOT.</p></div></div>
+          <div class="press-decision-grid">
+            <label>Decisão<select id="pressDecision"><option value="">— selecionar —</option></select></label>
+            <label>Estratégia afetada<select id="affectedStrategy"><option value="NONE">Nenhuma / ambas apenas em observações</option><option value="B-NORM-PUBMED">B-NORM-PUBMED</option><option value="C-STRUCT-PUBMED">C-STRUCT-PUBMED</option><option value="BOTH">Ambas</option></select></label>
+          </div>
+          <label>Comentários finais<textarea id="finalComments" rows="6" placeholder="Síntese do parecer, termos ausentes, erros, redundâncias, justificativas e recomendações."></textarea></label>
+          <label>Alterações sugeridas<textarea id="suggestedChanges" rows="6" placeholder="Se houver alteração proposta, descreva exatamente o que deve mudar. Não edite a query aqui."></textarea></label>
+          <div class="press-actions">
+            <button id="evaluatePressBtn" class="primary" type="button">Avaliar gate PRESS</button>
+            <button id="downloadReviewBtn" class="ghost" type="button" disabled>Exportar parecer JSON</button>
+          </div>
+          <div id="pressGate" class="qa-state">Aguardando parecer completo.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./press-review.js"></script>
+</body>
+</html>
