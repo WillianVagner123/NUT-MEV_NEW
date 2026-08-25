@@ -30,6 +30,22 @@ def test_exact_strategy_backend_preserves_literal_queries() -> None:
     assert '"query_plan": query_plan' in progressive
 
 
+def test_pubmed_review_runs_preserve_search_details_and_fail_audit_closed() -> None:
+    progressive = (WEB / "progress_search.py").read_text(encoding="utf-8")
+    app = (WEB / "app.js").read_text(encoding="utf-8")
+    details = (WEB / "pubmed_search_details.py").read_text(encoding="utf-8")
+    assert "collect_pubmed_search_details" in progressive
+    assert 'status_item["search_details"]' in progressive
+    assert '"COMPLETE_WITH_AUDIT_GAPS"' in progressive
+    assert '"audit_gaps": audit_gaps' in progressive
+    assert "querytranslation" in details
+    assert "warninglist" in details
+    assert "errorlist" in details
+    assert "PubMed Search Details" in app
+    assert "WARNINGS PRESENTES" in app
+    assert "GATE DE AUDITORIA NÃO FECHOU" in app
+
+
 def test_exact_strategy_styles_are_loaded() -> None:
     index = (WEB / "index.html").read_text(encoding="utf-8")
     css = (WEB / "exact-strategy.css").read_text(encoding="utf-8")
