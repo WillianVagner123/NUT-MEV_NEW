@@ -22,7 +22,11 @@ from .models import (
     ValidationDecision,
     derive_prisma_counts,
 )
-from .screening import events_from_screening_decision
+from .screening import (
+    ScreeningImportError,
+    events_from_screening_decision,
+    run_screening_import,
+)
 
 __all__ = [
     "ClaimEvaluation",
@@ -40,6 +44,7 @@ __all__ = [
     "ScientificExportError",
     "ScreeningDecision",
     "ScreeningDecisionValue",
+    "ScreeningImportError",
     "ScreeningStage",
     "SearchCase",
     "ValidationDecision",
@@ -47,4 +52,5 @@ __all__ = [
     "events_from_screening_decision",
     "reference_to_scientific_objects",
     "run_scientific_export",
+    "run_screening_import",
 ]
