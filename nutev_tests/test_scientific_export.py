@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from nutev.cli import main as cli_main
 from nutev.science import ScientificExportError, run_scientific_export
 
 
@@ -101,3 +102,28 @@ def test_scientific_export_rejects_quarantined_ranked_row(tmp_path: Path):
 
     with pytest.raises(ScientificExportError, match="marked quarantined"):
         run_scientific_export(ranking, audit, tmp_path / "scientific")
+
+
+def test_cli_science_export_runs_the_audited_handoff(tmp_path: Path, capsys):
+    ranking = tmp_path / "reference_ranking.jsonl"
+    audit = tmp_path / "AUDIT_MANIFEST.json"
+    output = tmp_path / "scientific"
+    _write_ranking(ranking)
+    _write_manifest(audit, ranking)
+
+    code = cli_main(
+        [
+            "science-export",
+            "--ranking-jsonl",
+            str(ranking),
+            "--audit-manifest",
+            str(audit),
+            "--output-dir",
+            str(output),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert '"mode": "SCIENTIFIC_OBJECT_EXPORT"' in captured.out
+    assert (output / "SCIENTIFIC_EXPORT_MANIFEST.json").is_file()
