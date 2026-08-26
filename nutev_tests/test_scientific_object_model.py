@@ -5,6 +5,7 @@ from nutev.science import (
     ScientificEvent,
     SearchCase,
     derive_prisma_counts,
+    reference_to_scientific_objects,
 )
 
 
@@ -63,3 +64,29 @@ def test_prisma_counts_are_derived_only_from_explicit_events():
     assert prisma.screened == 1
     assert prisma.included == 1
     assert prisma.assessed_for_eligibility == 0
+
+
+def test_ranked_reference_becomes_document_and_provenance_record_only():
+    row = {
+        "source_provider": "pubmed",
+        "title": "Protein intake during energy restriction",
+        "doi": "https://doi.org/10.1000/example",
+        "year": "2024",
+        "reference_score": 81,
+        "reference_tier": "A_TOP_REFERENCE",
+        "taxonomy_primary": "domain.protein",
+        "taxonomy_secondary": ["outcome.body_composition"],
+        "audit_source_run_id": "run-42",
+        "audit_origin_sha256": "abc123",
+    }
+
+    document, evidence = reference_to_scientific_objects(row)
+
+    assert document.id == "doi:10.1000/example"
+    assert document.doi == "10.1000/example"
+    assert document.metadata["reference_score"] == 81
+    assert evidence.document_id == document.id
+    assert evidence.source_provider == "pubmed"
+    assert evidence.source_run_id == "run-42"
+    assert evidence.origin_sha256 == "abc123"
+    assert evidence.taxonomy == ("domain.protein", "outcome.body_composition")
