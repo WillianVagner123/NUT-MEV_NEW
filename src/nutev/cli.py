@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import json
+from pathlib import Path
 
 from nutev.__version__ import __version__
+from nutev.science import (
+    ScientificExportError,
+    ScreeningImportError,
+    run_scientific_export,
+    run_screening_import,
+)
 
 PROVIDERS = (
     "PubMed",
@@ -28,6 +36,44 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser("providers", help="List supported reference providers.")
+
+    science_export = subparsers.add_parser(
+        "science-export",
+        help="Export audited ranking rows into traceable scientific-domain objects.",
+    )
+    science_export.add_argument(
+        "--ranking-jsonl",
+        default="project_output_reference/reference_ranking/reference_ranking.jsonl",
+    )
+    science_export.add_argument(
+        "--audit-manifest",
+        default="project_output_reference/reference_ranking/AUDIT_MANIFEST.json",
+    )
+    science_export.add_argument(
+        "--output-dir",
+        default="project_output_reference/scientific",
+    )
+
+    science_screening = subparsers.add_parser(
+        "science-screening",
+        help="Import final resolved screening decisions and derive explicit PRISMA events.",
+    )
+    science_screening.add_argument(
+        "--documents-jsonl",
+        default="project_output_reference/scientific/document_candidates.jsonl",
+    )
+    science_screening.add_argument(
+        "--science-manifest",
+        default="project_output_reference/scientific/SCIENTIFIC_EXPORT_MANIFEST.json",
+    )
+    science_screening.add_argument(
+        "--decisions-jsonl",
+        default="project_output_reference/scientific/screening_decisions_input.jsonl",
+    )
+    science_screening.add_argument(
+        "--output-dir",
+        default="project_output_reference/scientific/screening",
+    )
     return parser
 
 
@@ -37,6 +83,31 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "providers":
         for provider in PROVIDERS:
             print(provider)
+        return 0
+    if args.command == "science-export":
+        try:
+            result = run_scientific_export(
+                Path(args.ranking_jsonl),
+                Path(args.audit_manifest),
+                Path(args.output_dir),
+            )
+        except ScientificExportError as exc:
+            print(f"Scientific export failure: {exc}")
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "science-screening":
+        try:
+            result = run_screening_import(
+                Path(args.documents_jsonl),
+                Path(args.science_manifest),
+                Path(args.decisions_jsonl),
+                Path(args.output_dir),
+            )
+        except ScreeningImportError as exc:
+            print(f"Scientific screening import failure: {exc}")
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     parser.print_help()
     return 0
