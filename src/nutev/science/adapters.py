@@ -10,11 +10,18 @@ from .models import DocumentCandidate, EvidenceRecord
 
 
 def _provider(row: Mapping[str, Any]) -> str:
-    return str(row.get("source_provider") or row.get("source") or "").strip()
+    return str(
+        row.get("source_provider")
+        or row.get("source")
+        or row.get("reference_provider")
+        or ""
+    ).strip()
 
 
 def _year(row: Mapping[str, Any]) -> int | None:
     raw = row.get("year")
+    if raw in (None, ""):
+        raw = row.get("reference_year")
     if raw in (None, ""):
         return None
     try:
@@ -68,6 +75,7 @@ def reference_to_scientific_objects(
         url=str(materialized.get("url") or materialized.get("url_normalized") or "").strip() or None,
         year=_year(materialized),
         metadata={
+            "reference_rank": materialized.get("reference_rank"),
             "reference_score": materialized.get("reference_score"),
             "reference_tier": materialized.get("reference_tier"),
             "audit_traceability": materialized.get("audit_traceability"),
