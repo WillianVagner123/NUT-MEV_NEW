@@ -5,7 +5,12 @@ import json
 from pathlib import Path
 
 from nutev.__version__ import __version__
-from nutev.science import ScientificExportError, run_scientific_export
+from nutev.science import (
+    ScientificExportError,
+    ScreeningImportError,
+    run_scientific_export,
+    run_screening_import,
+)
 
 PROVIDERS = (
     "PubMed",
@@ -48,6 +53,27 @@ def build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         default="project_output_reference/scientific",
     )
+
+    science_screening = subparsers.add_parser(
+        "science-screening",
+        help="Import final resolved screening decisions and derive explicit PRISMA events.",
+    )
+    science_screening.add_argument(
+        "--documents-jsonl",
+        default="project_output_reference/scientific/document_candidates.jsonl",
+    )
+    science_screening.add_argument(
+        "--science-manifest",
+        default="project_output_reference/scientific/SCIENTIFIC_EXPORT_MANIFEST.json",
+    )
+    science_screening.add_argument(
+        "--decisions-jsonl",
+        default="project_output_reference/scientific/screening_decisions_input.jsonl",
+    )
+    science_screening.add_argument(
+        "--output-dir",
+        default="project_output_reference/scientific/screening",
+    )
     return parser
 
 
@@ -67,6 +93,19 @@ def main(argv: list[str] | None = None) -> int:
             )
         except ScientificExportError as exc:
             print(f"Scientific export failure: {exc}")
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "science-screening":
+        try:
+            result = run_screening_import(
+                Path(args.documents_jsonl),
+                Path(args.science_manifest),
+                Path(args.decisions_jsonl),
+                Path(args.output_dir),
+            )
+        except ScreeningImportError as exc:
+            print(f"Scientific screening import failure: {exc}")
             return 2
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
