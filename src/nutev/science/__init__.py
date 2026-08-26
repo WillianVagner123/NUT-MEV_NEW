@@ -1,5 +1,6 @@
 """Composable scientific contracts for NutEV downstream workflows."""
 
+from .adapters import reference_to_scientific_objects
 from .models import (
     ClaimEvaluation,
     DocumentCandidate,
@@ -34,4 +35,5 @@ __all__ = [
     "SearchCase",
     "ValidationDecision",
     "derive_prisma_counts",
+    "reference_to_scientific_objects",
 ]
