@@ -30,6 +30,17 @@ class ValidationDecision(StrEnum):
     REVISE = "revise"
 
 
+class ScreeningStage(StrEnum):
+    TITLE_ABSTRACT = "title_abstract"
+    FULL_TEXT = "full_text"
+
+
+class ScreeningDecisionValue(StrEnum):
+    INCLUDE = "include"
+    EXCLUDE = "exclude"
+    UNCERTAIN = "uncertain"
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchQuestion:
     id: str
@@ -86,6 +97,20 @@ class EvidenceRecord:
     source_run_id: str | None = None
     origin_sha256: str | None = None
     taxonomy: tuple[str, ...] = ()
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class ScreeningDecision:
+    """Final resolved scientific screening decision for one document and stage."""
+
+    id: str
+    document_id: str
+    stage: ScreeningStage
+    decision: ScreeningDecisionValue
+    adjudicator: str | None = None
+    reason: str | None = None
+    decided_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
 
