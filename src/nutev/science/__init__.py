@@ -1,6 +1,7 @@
 """Composable scientific contracts for NutEV downstream workflows."""
 
 from .adapters import reference_to_scientific_objects
+from .export import ScientificExportError, run_scientific_export
 from .models import (
     ClaimEvaluation,
     DocumentCandidate,
@@ -32,8 +33,10 @@ __all__ = [
     "RecommendationCandidate",
     "ResearchQuestion",
     "ScientificEvent",
+    "ScientificExportError",
     "SearchCase",
     "ValidationDecision",
     "derive_prisma_counts",
     "reference_to_scientific_objects",
+    "run_scientific_export",
 ]
