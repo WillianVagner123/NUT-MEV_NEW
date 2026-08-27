@@ -1,18 +1,36 @@
 # NutEV Scientific Screening Contract
 
-Status: explicit import of **final resolved** screening decisions.
+Status: explicit import of **final resolved** screening decisions after pre-screening document enrichment.
 
-NutEV does not decide inclusion/exclusion in this stage. It validates externally resolved decisions, links them to known `DocumentCandidate` IDs, emits lifecycle events, and derives PRISMA counts from those events.
+NutEV does not decide inclusion/exclusion in this stage. It validates externally resolved decisions, links them to known `DocumentCandidate` IDs, verifies the reviewer dossier by default, emits lifecycle events, and derives PRISMA counts from those events.
+
+## Canonical order
+
+```text
+science-export
+  -> science-enrich
+  -> ReviewerDossier
+  -> human review / adjudication
+  -> science-screening
+```
+
+The reviewer dossier is rank- and taxonomy-blind. See `docs/PRE_SCREENING_ENRICHMENT.md`.
 
 ## Command
 
-After `nutev science-export`, prepare:
+After `nutev science-export`, run:
+
+```bash
+nutev science-enrich
+```
+
+Then prepare:
 
 ```text
 project_output_reference/scientific/screening_decisions_input.jsonl
 ```
 
-Then run:
+and run:
 
 ```bash
 nutev science-screening
@@ -24,9 +42,21 @@ Equivalent explicit invocation:
 nutev science-screening \
   --documents-jsonl project_output_reference/scientific/document_candidates.jsonl \
   --science-manifest project_output_reference/scientific/SCIENTIFIC_EXPORT_MANIFEST.json \
+  --dossiers-jsonl project_output_reference/scientific/enrichment/reviewer_dossiers.jsonl \
+  --enrichment-manifest project_output_reference/scientific/enrichment/ENRICHMENT_MANIFEST.json \
   --decisions-jsonl project_output_reference/scientific/screening_decisions_input.jsonl \
   --output-dir project_output_reference/scientific/screening
 ```
+
+`science-screening` requires verified enrichment dossiers by default.
+
+For compatibility/testing only, this can be bypassed explicitly:
+
+```bash
+nutev science-screening --allow-unenriched
+```
+
+The compatibility escape hatch should not be used for a normal scientific review workflow.
 
 ## Decision schema
 
@@ -79,11 +109,12 @@ This input represents the **resolved final decision**, not each assessor vote.
 For a two-reviewer workflow:
 
 ```text
-reviewer A assessment
-reviewer B assessment
-        -> agreement/adjudication
-        -> one final ScreeningDecision
-        -> PRISMA events
+ReviewerDossier
+   -> reviewer A assessment
+   -> reviewer B assessment
+   -> agreement/adjudication
+   -> one final ScreeningDecision
+   -> PRISMA events
 ```
 
 The importer rejects multiple final decisions for the same `document_id + stage` in one input set. This prevents two reviewer votes from being counted as two screened studies.
@@ -129,19 +160,23 @@ excluded_full_text
 assessed_for_eligibility
 ```
 
-The importer does not infer retrieval events. `sought_for_retrieval` and `not_retrieved` require their own future explicit events.
+Pre-screening retrieval/enrichment events remain separate from final screening events. A document may have an `abstract_only` dossier when full text is not available; the dossier must state that limitation rather than invent missing material.
 
 ## Integrity gates
 
-Before importing decisions, NutEV verifies:
+Before importing decisions in the normal flow, NutEV verifies:
 
 1. `SCIENTIFIC_EXPORT_MANIFEST.json` is a passing NutEV scientific export manifest;
 2. the current `document_candidates.jsonl` SHA-256 matches the manifest;
-3. every decision references a known document ID;
-4. decision IDs are unique;
-5. there is at most one final decision per document/stage;
-6. exclusions have reasons;
-7. stage and decision tokens are valid.
+3. `ENRICHMENT_MANIFEST.json` is a passing NutEV enrichment manifest;
+4. `reviewer_dossiers.jsonl` SHA-256 matches the enrichment manifest;
+5. reviewer dossiers declare blindness to NutEV rank and taxonomy;
+6. every decision references a known document ID;
+7. every decision references a verified reviewer dossier;
+8. decision IDs are unique;
+9. there is at most one final decision per document/stage;
+10. exclusions have reasons;
+11. stage and decision tokens are valid.
 
 ## Outputs
 
@@ -160,8 +195,8 @@ This stage does not yet implement:
 
 - blinded reviewer-level screening assessments;
 - conflict detection/adjudication UI for article screening;
-- full-text retrieval state;
-- automated claim extraction;
+- validated PICO/PECO/PCC extraction;
+- automatic `EvidenceClaim` extraction;
 - risk of bias;
 - GRADE;
 - evidence synthesis.
