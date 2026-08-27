@@ -15,6 +15,7 @@ from uuid import uuid4
 
 from nutev.audit_guardrails import sha256_file
 from nutev.search.pubmed import PubMedClient
+from nutev.search.regional_status import LilacsBVSStatusClient, SciELOStatusClient
 from nutev.search.status_adapters import get_status_aware_discovery_client
 from nutev.science.topic_audit import (
     TopicAuditError,
@@ -28,6 +29,8 @@ _STATUS_AWARE_PROVIDERS = {
     "crossref",
     "doaj",
     "semantic_scholar",
+    "lilacs_bvs",
+    "scielo",
 }
 _MANUAL_PROVIDERS = {"scopus", "wos"}
 
@@ -103,6 +106,10 @@ def _promote_plan(plan: dict[str, Any]) -> dict[str, Any]:
 def _client(provider: str) -> Any | None:
     if provider == "pubmed":
         return PubMedClient()
+    if provider == "lilacs_bvs":
+        return LilacsBVSStatusClient()
+    if provider == "scielo":
+        return SciELOStatusClient()
     return get_status_aware_discovery_client(provider)
 
 
@@ -241,9 +248,10 @@ def run_topic_competency_audit(
     manifest["execution_contract"] = {
         "version": "explicit_provider_result_v1",
         "status_aware_providers": sorted(_STATUS_AWARE_PROVIDERS),
-        "plan_only_providers": ["lilacs_bvs", "scielo"],
+        "plan_only_providers": [],
         "manual_licensed_providers": sorted(_MANUAL_PROVIDERS),
         "empty_is_distinct_from_failure": True,
+        "regional_html_zero_requires_explicit_marker": True,
     }
     assertions = manifest.setdefault("assertions", [])
     if not isinstance(assertions, list):
@@ -259,6 +267,10 @@ def run_topic_competency_audit(
                 "status": "PASS",
             },
             {
+                "name": "regional_html_zero_requires_explicit_marker",
+                "status": "PASS",
+            },
+            {
                 "name": "status_aware_results_remain_discovery_candidates",
                 "status": "PASS",
             },
@@ -266,7 +278,8 @@ def run_topic_competency_audit(
     )
     manifest["guardrail"] = (
         "Status-aware discovery distinguishes successful zero-hit responses from provider "
-        "failures, partial retrieval and intentional skips. All returned rows remain discovery "
+        "failures, partial retrieval and intentional skips. Regional HTML searches require an "
+        "explicit no-results marker before asserting zero. All returned rows remain discovery "
         "candidates and must re-enter the normal NutEV traceability pipeline; they do not feed PRISMA."
     )
     manifest_sha = _write_json(manifest_path, manifest)
