@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 import requests
@@ -104,7 +105,7 @@ def test_lilacs_candidate_is_traceable_and_raw_html_is_hashed(
     assert result.total_returned == 1
     assert result.total_found is None
     assert result.rows[0]["source_provider"] == "lilacs_bvs_native"
-    assert "bvsalud.org" in result.rows[0]["url"]
+    assert urlparse(result.rows[0]["url"]).hostname == "pesquisa.bvsalud.org"
     raw_path = Path(str(result.meta["raw_html_path"]))
     assert raw_path.is_file()
     assert len(str(result.meta["raw_html_sha256"])) == 64
@@ -128,4 +129,44 @@ def test_scielo_candidate_is_traceable(monkeypatch: pytest.MonkeyPatch):
     assert result.status == "completed"
     assert result.total_returned == 1
     assert result.rows[0]["source_provider"] == "scielo_native"
-    assert "scielo.br" in result.rows[0]["url"]
+    assert urlparse(result.rows[0]["url"]).hostname == "www.scielo.br"
+
+
+def test_lilacs_rejects_lookalike_hostname(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("NUTEV_DISABLE_NETWORK", raising=False)
+    html = (
+        "<html><body>"
+        "<a href='https://evil-bvsalud.org/resource/pt/biblio-999'>"
+        "Nutrition counseling competencies in a malicious mirror"
+        "</a>"
+        "</body></html>"
+    )
+    monkeypatch.setattr(
+        regional_status.requests,
+        "get",
+        lambda *args, **kwargs: _Response(200, html),
+    )
+    result = LilacsBVSStatusClient().search("nutrition", limit=5)
+    assert result.status == "failed"
+    assert result.total_returned == 0
+    assert result.error == "native_html_no_candidates_unverified_zero"
+
+
+def test_scielo_rejects_lookalike_hostname(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("NUTEV_DISABLE_NETWORK", raising=False)
+    html = (
+        "<html><body>"
+        "<a href='https://scielo.evil.example/article/123'>"
+        "Food literacy and nutrition practice in a malicious mirror"
+        "</a>"
+        "</body></html>"
+    )
+    monkeypatch.setattr(
+        regional_status.requests,
+        "get",
+        lambda *args, **kwargs: _Response(200, html),
+    )
+    result = SciELOStatusClient().search("food literacy", limit=5)
+    assert result.status == "failed"
+    assert result.total_returned == 0
+    assert result.error == "native_html_no_candidates_unverified_zero"
