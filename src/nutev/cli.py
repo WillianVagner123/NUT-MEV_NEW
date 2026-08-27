@@ -153,15 +153,18 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.command == "science-screening":
+        require_enrichment = not bool(args.allow_unenriched)
         try:
             result = run_screening_import(
                 Path(args.documents_jsonl),
                 Path(args.science_manifest),
                 Path(args.decisions_jsonl),
                 Path(args.output_dir),
-                dossiers_jsonl=Path(args.dossiers_jsonl),
-                enrichment_manifest=Path(args.enrichment_manifest),
-                require_enrichment=not bool(args.allow_unenriched),
+                dossiers_jsonl=(Path(args.dossiers_jsonl) if require_enrichment else None),
+                enrichment_manifest=(
+                    Path(args.enrichment_manifest) if require_enrichment else None
+                ),
+                require_enrichment=require_enrichment,
             )
         except ScreeningImportError as exc:
             print(f"Scientific screening import failure: {exc}")
