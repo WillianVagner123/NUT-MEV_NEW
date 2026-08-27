@@ -1,6 +1,14 @@
 """Composable scientific contracts for NutEV downstream workflows."""
 
 from .adapters import reference_to_scientific_objects
+from .core import (
+    FindingCandidate,
+    NutEVCoreError,
+    NutEVCoreRecord,
+    ScoreBlockResult,
+    Scorecard,
+    run_core_bank_export,
+)
 from .enrichment import DocumentEnrichmentError, run_document_enrichment
 from .export import ScientificExportError, run_scientific_export
 from .models import (
@@ -46,8 +54,11 @@ __all__ = [
     "EvidenceRecord",
     "EvidenceSet",
     "ExtractionMethod",
+    "FindingCandidate",
     "FullTextArtifact",
     "HumanValidation",
+    "NutEVCoreError",
+    "NutEVCoreRecord",
     "PrismaCounts",
     "RecommendationCandidate",
     "ResearchQuestion",
@@ -55,6 +66,8 @@ __all__ = [
     "ReviewerDossier",
     "ScientificEvent",
     "ScientificExportError",
+    "ScoreBlockResult",
+    "Scorecard",
     "ScreeningDecision",
     "ScreeningDecisionValue",
     "ScreeningImportError",
@@ -65,6 +78,7 @@ __all__ = [
     "derive_prisma_counts",
     "events_from_screening_decision",
     "reference_to_scientific_objects",
+    "run_core_bank_export",
     "run_document_enrichment",
     "run_scientific_export",
     "run_screening_import",

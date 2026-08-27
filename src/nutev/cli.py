@@ -7,8 +7,10 @@ from pathlib import Path
 from nutev.__version__ import __version__
 from nutev.science import (
     DocumentEnrichmentError,
+    NutEVCoreError,
     ScientificExportError,
     ScreeningImportError,
+    run_core_bank_export,
     run_document_enrichment,
     run_scientific_export,
     run_screening_import,
@@ -83,6 +85,51 @@ def build_parser() -> argparse.ArgumentParser:
         default="project_output_reference/scientific/enrichment",
     )
 
+    science_core = subparsers.add_parser(
+        "science-core",
+        help="Materialize the reusable NutEV CORE article record and local evidence bank.",
+    )
+    science_core.add_argument(
+        "--documents-jsonl",
+        default="project_output_reference/scientific/document_candidates.jsonl",
+    )
+    science_core.add_argument(
+        "--evidence-records-jsonl",
+        default="project_output_reference/scientific/evidence_records.jsonl",
+    )
+    science_core.add_argument(
+        "--science-manifest",
+        default="project_output_reference/scientific/SCIENTIFIC_EXPORT_MANIFEST.json",
+    )
+    science_core.add_argument(
+        "--artifacts-jsonl",
+        default="project_output_reference/scientific/enrichment/full_text_artifacts.jsonl",
+    )
+    science_core.add_argument(
+        "--enrichments-jsonl",
+        default="project_output_reference/scientific/enrichment/document_enrichments.jsonl",
+    )
+    science_core.add_argument(
+        "--dossiers-jsonl",
+        default="project_output_reference/scientific/enrichment/reviewer_dossiers.jsonl",
+    )
+    science_core.add_argument(
+        "--enrichment-manifest",
+        default="project_output_reference/scientific/enrichment/ENRICHMENT_MANIFEST.json",
+    )
+    science_core.add_argument(
+        "--mev-profile",
+        default=None,
+        help=(
+            "Optional versioned JSON scoring profile. Without it, NutEV does not invent "
+            "MEV blocks or weights."
+        ),
+    )
+    science_core.add_argument(
+        "--output-dir",
+        default="project_output_reference/scientific/core",
+    )
+
     science_screening = subparsers.add_parser(
         "science-screening",
         help="Import final resolved screening decisions and derive explicit PRISMA events.",
@@ -149,6 +196,24 @@ def main(argv: list[str] | None = None) -> int:
             )
         except DocumentEnrichmentError as exc:
             print(f"Scientific enrichment failure: {exc}")
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "science-core":
+        try:
+            result = run_core_bank_export(
+                Path(args.documents_jsonl),
+                Path(args.evidence_records_jsonl),
+                Path(args.science_manifest),
+                Path(args.artifacts_jsonl),
+                Path(args.enrichments_jsonl),
+                Path(args.dossiers_jsonl),
+                Path(args.enrichment_manifest),
+                Path(args.output_dir),
+                mev_profile=Path(args.mev_profile) if args.mev_profile else None,
+            )
+        except NutEVCoreError as exc:
+            print(f"NutEV CORE failure: {exc}")
             return 2
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
