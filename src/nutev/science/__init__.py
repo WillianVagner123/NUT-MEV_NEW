@@ -76,6 +76,15 @@ from .topic_audit import (
     load_topic_profile,
     run_topic_competency_audit,
 )
+from .watch import (
+    LongitudinalWatchError,
+    WatchCase,
+    WatchEvent,
+    build_watch_cases,
+    build_watch_snapshot,
+    compare_watch_snapshots,
+    run_longitudinal_watch,
+)
 
 __all__ = [
     "ClaimEvaluation",
@@ -91,6 +100,7 @@ __all__ = [
     "FindingCandidate",
     "FullTextArtifact",
     "HumanValidation",
+    "LongitudinalWatchError",
     "NutEVCoreError",
     "NutEVCoreRecord",
     "PrismaCounts",
@@ -122,6 +132,8 @@ __all__ = [
     "TopicAuditResult",
     "TopicDefinition",
     "ValidationDecision",
+    "WatchCase",
+    "WatchEvent",
     "assign_topics",
     "audit_topics",
     "build_active_search_plan",
@@ -129,6 +141,9 @@ __all__ = [
     "build_relation_candidates",
     "build_relational_layer",
     "build_semantic_layer",
+    "build_watch_cases",
+    "build_watch_snapshot",
+    "compare_watch_snapshots",
     "compile_topic_query",
     "derive_prisma_counts",
     "events_from_screening_decision",
@@ -138,6 +153,7 @@ __all__ = [
     "relational_coverage_score",
     "run_core_bank_export",
     "run_document_enrichment",
+    "run_longitudinal_watch",
     "run_relational_mapping",
     "run_scientific_export",
     "run_screening_import",
