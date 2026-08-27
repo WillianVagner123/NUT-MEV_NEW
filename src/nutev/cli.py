@@ -6,8 +6,10 @@ from pathlib import Path
 
 from nutev.__version__ import __version__
 from nutev.science import (
+    DocumentEnrichmentError,
     ScientificExportError,
     ScreeningImportError,
+    run_document_enrichment,
     run_scientific_export,
     run_screening_import,
 )
@@ -54,6 +56,33 @@ def build_parser() -> argparse.ArgumentParser:
         default="project_output_reference/scientific",
     )
 
+    science_enrich = subparsers.add_parser(
+        "science-enrich",
+        help="Retrieve/extract/OCR documents and build reviewer-safe dossiers before screening.",
+    )
+    science_enrich.add_argument(
+        "--documents-jsonl",
+        default="project_output_reference/scientific/document_candidates.jsonl",
+    )
+    science_enrich.add_argument(
+        "--science-manifest",
+        default="project_output_reference/scientific/SCIENTIFIC_EXPORT_MANIFEST.json",
+    )
+    science_enrich.add_argument(
+        "--assets-jsonl",
+        default=None,
+        help="Optional JSONL mapping document_id to local path or full-text URL.",
+    )
+    science_enrich.add_argument(
+        "--allow-network",
+        action="store_true",
+        help="Allow HTTP(S) retrieval when no local full-text asset is supplied.",
+    )
+    science_enrich.add_argument(
+        "--output-dir",
+        default="project_output_reference/scientific/enrichment",
+    )
+
     science_screening = subparsers.add_parser(
         "science-screening",
         help="Import final resolved screening decisions and derive explicit PRISMA events.",
@@ -93,6 +122,20 @@ def main(argv: list[str] | None = None) -> int:
             )
         except ScientificExportError as exc:
             print(f"Scientific export failure: {exc}")
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "science-enrich":
+        try:
+            result = run_document_enrichment(
+                Path(args.documents_jsonl),
+                Path(args.science_manifest),
+                Path(args.output_dir),
+                assets_jsonl=Path(args.assets_jsonl) if args.assets_jsonl else None,
+                allow_network=bool(args.allow_network),
+            )
+        except DocumentEnrichmentError as exc:
+            print(f"Scientific enrichment failure: {exc}")
             return 2
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
