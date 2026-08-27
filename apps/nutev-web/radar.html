@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>NutEV Radar — Evidence Engine</title>
+  <meta name="description" content="Painel auditável de cobertura, gaps, busca ativa e mudanças longitudinais do NutEV.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./radar.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <a class="nav-item" href="/">⌕ <span>Buscar evidências</span></a>
+        <a class="nav-item active" href="/radar.html">⌁ <span>NutEV Radar</span></a>
+        <a class="nav-item" href="/?view=history">◷ <span>Minhas buscas</span></a>
+        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
+        <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
+        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+      </nav>
+      <div class="sidebar-note">Radar = estado operacional verificado do banco. Cobertura, volume e mudança longitudinal não equivalem a força de evidência.</div>
+    </aside>
+
+    <main class="main radar-main">
+      <header class="topbar">
+        <div>
+          <h1>NutEV Radar</h1>
+          <p>Mapa vivo de cobertura, gaps, busca ativa e mudanças longitudinais do banco de evidências.</p>
+        </div>
+        <span class="status-pill" id="radarHealth">verificando engine…</span>
+      </header>
+
+      <section class="radar-hero card">
+        <div>
+          <span class="eyebrow">BANCO VIVO · CAMADA OPERACIONAL</span>
+          <h2>Estado auditável do conhecimento NutEV</h2>
+          <p>Todos os números abaixo vêm de manifests e JSONL com SHA-256 verificado. Ausência de execução, provider indisponível ou Watch desatualizado permanecem explícitos.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="ghost" id="refreshRadar" type="button">Atualizar painel</button>
+          <a class="primary action-link" href="/">Abrir busca</a>
+        </div>
+      </section>
+
+      <div id="radarState" class="loading">Carregando auditoria verificada…</div>
+
+      <section id="radarContent" class="hidden">
+        <div class="radar-meta card" id="radarMeta"></div>
+        <div class="radar-summary" id="summaryCards"></div>
+
+        <div class="radar-grid">
+          <section class="card priority-panel">
+            <div class="section-head"><div><h2>Fila de auditoria</h2><p>Prioridade de busca/gap — não é grau de evidência.</p></div></div>
+            <div id="priorityBoard" class="priority-board"></div>
+          </section>
+
+          <section class="card provider-panel">
+            <div class="section-head"><div><h2>Providers</h2><p>Status observado nas buscas ativas do último audit.</p></div></div>
+            <div id="providerBoard" class="provider-board"></div>
+          </section>
+        </div>
+
+        <section class="card topics-panel">
+          <div class="section-head topic-head">
+            <div><h2>Tópicos e competências</h2><p>Estado atual do banco, cobertura técnica e ação necessária.</p></div>
+            <button class="ghost" id="jumpChanges" type="button">Ver mudanças</button>
+          </div>
+          <div class="radar-filters">
+            <label class="filter-search">Filtrar<input id="topicFilter" type="search" placeholder="Nome, ID ou flag"></label>
+            <label>Tipo<select id="kindFilter"><option value="">Todos</option><option value="topic">Tópico</option><option value="competency">Competência</option><option value="context">Contexto</option><option value="implementation">Implementação</option></select></label>
+            <label>Prioridade<select id="priorityFilter"><option value="">Todas</option><option value="P1_HIGH">P1 · alta</option><option value="P2_MEDIUM">P2 · média</option><option value="P3_LOW">P3 · baixa</option><option value="P4_MONITOR">P4 · monitorar</option></select></label>
+            <label>Ordenar<select id="sortTopics"><option value="priority">Prioridade</option><option value="documents">Mais documentos</option><option value="freshness">Mais recente</option><option value="label">Nome</option></select></label>
+            <label class="check-filter"><input id="gapOnly" type="checkbox"> Somente com gaps</label>
+          </div>
+          <div id="topicCount" class="topic-count"></div>
+          <div id="topicCards" class="topic-cards"></div>
+        </section>
+
+        <section class="card watch-panel" id="watchSection">
+          <div class="section-head"><div><h2>Longitudinal / Watch</h2><p>Diferenças operacionais entre auditorias verificadas.</p></div><span id="watchBadge" class="status-pill"></span></div>
+          <div id="watchSummary"></div>
+          <div class="watch-columns">
+            <div><h3>Casos para revisão</h3><div id="watchCases"></div></div>
+            <div><h3>Eventos do último Watch</h3><div id="watchEvents"></div></div>
+          </div>
+        </section>
+
+        <section class="card guardrail-card">
+          <strong>Guardrail científico</strong>
+          <p>O Radar descreve cobertura, disponibilidade, proveniência, busca e mudança operacional. Ele não transforma volume documental em qualidade, certeza, consenso, causalidade ou recomendação. PRISMA continua opcional/downstream.</p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="topicDialog" class="topic-dialog">
+    <form method="dialog" class="dialog-shell">
+      <div class="dialog-head"><div><span id="dialogKind" class="kind-badge"></span><h2 id="dialogTitle"></h2><p id="dialogId"></p></div><button class="dialog-close" value="close" aria-label="Fechar">×</button></div>
+      <div id="dialogBody"></div>
+    </form>
+  </dialog>
+
+  <script type="module" src="./radar.js"></script>
+</body>
+</html>
