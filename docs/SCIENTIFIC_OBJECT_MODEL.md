@@ -14,6 +14,10 @@ ResearchQuestion
   -> SearchCase
   -> DocumentCandidate
   -> EvidenceRecord
+  -> FullTextArtifact
+  -> DocumentEnrichment
+  -> ReviewerDossier
+  -> ScreeningDecision
   -> EvidenceClaim
   -> ClaimEvaluation
   -> EvidenceSet
@@ -33,12 +37,14 @@ SEARCH -> NORMALIZE -> TRACEABILITY GATE -> DEDUPLICATE -> CLASSIFY -> RANK -> E
 
 The scientific layer begins downstream of traceable reference discovery. Ranking remains reading priority. It is not screening, risk of bias, certainty, synthesis, or clinical recommendation.
 
-A future integrated flow may be:
+The integrated scientific flow is now intended to be:
 
 ```text
 REFERENCE DISCOVERY
   -> traceable DocumentCandidate / EvidenceRecord
-  -> scientific screening
+  -> full-text retrieval / OCR / document enrichment
+  -> rank- and taxonomy-blind ReviewerDossier
+  -> human scientific screening
   -> claim extraction
   -> claim evaluation
   -> evidence grouping and synthesis
@@ -46,7 +52,7 @@ REFERENCE DISCOVERY
   -> human validation
 ```
 
-No later stage may silently upgrade an earlier technical score into a scientific judgment.
+No later stage may silently upgrade an earlier technical score or machine-detected content signal into a scientific judgment.
 
 ## Entities
 
@@ -71,6 +77,39 @@ Represents a discovered bibliographic object before scientific extraction. Provi
 ### EvidenceRecord
 
 The auditable bridge between the Reference Engine and the scientific layer. It preserves source provider, source run, origin hash, taxonomy, and other provenance required to trace the object back to collection outputs.
+
+### FullTextArtifact
+
+Represents the material actually available for document processing: local PDF/text/HTML/XML, retrieved web material, or an explicit unavailable/not-retrieved state.
+
+It records retrieval status, source URL, local path, media type, SHA-256 and retrieval metadata. A missing article is represented as missing; the engine does not synthesize a substitute full text.
+
+### DocumentEnrichment
+
+Machine-generated reading support built before screening.
+
+It records the extraction method, text hash/length, whether OCR was used, extracted blocks/sections, content signals, warnings and private execution paths. It may use native text, HTML/XML extraction, PDF text extraction, OCR, or an abstract-only fallback.
+
+Machine signals are not eligibility, quality, certainty, or inclusion decisions.
+
+### ReviewerDossier
+
+The reviewer-facing document map generated from `DocumentCandidate + DocumentEnrichment`.
+
+It can expose bibliographic metadata, abstract, full-text availability, extraction/OCR status, section map/previews, table/figure mentions, sample-size mentions, study-design phrases and frequent content terms.
+
+It deliberately does **not** expose NutEV ranking or taxonomy to the reviewer:
+
+```text
+blind_to_nutev_rank = true
+blind_to_nutev_taxonomy = true
+```
+
+This prevents retrieval/ranking output from becoming circular evidence for the human screening decision.
+
+### ScreeningDecision
+
+Represents the final resolved human/external screening decision for one document and stage. The standard CLI flow requires a verified reviewer dossier before importing the decision.
 
 ### EvidenceClaim
 
@@ -135,7 +174,7 @@ excluded_full_text
 included
 ```
 
-`derive_prisma_counts()` counts only events that exist. Missing workflow events remain zero/unknown; the engine must not infer screening or eligibility from ranking, taxonomy, or retrieval alone.
+`derive_prisma_counts()` counts only events that exist. Missing workflow events remain zero/unknown; the engine must not infer screening or eligibility from ranking, taxonomy, OCR, or content signals.
 
 Exclusion reasons belong on their corresponding events and should later support reason-specific PRISMA reporting.
 
@@ -146,6 +185,8 @@ Prefer:
 ```text
 one DocumentCandidate
   -> one auditable EvidenceRecord
+  -> one or more traceable document artifacts
+  -> one reviewer-safe enrichment view
   -> many EvidenceClaim
   -> many EvidenceSet views
 ```
@@ -191,15 +232,18 @@ behavior_implementation
 
 If a future lens requires actual behavior, introduce a concrete implementation with an explicit scientific warrant. Do not create `AbstractLens` solely for taxonomy.
 
-## Non-goals of this change
+## Non-goals of the current layer
 
-This change does not claim to implement:
+This layer does not claim to implement:
 
-- automatic formal screening;
+- automatic formal screening decisions;
+- validated PICO/PECO/PCC extraction;
+- table-cell reconstruction;
+- figure image interpretation;
 - risk-of-bias instruments;
 - GRADE;
 - meta-analysis;
-- full-text claim extraction;
+- automatic full-text `EvidenceClaim` extraction;
 - clinical recommendation generation;
 - automatic human adjudication;
 - a complete PRISMA 2020 renderer.
@@ -208,4 +252,4 @@ Those features must be implemented as explicit downstream behavior and tested in
 
 ## Compatibility
 
-The published v1.0.0 snapshot and its Zenodo DOI are immutable. This architecture is introduced on a new branch as an additive contract for a future release. Existing Reference Engine outputs and ranking semantics remain unchanged until a separately reviewed integration step is implemented.
+The published v1.0.0 snapshot and its Zenodo DOI are immutable. New scientific-layer behavior is additive development for a future release. Existing Reference Engine ranking semantics remain unchanged.
