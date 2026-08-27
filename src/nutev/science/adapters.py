@@ -75,6 +75,12 @@ def reference_to_scientific_objects(
         url=str(materialized.get("url") or materialized.get("url_normalized") or "").strip() or None,
         year=_year(materialized),
         metadata={
+            "abstract": str(materialized.get("abstract") or "").strip() or None,
+            "summary": str(materialized.get("summary") or "").strip() or None,
+            "journal": str(materialized.get("journal") or "").strip() or None,
+            "authors": str(materialized.get("authors") or "").strip() or None,
+            "article_type": str(materialized.get("article_type") or "").strip() or None,
+            "keywords": materialized.get("keywords") or materialized.get("keyword"),
             "reference_rank": materialized.get("reference_rank"),
             "reference_score": materialized.get("reference_score"),
             "reference_tier": materialized.get("reference_tier"),
