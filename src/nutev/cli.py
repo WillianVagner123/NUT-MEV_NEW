@@ -96,6 +96,19 @@ def build_parser() -> argparse.ArgumentParser:
         default="project_output_reference/scientific/SCIENTIFIC_EXPORT_MANIFEST.json",
     )
     science_screening.add_argument(
+        "--dossiers-jsonl",
+        default="project_output_reference/scientific/enrichment/reviewer_dossiers.jsonl",
+    )
+    science_screening.add_argument(
+        "--enrichment-manifest",
+        default="project_output_reference/scientific/enrichment/ENRICHMENT_MANIFEST.json",
+    )
+    science_screening.add_argument(
+        "--allow-unenriched",
+        action="store_true",
+        help="Compatibility escape hatch; allow screening import without verified enrichment dossiers.",
+    )
+    science_screening.add_argument(
         "--decisions-jsonl",
         default="project_output_reference/scientific/screening_decisions_input.jsonl",
     )
@@ -146,6 +159,9 @@ def main(argv: list[str] | None = None) -> int:
                 Path(args.science_manifest),
                 Path(args.decisions_jsonl),
                 Path(args.output_dir),
+                dossiers_jsonl=Path(args.dossiers_jsonl),
+                enrichment_manifest=Path(args.enrichment_manifest),
+                require_enrichment=not bool(args.allow_unenriched),
             )
         except ScreeningImportError as exc:
             print(f"Scientific screening import failure: {exc}")
