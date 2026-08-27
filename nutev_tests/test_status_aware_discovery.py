@@ -237,14 +237,14 @@ def test_topic_audit_executes_all_explicit_status_adapters_as_skipped_when_netwo
         "crossref",
         "doaj",
         "semantic_scholar",
+        "lilacs_bvs",
+        "scielo",
     }
 
     plan = json.loads((output / "active_search_plan.json").read_text(encoding="utf-8"))
     by_provider = {row["provider"]: row for row in plan["searches"]}
     for provider in result["status_aware_providers"]:
         assert by_provider[provider]["execution"] == "EXECUTABLE_STATUS_AWARE"
-    assert by_provider["lilacs_bvs"]["execution"] == "PLAN_ONLY_STATUS_ADAPTER_REQUIRED"
-    assert by_provider["scielo"]["execution"] == "PLAN_ONLY_STATUS_ADAPTER_REQUIRED"
     assert by_provider["scopus"]["execution"] == "MANUAL_LICENSED"
     assert by_provider["wos"]["execution"] == "MANUAL_LICENSED"
 
@@ -259,8 +259,6 @@ def test_topic_audit_executes_all_explicit_status_adapters_as_skipped_when_netwo
     for provider in result["status_aware_providers"]:
         assert run_by_provider[provider]["status"] == "skipped"
         assert run_by_provider[provider]["total_found"] is None
-    assert run_by_provider["lilacs_bvs"]["status"] == "planned_not_executed"
-    assert run_by_provider["scielo"]["status"] == "planned_not_executed"
     assert run_by_provider["scopus"]["status"] == "planned_not_executed"
     assert run_by_provider["wos"]["status"] == "planned_not_executed"
 
@@ -268,5 +266,7 @@ def test_topic_audit_executes_all_explicit_status_adapters_as_skipped_when_netwo
         (output / "TOPIC_AUDIT_MANIFEST.json").read_text(encoding="utf-8")
     )
     assert audit_manifest["execution_contract"]["empty_is_distinct_from_failure"] is True
-    assert audit_manifest["counts"]["active_search_status_counts"]["skipped"] == 6
+    assert audit_manifest["execution_contract"]["regional_html_zero_requires_explicit_marker"] is True
+    assert audit_manifest["execution_contract"]["plan_only_providers"] == []
+    assert audit_manifest["counts"]["active_search_status_counts"]["skipped"] == 8
     assert (output / "active_search_results.jsonl").read_text(encoding="utf-8") == ""
