@@ -6,8 +6,14 @@ from pathlib import Path
 
 import pytest
 
+import nutev.science.enrichment as enrichment_module
 from nutev.cli import main as cli_main
-from nutev.science import DocumentEnrichmentError, run_document_enrichment
+from nutev.science import (
+    DocumentEnrichmentError,
+    ExtractionMethod,
+    RetrievalStatus,
+    run_document_enrichment,
+)
 
 
 def _sha(path: Path) -> str:
@@ -166,6 +172,38 @@ def test_enrichment_rejects_asset_for_unknown_document(tmp_path: Path):
             tmp_path / "enrichment",
             assets_jsonl=assets,
         )
+
+
+def test_private_ip_is_rejected_before_network_fetch():
+    with pytest.raises(DocumentEnrichmentError, match="private/link-local"):
+        enrichment_module._validate_remote_url("http://127.0.0.1/article.pdf")
+
+
+def test_pdf_content_type_is_classified_as_full_text():
+    status = enrichment_module._artifact_scope(
+        "https://doi.org/10.1000/example",
+        None,
+        "application/pdf",
+    )
+    assert status is RetrievalStatus.RETRIEVED
+
+
+def test_pdf_extraction_reports_missing_ocr_backends(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_pdf = tmp_path / "scan.pdf"
+    fake_pdf.write_bytes(b"not-a-real-pdf")
+    monkeypatch.setattr(enrichment_module.shutil, "which", lambda _name: None)
+
+    text, method, ocr_used, ocr_engine, warnings = enrichment_module._extract_pdf(fake_pdf)
+
+    assert text == ""
+    assert method is ExtractionMethod.UNAVAILABLE
+    assert ocr_used is False
+    assert ocr_engine is None
+    assert "pdftotext_unavailable_ocr_attempted" in warnings
+    assert any(item.startswith("ocr_backend_unavailable:") for item in warnings)
 
 
 def test_cli_science_enrich_builds_reviewer_dossier(tmp_path: Path, capsys):
