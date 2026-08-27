@@ -196,6 +196,59 @@ def _verify_document_export(documents_jsonl: Path, science_manifest: Path) -> st
     return actual
 
 
+def _verify_reviewer_dossiers(
+    dossiers_jsonl: Path,
+    enrichment_manifest: Path,
+) -> tuple[set[str], str]:
+    manifest = _read_json(enrichment_manifest)
+    if manifest.get("enrichment_type") != "NUTEV_PRE_SCREENING_DOCUMENT_ENRICHMENT":
+        raise ScreeningImportError(
+            "unexpected enrichment_type in "
+            f"{enrichment_manifest}: {manifest.get('enrichment_type')!r}"
+        )
+    if manifest.get("status") != "PASS":
+        raise ScreeningImportError(
+            f"enrichment manifest is not PASS: {manifest.get('status')!r}"
+        )
+    expected = str(
+        (((manifest.get("outputs") or {}).get("reviewer_dossiers") or {}).get("sha256"))
+        or ""
+    ).strip().lower()
+    if not expected:
+        raise ScreeningImportError(
+            f"reviewer_dossiers SHA-256 missing from enrichment manifest: {enrichment_manifest}"
+        )
+    actual = sha256_file(dossiers_jsonl)
+    if actual != expected:
+        raise ScreeningImportError(
+            f"reviewer_dossiers SHA-256 mismatch: expected {expected}, got {actual}"
+        )
+
+    rows = _read_jsonl(dossiers_jsonl, label="reviewer dossiers")
+    ids: set[str] = set()
+    for line_number, row in enumerate(rows, start=1):
+        document_id = str(row.get("document_id") or "").strip()
+        if not document_id:
+            raise ScreeningImportError(
+                f"reviewer dossier line {line_number} missing document_id"
+            )
+        guardrails = row.get("guardrails") or {}
+        if not isinstance(guardrails, dict):
+            raise ScreeningImportError(
+                f"reviewer dossier line {line_number} guardrails must be an object"
+            )
+        if guardrails.get("blind_to_nutev_rank") is not True:
+            raise ScreeningImportError(
+                f"reviewer dossier line {line_number} is not rank-blind"
+            )
+        if guardrails.get("blind_to_nutev_taxonomy") is not True:
+            raise ScreeningImportError(
+                f"reviewer dossier line {line_number} is not taxonomy-blind"
+            )
+        ids.add(document_id)
+    return ids, actual
+
+
 def _parse_decision(row: dict[str, Any], line_number: int) -> ScreeningDecision:
     required = ("id", "document_id", "stage", "decision", "decided_at")
     missing = [key for key in required if not str(row.get(key) or "").strip()]
@@ -232,6 +285,10 @@ def run_screening_import(
     science_manifest: Path,
     decisions_jsonl: Path,
     output_dir: Path,
+    *,
+    dossiers_jsonl: Path | None = None,
+    enrichment_manifest: Path | None = None,
+    require_enrichment: bool = False,
 ) -> dict[str, Any]:
     """Import final resolved screening decisions and emit auditable PRISMA events."""
 
@@ -241,6 +298,17 @@ def run_screening_import(
     decision_rows = _read_jsonl(decisions_jsonl, label="screening decisions")
     if not decision_rows:
         raise ScreeningImportError(f"screening decisions JSONL is empty: {decisions_jsonl}")
+
+    dossier_ids: set[str] = set()
+    dossiers_sha: str | None = None
+    if require_enrichment:
+        if dossiers_jsonl is None or enrichment_manifest is None:
+            raise ScreeningImportError(
+                "pre-screening enrichment is required: provide reviewer dossiers and enrichment manifest"
+            )
+        dossier_ids, dossiers_sha = _verify_reviewer_dossiers(
+            dossiers_jsonl, enrichment_manifest
+        )
 
     document_ids = {str(row.get("id") or "") for row in document_rows if row.get("id")}
     if not document_ids:
@@ -254,6 +322,11 @@ def run_screening_import(
         if decision.document_id not in document_ids:
             raise ScreeningImportError(
                 f"screening decision references unknown document: {decision.document_id}"
+            )
+        if require_enrichment and decision.document_id not in dossier_ids:
+            raise ScreeningImportError(
+                "screening decision has no verified reviewer dossier: "
+                f"{decision.document_id}"
             )
         if decision.id in seen_ids:
             raise ScreeningImportError(f"duplicate screening decision id: {decision.id}")
@@ -272,7 +345,9 @@ def run_screening_import(
         try:
             events.extend(events_from_screening_decision(decision))
         except ValueError as exc:
-            raise ScreeningImportError(f"invalid final screening decision {decision.id}: {exc}") from exc
+            raise ScreeningImportError(
+                f"invalid final screening decision {decision.id}: {exc}"
+            ) from exc
 
     normalized_decisions = [asdict(decision) for decision in decisions]
     event_rows = [asdict(event) for event in events]
@@ -288,8 +363,24 @@ def run_screening_import(
     events_sha = _write_jsonl(events_path, event_rows)
     prisma_sha = _write_json(prisma_path, asdict(prisma))
 
+    assertions = [
+        {"name": "document_export_hash_verified", "status": "PASS"},
+        {"name": "decisions_reference_known_documents", "status": "PASS"},
+        {"name": "one_final_decision_per_document_stage", "status": "PASS"},
+        {"name": "exclusions_require_reason", "status": "PASS"},
+        {"name": "prisma_derived_from_final_decisions_only", "status": "PASS"},
+    ]
+    if require_enrichment:
+        assertions.extend(
+            [
+                {"name": "reviewer_dossier_hash_verified", "status": "PASS"},
+                {"name": "decisions_have_verified_reviewer_dossiers", "status": "PASS"},
+                {"name": "reviewer_dossiers_rank_and_taxonomy_blind", "status": "PASS"},
+            ]
+        )
+
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "import_type": "NUTEV_FINAL_SCREENING_IMPORT",
         "status": "PASS",
         "source": {
@@ -299,9 +390,17 @@ def run_screening_import(
             "scientific_export_manifest_sha256": sha256_file(science_manifest),
             "screening_decisions_input": str(decisions_jsonl),
             "screening_decisions_input_sha256": decisions_sha,
+            "reviewer_dossiers": str(dossiers_jsonl) if dossiers_jsonl else None,
+            "reviewer_dossiers_sha256": dossiers_sha,
+            "enrichment_manifest": str(enrichment_manifest) if enrichment_manifest else None,
+            "enrichment_manifest_sha256": (
+                sha256_file(enrichment_manifest) if enrichment_manifest else None
+            ),
+            "pre_screening_enrichment_required": require_enrichment,
         },
         "counts": {
             "document_candidates": len(document_rows),
+            "verified_reviewer_dossiers": len(dossier_ids) if require_enrichment else 0,
             "final_screening_decisions": len(decisions),
             "scientific_events": len(events),
         },
@@ -314,16 +413,11 @@ def run_screening_import(
             "screening_events": {"path": str(events_path), "sha256": events_sha},
             "prisma_counts": {"path": str(prisma_path), "sha256": prisma_sha},
         },
-        "assertions": [
-            {"name": "document_export_hash_verified", "status": "PASS"},
-            {"name": "decisions_reference_known_documents", "status": "PASS"},
-            {"name": "one_final_decision_per_document_stage", "status": "PASS"},
-            {"name": "exclusions_require_reason", "status": "PASS"},
-            {"name": "prisma_derived_from_final_decisions_only", "status": "PASS"},
-        ],
+        "assertions": assertions,
         "interpretation_guardrail": (
             "This import records externally resolved final scientific screening decisions. "
-            "NutEV does not generate the include/exclude decision in this stage."
+            "NutEV does not generate the include/exclude decision. When enrichment is required, "
+            "every decision must reference a verified rank- and taxonomy-blind reviewer dossier."
         ),
     }
     manifest_sha = _write_json(manifest_path, manifest)
@@ -333,6 +427,7 @@ def run_screening_import(
         "status": "COMPLETE",
         "decisions": len(decisions),
         "events": len(events),
+        "pre_screening_enrichment_required": require_enrichment,
         "prisma": asdict(prisma),
         "outputs": {
             "decisions": str(normalized_path),
