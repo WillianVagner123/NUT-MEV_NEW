@@ -57,17 +57,16 @@ The active Topic / Competency Engine can now execute with explicit status:
 - OpenAlex;
 - Crossref;
 - DOAJ;
-- Semantic Scholar.
-
-The following remain plan-only until an equally explicit status adapter exists:
-
-- LILACS / BVS;
-- SciELO.
+- Semantic Scholar;
+- LILACS / BVS native public search;
+- SciELO native public search.
 
 The following remain manual/licensed and are never simulated:
 
 - Scopus;
 - Web of Science.
+
+There are currently no plan-only providers in the active topic-search registry once the regional native adapters are available. An individual provider may still be `skipped`, `failed` or unavailable at execution time.
 
 ---
 
@@ -81,13 +80,15 @@ Existing list-returning functions remain available:
 - `search_doaj(...)`;
 - `search_semantic_scholar(...)`.
 
-The new scientific active-search path uses status-aware clients instead. This avoids breaking existing web/search workflows while strengthening the scientific audit contract.
+The existing regional collector in `tools/run_latin_sources.py` also remains available for its historical batch workflow.
+
+The scientific active-search path uses status-aware clients instead. This avoids breaking existing web/search workflows while strengthening the scientific audit contract.
 
 ---
 
 ## Active topic search
 
-`nutev science-topics --execute-search` now promotes the status-aware providers to:
+`nutev science-topics --execute-search` promotes the eight executable providers to:
 
 `EXECUTABLE_STATUS_AWARE`
 
@@ -100,10 +101,10 @@ Each run preserves:
 - provider-native query;
 - status;
 - explicit error, when applicable;
-- `total_found` when the provider supplies it;
+- `total_found` when the provider supplies it or a verified zero is present;
 - `total_returned`;
 - provider metadata;
-- checkpoint path when supported;
+- checkpoint/raw retrieval evidence when supported;
 - `feeds_prisma=false`;
 - `auto_ingest=false`.
 
@@ -146,6 +147,8 @@ The engine MAY state:
 - a provider was skipped;
 - only part of a bounded request was retrieved;
 - a provider returned N records;
+- a regional public interface denied automated access;
+- a regional HTML page was retrieved but did not provide enough evidence to assert zero;
 - a topic search has incomplete provider coverage.
 
 The engine MUST NOT state:
@@ -153,6 +156,7 @@ The engine MUST NOT state:
 - `failed = 0 articles`;
 - `skipped = 0 articles`;
 - `partial = complete search`;
+- `HTTP 200 but parser found nothing = 0 articles`;
 - an unavailable provider proves an evidence gap;
 - discovery result count is evidence strength;
 - search result rank is scientific quality;
@@ -184,6 +188,44 @@ Uses bounded offset pagination and provider `total` when available.
 
 If a later page fails after rows were retrieved, status is `partial` rather than silently returning a normal list as if the request were complete.
 
+### LILACS / BVS
+
+Uses the official BVS public search route with the LILACS database filter.
+
+The adapter:
+
+- requests only the official search interface;
+- parses traceable LILACS/BVS resource anchors;
+- records the provider search URL;
+- saves raw HTML and SHA-256 when a checkpoint directory is available;
+- treats HTTP 401/403 as explicit failure/unavailability;
+- never substitutes another database when BVS is unavailable.
+
+### SciELO
+
+Uses the official SciELO public search route.
+
+The adapter:
+
+- requests only the official search interface;
+- parses traceable SciELO article anchors;
+- records the provider search URL;
+- saves raw HTML and SHA-256 when a checkpoint directory is available;
+- treats HTTP 401/403 as explicit failure/unavailability;
+- never substitutes another database when SciELO is unavailable.
+
+### Regional zero-result rule
+
+HTML interfaces do not always expose a structured total count. Therefore LILACS/BVS and SciELO use a stricter rule:
+
+1. parsed candidate anchors present -> `completed`;
+2. explicit no-results marker in the official response -> `empty` and `total_found=0`;
+3. HTTP success but neither candidates nor an explicit zero marker -> `failed` with `native_html_no_candidates_unverified_zero`;
+4. HTTP 401/403 or request failure -> `failed`;
+5. execution disabled -> `skipped`.
+
+This prevents a changed page layout, anti-bot page or parser mismatch from becoming a false scientific zero.
+
 ---
 
 ## Manifest
@@ -192,11 +234,11 @@ When status-aware active search is executed, `TOPIC_AUDIT_MANIFEST.json` records
 
 - execution contract version;
 - status-aware providers;
-- plan-only providers;
 - manual/licensed providers;
 - per-status run counts;
 - per-provider run counts;
 - assertion that `empty` is distinct from failure;
+- assertion that regional HTML zero requires an explicit marker;
 - assertion that results remain discovery candidates.
 
 The hashes of the updated search plan, run ledger and discovery results are recalculated after execution.
@@ -205,7 +247,7 @@ The hashes of the updated search plan, run ledger and discovery results are reca
 
 ## Relationship to Longitudinal Watch
 
-The Watch Engine consumes verified topic-audit state. Provider status matters because an API outage must not create a false longitudinal signal such as:
+The Watch Engine consumes verified topic-audit state. Provider status matters because an API outage or a regional HTML interface change must not create a false longitudinal signal such as:
 
 - apparent disappearance of evidence;
 - false drop to zero documents;
