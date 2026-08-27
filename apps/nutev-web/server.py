@@ -22,6 +22,7 @@ if str(APP_ROOT) not in sys.path:
 
 from progress_search import search_evidence_progressive
 from query_compiler import compile_query_plan
+from radar_data import RadarDataError, load_radar_state
 from search_adapter import (
     PROVIDER_LABELS,
     PROVIDER_ORDER,
@@ -315,6 +316,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "progressive_search": True,
                     "structured_review_query_builder": True,
                     "provider_specific_queries": True,
+                    "radar_dashboard": True,
                     "server_backed_blind_review": True,
                     "human_adjudication": True,
                     "canonical_gold_validation": True,
@@ -389,6 +391,19 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     ]
                 }
             )
+            return
+        if path == "/api/radar":
+            try:
+                self._json(load_radar_state())
+            except RadarDataError as exc:
+                self._json(
+                    {
+                        "status": "invalid",
+                        "error": "radar_data_invalid",
+                        "message": str(exc),
+                    },
+                    HTTPStatus.CONFLICT,
+                )
             return
         if path.startswith("/api/search/jobs/"):
             job_id = unquote(path[len("/api/search/jobs/"):]).strip()
