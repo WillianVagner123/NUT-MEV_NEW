@@ -9,10 +9,12 @@ from nutev.science import (
     DocumentEnrichmentError,
     NutEVCoreError,
     ScientificExportError,
+    SemanticDeconstructionError,
     ScreeningImportError,
     run_core_bank_export,
     run_document_enrichment,
     run_scientific_export,
+    run_semantic_deconstruction,
     run_screening_import,
 )
 
@@ -130,6 +132,34 @@ def build_parser() -> argparse.ArgumentParser:
         default="project_output_reference/scientific/core",
     )
 
+    science_semantic = subparsers.add_parser(
+        "science-semantic",
+        help=(
+            "Deconstruct CORE articles into traceable semantic candidates "
+            "(PICO/PECO/PCC signals, outcomes, effect measures, limitations, disclosures)."
+        ),
+    )
+    science_semantic.add_argument(
+        "--core-records-jsonl",
+        default="project_output_reference/scientific/core/nutev_core_records.jsonl",
+    )
+    science_semantic.add_argument(
+        "--core-manifest",
+        default="project_output_reference/scientific/core/CORE_MANIFEST.json",
+    )
+    science_semantic.add_argument(
+        "--enrichments-jsonl",
+        default="project_output_reference/scientific/enrichment/document_enrichments.jsonl",
+    )
+    science_semantic.add_argument(
+        "--enrichment-manifest",
+        default="project_output_reference/scientific/enrichment/ENRICHMENT_MANIFEST.json",
+    )
+    science_semantic.add_argument(
+        "--output-dir",
+        default="project_output_reference/scientific/semantic",
+    )
+
     science_screening = subparsers.add_parser(
         "science-screening",
         help="Import final resolved screening decisions and derive explicit PRISMA events.",
@@ -214,6 +244,20 @@ def main(argv: list[str] | None = None) -> int:
             )
         except NutEVCoreError as exc:
             print(f"NutEV CORE failure: {exc}")
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "science-semantic":
+        try:
+            result = run_semantic_deconstruction(
+                Path(args.core_records_jsonl),
+                Path(args.core_manifest),
+                Path(args.enrichments_jsonl),
+                Path(args.enrichment_manifest),
+                Path(args.output_dir),
+            )
+        except SemanticDeconstructionError as exc:
+            print(f"NutEV semantic deconstruction failure: {exc}")
             return 2
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
