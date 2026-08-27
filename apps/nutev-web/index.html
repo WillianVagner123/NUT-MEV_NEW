@@ -4,52 +4,59 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>NutEV — Evidence Engine</title>
-  <meta name="description" content="Busca de evidências e validação científica do NutEV em uma interface única.">
+  <title>NutEV — Buscar evidências</title>
+  <meta name="description" content="Busque, organize e acompanhe evidências científicas em uma interface simples.">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./simple-ui.css">
   <link rel="stylesheet" href="./exact-strategy.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidência organizada</span></div></div>
       <nav>
-        <button class="nav-item active" data-view="search">⌕ <span>Buscar evidências</span></button>
-        <a class="nav-item" href="/radar.html">⌁ <span>NutEV Radar</span></a>
-        <button class="nav-item" data-view="history">◷ <span>Minhas buscas</span></button>
-        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
-        <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
-        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+        <button class="nav-item active" data-view="search">⌕ <span>Buscar</span></button>
+        <a class="nav-item" href="/radar.html">⌁ <span>Panorama</span></a>
+        <button class="nav-item" data-view="history">◷ <span>Histórico</span></button>
+        <details class="nav-advanced">
+          <summary>Ferramentas avançadas</summary>
+          <a class="nav-item" href="/review-qa.html">◎ <span>Revisar estratégia</span></a>
+          <a class="nav-item" href="/press-review.html">▣ <span>Checklist PRESS</span></a>
+          <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+        </details>
       </nav>
-      <div class="sidebar-note">A busca prioriza leitura. Não substitui avaliação metodológica nem decisão clínica.</div>
+      <div class="sidebar-note">Faça uma pergunta. O NutEV procura, organiza e mostra de onde veio cada resultado.</div>
     </aside>
 
     <main class="main">
-      <header class="topbar"><div><h1 id="pageTitle">Buscar evidências</h1><p id="pageSubtitle">Faça uma pergunta. Para revisão, use estratégia estruturada ou preserve uma string exata/versionada por base.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
+      <header class="topbar">
+        <div><h1 id="pageTitle">Buscar</h1><p id="pageSubtitle">Escreva sua pergunta do jeito que você faria para outra pessoa. O NutEV cuida da parte técnica.</p></div>
+        <span class="status-pill" id="health">verificando…</span>
+      </header>
 
       <section id="searchView" class="view">
         <div class="hero card">
-          <label for="question">Qual evidência você quer encontrar?</label>
-          <textarea id="question" rows="4" placeholder="Pergunta humana da revisão; a estratégia eletrônica pode ser estruturada separadamente abaixo."></textarea>
+          <label for="question">O que você quer saber?</label>
+          <textarea id="question" rows="4" placeholder="Ex.: Quais recomendações atuais orientam a avaliação e o aconselhamento alimentar em Medicina do Estilo de Vida?"></textarea>
 
           <div class="review-mode-switch">
-            <label><input id="structuredReviewToggle" type="checkbox"> <strong>Modo revisão científica</strong></label>
-            <span>Construa PCC/PICO/PECO ou use uma estratégia eletrônica exata/versionada por base.</span>
+            <label><input id="structuredReviewToggle" type="checkbox"> <strong>Estou fazendo uma revisão científica</strong></label>
+            <span>Ative apenas se precisar montar ou usar uma estratégia de busca estruturada.</span>
           </div>
 
           <section id="strategyBuilder" class="strategy-builder hidden">
             <div class="strategy-type-switch">
-              <label><input type="radio" name="strategyType" value="structured" checked> Construtor PCC/PICO/PECO</label>
-              <label><input type="radio" name="strategyType" value="exact"> Estratégia exata por base</label>
+              <label><input type="radio" name="strategyType" value="structured" checked> Montar estratégia</label>
+              <label><input type="radio" name="strategyType" value="exact"> Usar estratégia pronta</label>
             </div>
 
             <div id="structuredStrategyPanel">
               <div class="strategy-head">
                 <div>
-                  <strong>Construtor de estratégia</strong>
-                  <p>O NutEV compila uma query por base. Ele não inventa vocabulário controlado: MeSH/DeCS precisam estar explicitamente aprovados nesta estratégia.</p>
+                  <strong>Monte os blocos da sua pergunta</strong>
+                  <p>Organize os conceitos principais. Se você já validou MeSH ou DeCS, pode incluí-los; caso contrário, use termos livres.</p>
                 </div>
-                <label>Framework
+                <label>Modelo
                   <select id="frameworkSelect">
                     <option value="PCC" selected>PCC</option>
                     <option value="PICO">PICO</option>
@@ -57,57 +64,60 @@
                   </select>
                 </label>
               </div>
-              <div class="term-help">
-                <strong>Um termo por linha.</strong> Use <code>mesh:Termo</code>, <code>decs:Termo</code> ou <code>free:termo livre</code>. Sem prefixo = texto livre. Sinônimos ficam no mesmo bloco e são unidos por OR; blocos diferentes são unidos por AND.
-              </div>
+              <details class="simple-tech-note">
+                <summary>Como preencher os termos</summary>
+                <div>Um termo por linha. Use <code>mesh:Termo</code>, <code>decs:Termo</code> ou <code>free:termo livre</code>. Termos no mesmo bloco são alternativas; blocos diferentes são combinados entre si.</div>
+              </details>
               <div id="conceptBuilder" class="concept-builder"></div>
             </div>
 
             <div id="exactStrategyPanel" class="hidden">
               <div class="strategy-head">
                 <div>
-                  <strong>Estratégia eletrônica exata</strong>
-                  <p>Use este modo para estratégias já versionadas/revisadas. O NutEV preserva literalmente operadores, campos, headings, filtros e datas; não converte nem simplifica a string.</p>
+                  <strong>Use uma estratégia já pronta</strong>
+                  <p>Cole exatamente a estratégia aprovada para cada base. O NutEV não altera o texto.</p>
                 </div>
-                <label>Classe da execução
+                <label>Tipo de execução
                   <select id="runClassSelect">
-                    <option value="PREFLIGHT">PREFLIGHT</option>
-                    <option value="PILOT" selected>PILOT</option>
-                    <option value="DEVELOPMENT">DEVELOPMENT</option>
-                    <option value="SUPPLEMENTARY">SUPPLEMENTARY</option>
-                    <option value="FORMAL">FORMAL</option>
+                    <option value="PREFLIGHT">Pré-teste</option>
+                    <option value="PILOT" selected>Piloto</option>
+                    <option value="DEVELOPMENT">Desenvolvimento</option>
+                    <option value="SUPPLEMENTARY">Complementar</option>
+                    <option value="FORMAL">Formal</option>
                   </select>
                 </label>
               </div>
               <div class="exact-meta-grid">
-                <label>Strategy ID<input id="strategyId" type="text" placeholder="Ex.: B-NORM-PUBMED"></label>
+                <label>Identificação da estratégia<input id="strategyId" type="text" placeholder="Ex.: B-NORM-PUBMED"></label>
                 <label>Versão<input id="strategyVersion" type="text" placeholder="Ex.: v0.7"></label>
               </div>
-              <div class="term-help"><strong>Selecione abaixo apenas as bases que possuem uma string aprovada.</strong> Para cada base selecionada, cole a consulta exatamente como deve ser enviada. Em modo exato, “Busca global” remove o teto apenas dessas bases; não adiciona providers sem query.</div>
+              <div class="term-help">Selecione somente as bases que possuem uma estratégia aprovada e cole a consulta correspondente em cada uma.</div>
               <div id="exactQueryBuilder" class="exact-query-builder"></div>
             </div>
 
             <div class="strategy-actions">
-              <button id="compileStrategyBtn" type="button" class="ghost">Visualizar estratégia por base</button>
-              <span id="strategyStatus">A estratégia só será usada quando este modo estiver ativado.</span>
+              <button id="compileStrategyBtn" type="button" class="ghost">Conferir estratégia</button>
+              <span id="strategyStatus">Use somente se estiver fazendo uma revisão estruturada.</span>
             </div>
             <div id="strategyPreview" class="strategy-preview hidden"></div>
           </section>
 
-          <details class="advanced" open>
-            <summary>Fontes e limites</summary>
+          <details class="advanced">
+            <summary>Opções de busca</summary>
+            <p class="simple-help">Por padrão, todas as fontes disponíveis ficam selecionadas. Abra esta área apenas se quiser limitar onde ou quanto pesquisar.</p>
             <div class="provider-grid" id="providerGrid"></div>
             <div class="controls-row">
-              <label>Por fonte <input id="perProvider" type="number" min="1" max="100" value="25"></label>
-              <label>Exibir até <input id="maxResults" type="number" min="1" max="300" value="100"></label>
+              <label>Resultados por fonte <input id="perProvider" type="number" min="1" max="100" value="25"></label>
+              <label>Mostrar até <input id="maxResults" type="number" min="1" max="300" value="100"></label>
             </div>
           </details>
+
           <div class="search-actions">
-            <button id="searchBtn" class="primary">Buscar evidências</button>
-            <button id="globalSearchBtn" class="global-search" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Busca global</button>
+            <button id="searchBtn" class="primary">Pesquisar</button>
+            <button id="globalSearchBtn" class="global-search" title="Pesquisa em todas as fontes disponíveis sem o limite interno de quantidade">Pesquisar em todas as fontes</button>
             <span id="searchHint">carregando fontes…</span>
           </div>
-          <div class="global-search-note"><strong>Busca global = sem teto interno.</strong> Não há corte interno de 100, 300 ou outro número. No modo comum, usa todas as fontes conectadas. No modo de estratégia exata, usa somente as bases para as quais existe query exata e que estão selecionadas. Limites ou bloqueios impostos pela própria fonte permanecem explícitos.</div>
+          <div class="global-search-note"><strong>Busca global = sem teto interno.</strong> Limites ou bloqueios impostos pela própria fonte permanecem explícitos.</div>
         </div>
 
         <div id="searchState" class="hidden"></div>
@@ -116,10 +126,11 @@
       </section>
 
       <section id="historyView" class="view hidden">
-        <div class="card"><div class="section-head"><div><h2>Minhas buscas</h2><p>Runs persistidos pelo NutEV Evidence Engine.</p></div><button id="refreshHistory" class="ghost">Atualizar</button></div><div id="historyList"></div></div>
+        <div class="card"><div class="section-head"><div><h2>Histórico</h2><p>Suas buscas anteriores ficam aqui para você retomar quando quiser.</p></div><button id="refreshHistory" class="ghost">Atualizar</button></div><div id="historyList"></div></div>
       </section>
     </main>
   </div>
   <script type="module" src="./app.js"></script>
+  <script src="./simple-ui.js"></script>
 </body>
 </html>
