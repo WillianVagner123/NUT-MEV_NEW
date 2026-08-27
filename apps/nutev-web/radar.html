@@ -4,48 +4,52 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>NutEV Radar — Evidence Engine</title>
-  <meta name="description" content="Painel auditável de cobertura, gaps, busca ativa e mudanças longitudinais do NutEV.">
+  <title>NutEV — Panorama</title>
+  <meta name="description" content="Veja o que já foi encontrado, o que está faltando e onde vale pesquisar de novo.">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./simple-ui.css">
   <link rel="stylesheet" href="./radar.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidência organizada</span></div></div>
       <nav>
-        <a class="nav-item" href="/">⌕ <span>Buscar evidências</span></a>
-        <a class="nav-item active" href="/radar.html">⌁ <span>NutEV Radar</span></a>
-        <a class="nav-item" href="/?view=history">◷ <span>Minhas buscas</span></a>
-        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
-        <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
-        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+        <a class="nav-item" href="/">⌕ <span>Buscar</span></a>
+        <a class="nav-item active" href="/radar.html">⌁ <span>Panorama</span></a>
+        <a class="nav-item" href="/?view=history">◷ <span>Histórico</span></a>
+        <details class="nav-advanced">
+          <summary>Ferramentas avançadas</summary>
+          <a class="nav-item" href="/review-qa.html">◎ <span>Revisar estratégia</span></a>
+          <a class="nav-item" href="/press-review.html">▣ <span>Checklist PRESS</span></a>
+          <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+        </details>
       </nav>
-      <div class="sidebar-note">Radar = estado operacional verificado do banco. Cobertura, volume e mudança longitudinal não equivalem a força de evidência.</div>
+      <div class="sidebar-note">O Panorama resume sua base: o que já existe, o que está faltando e o que merece nova busca.</div>
     </aside>
 
     <main class="main radar-main">
       <header class="topbar">
         <div>
-          <h1>NutEV Radar</h1>
-          <p>Mapa vivo de cobertura, gaps, busca ativa e mudanças longitudinais do banco de evidências.</p>
+          <h1>Panorama</h1>
+          <p>Veja rapidamente como está sua base de evidências.</p>
         </div>
-        <span class="status-pill" id="radarHealth">verificando engine…</span>
+        <span class="status-pill" id="radarHealth">verificando…</span>
       </header>
 
       <section class="radar-hero card">
         <div>
-          <span class="eyebrow">BANCO VIVO · CAMADA OPERACIONAL</span>
-          <h2>Estado auditável do conhecimento NutEV</h2>
-          <p>Todos os números abaixo vêm de manifests e JSONL com SHA-256 verificado. Ausência de execução, provider indisponível ou Watch desatualizado permanecem explícitos.</p>
+          <span class="eyebrow">VISÃO GERAL</span>
+          <h2>O que já sabemos e o que ainda falta</h2>
+          <p>O NutEV organiza os documentos por tema e mostra onde há pouca informação, onde faltam textos completos e onde vale pesquisar de novo.</p>
         </div>
         <div class="hero-actions">
-          <button class="ghost" id="refreshRadar" type="button">Atualizar painel</button>
-          <a class="primary action-link" href="/">Abrir busca</a>
+          <button class="ghost" id="refreshRadar" type="button">Atualizar</button>
+          <a class="primary action-link" href="/">Nova busca</a>
         </div>
       </section>
 
-      <div id="radarState" class="loading">Carregando auditoria verificada…</div>
+      <div id="radarState" class="loading">Carregando panorama…</div>
 
       <section id="radarContent" class="hidden">
         <div class="radar-meta card" id="radarMeta"></div>
@@ -53,45 +57,45 @@
 
         <div class="radar-grid">
           <section class="card priority-panel">
-            <div class="section-head"><div><h2>Fila de auditoria</h2><p>Prioridade de busca/gap — não é grau de evidência.</p></div></div>
+            <div class="section-head"><div><h2>O que precisa de atenção</h2><p>Quanto maior a prioridade, mais vale revisar ou pesquisar esse tema.</p></div></div>
             <div id="priorityBoard" class="priority-board"></div>
           </section>
 
           <section class="card provider-panel">
-            <div class="section-head"><div><h2>Providers</h2><p>Status observado nas buscas ativas do último audit.</p></div></div>
+            <div class="section-head"><div><h2>Fontes de pesquisa</h2><p>Veja quais fontes foram consultadas e se alguma teve problema.</p></div></div>
             <div id="providerBoard" class="provider-board"></div>
           </section>
         </div>
 
         <section class="card topics-panel">
           <div class="section-head topic-head">
-            <div><h2>Tópicos e competências</h2><p>Estado atual do banco, cobertura técnica e ação necessária.</p></div>
-            <button class="ghost" id="jumpChanges" type="button">Ver mudanças</button>
+            <div><h2>Temas acompanhados</h2><p>Abra um tema para entender sua cobertura e o próximo passo sugerido.</p></div>
+            <button class="ghost" id="jumpChanges" type="button">Ver o que mudou</button>
           </div>
           <div class="radar-filters">
-            <label class="filter-search">Filtrar<input id="topicFilter" type="search" placeholder="Nome, ID ou flag"></label>
-            <label>Tipo<select id="kindFilter"><option value="">Todos</option><option value="topic">Tópico</option><option value="competency">Competência</option><option value="context">Contexto</option><option value="implementation">Implementação</option></select></label>
-            <label>Prioridade<select id="priorityFilter"><option value="">Todas</option><option value="P1_HIGH">P1 · alta</option><option value="P2_MEDIUM">P2 · média</option><option value="P3_LOW">P3 · baixa</option><option value="P4_MONITOR">P4 · monitorar</option></select></label>
+            <label class="filter-search">Buscar tema<input id="topicFilter" type="search" placeholder="Digite um tema ou palavra"></label>
+            <label>Tipo<select id="kindFilter"><option value="">Todos</option><option value="topic">Tema</option><option value="competency">Competência</option><option value="context">Contexto</option><option value="implementation">Aplicação</option></select></label>
+            <label>Prioridade<select id="priorityFilter"><option value="">Todas</option><option value="P1_HIGH">Prioridade alta</option><option value="P2_MEDIUM">Prioridade média</option><option value="P3_LOW">Prioridade baixa</option><option value="P4_MONITOR">Em dia</option></select></label>
             <label>Ordenar<select id="sortTopics"><option value="priority">Prioridade</option><option value="documents">Mais documentos</option><option value="freshness">Mais recente</option><option value="label">Nome</option></select></label>
-            <label class="check-filter"><input id="gapOnly" type="checkbox"> Somente com gaps</label>
+            <label class="check-filter"><input id="gapOnly" type="checkbox"> Só os que precisam de atenção</label>
           </div>
           <div id="topicCount" class="topic-count"></div>
           <div id="topicCards" class="topic-cards"></div>
         </section>
 
         <section class="card watch-panel" id="watchSection">
-          <div class="section-head"><div><h2>Longitudinal / Watch</h2><p>Diferenças operacionais entre auditorias verificadas.</p></div><span id="watchBadge" class="status-pill"></span></div>
+          <div class="section-head"><div><h2>O que mudou</h2><p>Compare a situação atual com a última atualização da base.</p></div><span id="watchBadge" class="status-pill"></span></div>
           <div id="watchSummary"></div>
           <div class="watch-columns">
-            <div><h3>Casos para revisão</h3><div id="watchCases"></div></div>
-            <div><h3>Eventos do último Watch</h3><div id="watchEvents"></div></div>
+            <div><h3>Itens para revisar</h3><div id="watchCases"></div></div>
+            <div><h3>Mudanças recentes</h3><div id="watchEvents"></div></div>
           </div>
         </section>
 
-        <section class="card guardrail-card">
-          <strong>Guardrail científico</strong>
-          <p>O Radar descreve cobertura, disponibilidade, proveniência, busca e mudança operacional. Ele não transforma volume documental em qualidade, certeza, consenso, causalidade ou recomendação. PRISMA continua opcional/downstream.</p>
-        </section>
+        <details class="card guardrail-card">
+          <summary>Como interpretar estes números</summary>
+          <p>Mais documentos não significam evidência melhor. O Panorama mostra cobertura, disponibilidade e mudanças na base; decisões sobre qualidade, certeza e recomendação continuam em etapas científicas próprias.</p>
+        </details>
       </section>
     </main>
   </div>
@@ -104,5 +108,6 @@
   </dialog>
 
   <script type="module" src="./radar.js"></script>
+  <script src="./simple-ui.js"></script>
 </body>
 </html>
