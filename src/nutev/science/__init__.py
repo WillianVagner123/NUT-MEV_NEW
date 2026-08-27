@@ -74,8 +74,8 @@ from .topic_audit import (
     build_active_search_plan,
     compile_topic_query,
     load_topic_profile,
-    run_topic_competency_audit,
 )
+from .topic_status import run_topic_competency_audit
 from .watch import (
     LongitudinalWatchError,
     WatchCase,
