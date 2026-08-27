@@ -7,6 +7,7 @@ from pathlib import Path
 from nutev.__version__ import __version__
 from nutev.science import (
     DocumentEnrichmentError,
+    LongitudinalWatchError,
     NutEVCoreError,
     RelationalMappingError,
     ScientificExportError,
@@ -15,6 +16,7 @@ from nutev.science import (
     TopicAuditError,
     run_core_bank_export,
     run_document_enrichment,
+    run_longitudinal_watch,
     run_relational_mapping,
     run_scientific_export,
     run_semantic_deconstruction,
@@ -105,6 +107,37 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=20, help="Per-topic PubMed discovery limit.")
     _path_argument(p, "--output-dir", "project_output_reference/scientific/topics")
 
+    p = sub.add_parser(
+        "science-watch",
+        help="Compare verified topic audits over time and create longitudinal review cases.",
+    )
+    _path_argument(
+        p,
+        "--topic-audits-jsonl",
+        "project_output_reference/scientific/topics/topic_audits.jsonl",
+    )
+    _path_argument(
+        p,
+        "--topic-assignments-jsonl",
+        "project_output_reference/scientific/topics/topic_assignments.jsonl",
+    )
+    _path_argument(
+        p,
+        "--topic-audit-manifest",
+        "project_output_reference/scientific/topics/TOPIC_AUDIT_MANIFEST.json",
+    )
+    p.add_argument(
+        "--previous-snapshot",
+        default=None,
+        help="Optional prior WATCH_SNAPSHOT.json; requires --previous-watch-manifest.",
+    )
+    p.add_argument(
+        "--previous-watch-manifest",
+        default=None,
+        help="Optional prior WATCH_MANIFEST.json used to verify the previous snapshot hash.",
+    )
+    _path_argument(p, "--output-dir", "project_output_reference/scientific/watch")
+
     p = sub.add_parser("science-screening", help="Import final resolved screening decisions and derive explicit PRISMA events.")
     _path_argument(p, "--documents-jsonl", "project_output_reference/scientific/document_candidates.jsonl")
     _path_argument(p, "--science-manifest", "project_output_reference/scientific/SCIENTIFIC_EXPORT_MANIFEST.json")
@@ -185,6 +218,25 @@ def main(argv: list[str] | None = None) -> int:
             ))
         except TopicAuditError as exc:
             print(f"NutEV topic/competency audit failure: {exc}")
+            return 2
+    if args.command == "science-watch":
+        try:
+            return _print(run_longitudinal_watch(
+                Path(args.topic_audits_jsonl),
+                Path(args.topic_assignments_jsonl),
+                Path(args.topic_audit_manifest),
+                Path(args.output_dir),
+                previous_snapshot=(
+                    Path(args.previous_snapshot) if args.previous_snapshot else None
+                ),
+                previous_watch_manifest=(
+                    Path(args.previous_watch_manifest)
+                    if args.previous_watch_manifest
+                    else None
+                ),
+            ))
+        except LongitudinalWatchError as exc:
+            print(f"NutEV longitudinal watch failure: {exc}")
             return 2
     if args.command == "science-screening":
         require_enrichment = not bool(args.allow_unenriched)
