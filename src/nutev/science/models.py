@@ -41,6 +41,23 @@ class ScreeningDecisionValue(StrEnum):
     UNCERTAIN = "uncertain"
 
 
+class RetrievalStatus(StrEnum):
+    NOT_ATTEMPTED = "not_attempted"
+    RETRIEVED = "retrieved"
+    PARTIAL = "partial"
+    NOT_RETRIEVED = "not_retrieved"
+
+
+class ExtractionMethod(StrEnum):
+    ABSTRACT_ONLY = "abstract_only"
+    DIRECT_TEXT = "direct_text"
+    HTML_TEXT = "html_text"
+    XML_TEXT = "xml_text"
+    PDF_TEXT = "pdf_text"
+    OCR_TESSERACT = "ocr_tesseract"
+    UNAVAILABLE = "unavailable"
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchQuestion:
     id: str
@@ -98,6 +115,77 @@ class EvidenceRecord:
     origin_sha256: str | None = None
     taxonomy: tuple[str, ...] = ()
     metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class FullTextArtifact:
+    """Retrieved document material used for pre-screening enrichment."""
+
+    id: str
+    document_id: str
+    retrieval_status: RetrievalStatus
+    source_url: str | None = None
+    local_path: str | None = None
+    media_type: str | None = None
+    sha256: str | None = None
+    retrieved_at: str | None = None
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class TextBlock:
+    """One traceable block extracted from a document."""
+
+    id: str
+    kind: str
+    text: str
+    heading: str | None = None
+    locator: str | None = None
+    page: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentEnrichment:
+    """Machine-generated document map that never encodes inclusion decisions."""
+
+    id: str
+    document_id: str
+    artifact_id: str | None
+    extraction_method: ExtractionMethod
+    text_sha256: str | None = None
+    text_chars: int = 0
+    ocr_used: bool = False
+    ocr_engine: str | None = None
+    blocks: tuple[TextBlock, ...] = ()
+    content_signals: Mapping[str, Any] = field(default_factory=dict)
+    warnings: tuple[str, ...] = ()
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class ReviewerDossier:
+    """Reviewer-safe pre-screening dossier with no NutEV rank/taxonomy leakage."""
+
+    id: str
+    document_id: str
+    title: str
+    source_provider: str
+    year: int | None = None
+    doi: str | None = None
+    pmid: str | None = None
+    url: str | None = None
+    abstract: str | None = None
+    journal: str | None = None
+    authors: str | None = None
+    article_type: str | None = None
+    full_text_status: RetrievalStatus = RetrievalStatus.NOT_ATTEMPTED
+    extraction_method: ExtractionMethod = ExtractionMethod.UNAVAILABLE
+    ocr_used: bool = False
+    text_chars: int = 0
+    section_map: tuple[Mapping[str, Any], ...] = ()
+    content_signals: Mapping[str, Any] = field(default_factory=dict)
+    warnings: tuple[str, ...] = ()
+    guardrails: Mapping[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
