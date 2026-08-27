@@ -5,7 +5,8 @@ Interface unificada para:
 1. **Buscar evidências** no NutEV Reference Engine;
 2. acompanhar o progresso de cada fonte durante a busca;
 3. consultar os runs reais persistidos pelo Engine;
-4. executar a **Validação científica** cega no mesmo servidor, do preparo da rodada ao lock da decisão de `validation`.
+4. acompanhar o **NutEV Radar**, com cobertura, gaps, busca ativa e Watch verificados;
+5. executar a **Validação científica** cega no mesmo servidor, do preparo da rodada ao lock da decisão de `validation`.
 
 ## Iniciar
 
@@ -77,6 +78,62 @@ O endpoint `GET /api/searches` alimenta **Minhas buscas** a partir desses runs r
 - Os jobs progressivos vivem em memória enquanto o servidor está rodando; um restart perde apenas o estado transitório do job. Runs já concluídos continuam persistidos no Engine.
 - Scopus e Web of Science continuam não simulados; dependem de acesso licenciado.
 - O score continua sendo **prioridade de leitura**, não recomendação clínica, elegibilidade científica ou avaliação de qualidade metodológica.
+
+## NutEV Radar
+
+A rota `/radar.html` apresenta o estado operacional verificado do banco científico a partir dos outputs do Topic / Competency / Audit Engine e, quando disponível, do Longitudinal / Watch Engine.
+
+O frontend consome somente:
+
+```text
+GET /api/radar
+```
+
+O Radar é **read-only**. Não existe ação `POST /api/radar`: abrir ou atualizar o painel não aceita evidência, não altera o registry, não executa revisão formal e não alimenta PRISMA.
+
+Por padrão, a API lê:
+
+```text
+project_output_reference/scientific/topics/TOPIC_AUDIT_MANIFEST.json
+project_output_reference/scientific/watch/WATCH_MANIFEST.json
+```
+
+Antes de exibir métricas, o servidor verifica os SHA-256 registrados nos manifests para os artifacts usados pelo painel, incluindo:
+
+- `topic_audits.jsonl`;
+- `topic_assignments.jsonl`;
+- `active_search_plan.json`;
+- `active_search_runs.jsonl`;
+- registry/versioned topic profile;
+- `WATCH_SNAPSHOT.json`, `watch_events.jsonl` e `watch_cases.jsonl`, quando o Watch existir.
+
+Se a auditoria de tópicos ainda não existir, o painel mostra **Radar ainda sem snapshot** e não preenche números demonstrativos. Se a cadeia de integridade falhar, a API retorna conflito e o frontend mostra **Radar bloqueado**.
+
+O painel apresenta:
+
+- número de tópicos/competências auditados;
+- documentos únicos mapeados, separado do número de assignments;
+- providers observados no estado atual do banco;
+- gaps técnicos e prioridades `P1_HIGH` a `P4_MONITOR`;
+- cobertura de full text, destrinchamento semântico e relações por tópico;
+- provider status da busca ativa (`completed`, `empty`, `failed`, `partial`, `skipped` e `planned_not_executed`);
+- queries reproduzíveis do plano de busca ativa;
+- eventos/casos do Watch que exigem revisão humana.
+
+Scopus e Web of Science continuam apresentados como manual/licenciado e nunca são convertidos em `0` por falta de execução.
+
+### Watch atual versus desatualizado
+
+O Radar compara o SHA-256 do `TOPIC_AUDIT_MANIFEST.json` atual com o SHA registrado no `WATCH_MANIFEST.json`.
+
+- mesmo SHA: o Watch é atual e seus eventos/casos podem ser ligados aos cards atuais;
+- SHA diferente: o painel mostra **Watch desatualizado**. Os eventos históricos continuam visíveis na seção longitudinal, mas não são anexados aos tópicos atuais.
+
+Isso impede que uma mudança calculada sobre um audit anterior seja apresentada como delta do estado atual.
+
+As contagens e prioridades do Radar são métricas operacionais de cobertura/busca. Elas não equivalem a qualidade metodológica, certeza, consenso, causalidade ou força de recomendação. PRISMA permanece opcional/downstream.
+
+Contrato detalhado: `docs/NUTEV_RADAR.md`.
 
 ## Validação científica
 
