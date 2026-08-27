@@ -16,7 +16,7 @@ import shutil
 import subprocess
 import tempfile
 from typing import Any, Iterable
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from uuid import uuid4
 import xml.etree.ElementTree as ET
 
@@ -41,6 +41,7 @@ class DocumentEnrichmentError(RuntimeError):
 
 _MIN_NATIVE_PDF_CHARS = 800
 _MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
+_MAX_REDIRECTS = 5
 _SECTION_RE = re.compile(
     r"^(abstract|introduction|background|objective|objectives|methods?|methodology|"
     r"materials and methods|participants?|population|interventions?|procedures?|"
@@ -360,10 +361,40 @@ def _validate_remote_url(url: str) -> None:
         raise DocumentEnrichmentError("private/link-local IP URLs are not allowed")
 
 
-def _download(url: str, target_dir: Path) -> tuple[Path, str]:
-    _validate_remote_url(url)
-    response = requests.get(url, timeout=45, allow_redirects=True, stream=True)
-    response.raise_for_status()
+def _download(url: str, target_dir: Path) -> tuple[Path, str, str]:
+    current_url = url
+    response: requests.Response | None = None
+    for redirect_count in range(_MAX_REDIRECTS + 1):
+        _validate_remote_url(current_url)
+        response = requests.get(
+            current_url,
+            timeout=45,
+            allow_redirects=False,
+            stream=True,
+        )
+        if response.status_code in {301, 302, 303, 307, 308}:
+            location = str(response.headers.get("location") or "").strip()
+            response.close()
+            if not location:
+                raise DocumentEnrichmentError(
+                    f"redirect without Location header: {current_url}"
+                )
+            if redirect_count >= _MAX_REDIRECTS:
+                raise DocumentEnrichmentError(
+                    f"too many redirects while retrieving: {url}"
+                )
+            current_url = urljoin(current_url, location)
+            continue
+        response.raise_for_status()
+        break
+    else:
+        raise DocumentEnrichmentError(f"too many redirects while retrieving: {url}")
+
+    if response is None:
+        raise DocumentEnrichmentError(f"no HTTP response while retrieving: {url}")
+
+    final_url = current_url
+    _validate_remote_url(final_url)
     content_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
     extension = {
         "application/pdf": ".pdf",
@@ -376,22 +407,34 @@ def _download(url: str, target_dir: Path) -> tuple[Path, str]:
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / f"download-{uuid4().hex}{extension}"
     written = 0
-    with target.open("wb") as handle:
-        for chunk in response.iter_content(chunk_size=64 * 1024):
-            if not chunk:
-                continue
-            written += len(chunk)
-            if written > _MAX_DOWNLOAD_BYTES:
-                target.unlink(missing_ok=True)
-                raise DocumentEnrichmentError(
-                    f"remote document exceeds {_MAX_DOWNLOAD_BYTES} bytes: {url}"
-                )
-            handle.write(chunk)
-    return target, content_type
+    try:
+        with target.open("wb") as handle:
+            for chunk in response.iter_content(chunk_size=64 * 1024):
+                if not chunk:
+                    continue
+                written += len(chunk)
+                if written > _MAX_DOWNLOAD_BYTES:
+                    target.unlink(missing_ok=True)
+                    raise DocumentEnrichmentError(
+                        f"remote document exceeds {_MAX_DOWNLOAD_BYTES} bytes: {final_url}"
+                    )
+                handle.write(chunk)
+    finally:
+        response.close()
+    return target, content_type, final_url
 
 
-def _artifact_scope(url: str | None, asset_row: dict[str, Any] | None) -> RetrievalStatus:
-    if asset_row and str(asset_row.get("scope") or "").strip().lower() == "full_text":
+def _artifact_scope(
+    url: str | None,
+    asset_row: dict[str, Any] | None,
+    media_type: str | None = None,
+) -> RetrievalStatus:
+    explicit_scope = str((asset_row or {}).get("scope") or "").strip().lower()
+    if explicit_scope == "full_text":
+        return RetrievalStatus.RETRIEVED
+    if explicit_scope in {"partial", "abstract", "metadata"}:
+        return RetrievalStatus.PARTIAL
+    if str(media_type or "").split(";", 1)[0].strip().lower() == "application/pdf":
         return RetrievalStatus.RETRIEVED
     lower = str(url or "").lower()
     if lower.endswith(".pdf") or "/pdf" in lower or "pmc.ncbi.nlm.nih.gov/articles/" in lower:
@@ -572,14 +615,21 @@ def _candidate_asset(
                 ),
                 None,
             )
+        resolved_media = _media_type_for(path, explicit_media)
+        local_scope = str((asset_row or {}).get("scope") or "").strip().lower()
+        retrieval_status = (
+            RetrievalStatus.PARTIAL
+            if local_scope in {"partial", "abstract", "metadata"}
+            else RetrievalStatus.RETRIEVED
+        )
         return (
             FullTextArtifact(
                 id=artifact_id,
                 document_id=document_id,
-                retrieval_status=RetrievalStatus.RETRIEVED,
+                retrieval_status=retrieval_status,
                 source_url=source_url or None,
                 local_path=str(path),
-                media_type=_media_type_for(path, explicit_media),
+                media_type=resolved_media,
                 sha256=sha256_file(path),
                 retrieved_at=_now(),
                 metadata={"retrieval_route": "provided_local_asset"},
@@ -614,7 +664,7 @@ def _candidate_asset(
         )
 
     try:
-        path, content_type = _download(remote, staging_dir)
+        path, content_type, final_url = _download(remote, staging_dir)
     except Exception as exc:
         return (
             FullTextArtifact(
@@ -630,13 +680,16 @@ def _candidate_asset(
         FullTextArtifact(
             id=artifact_id,
             document_id=document_id,
-            retrieval_status=_artifact_scope(remote, asset_row),
-            source_url=remote,
+            retrieval_status=_artifact_scope(final_url, asset_row, content_type),
+            source_url=final_url,
             local_path=str(path),
             media_type=content_type or _media_type_for(path),
             sha256=sha256_file(path),
             retrieved_at=_now(),
-            metadata={"retrieval_route": "network_fetch"},
+            metadata={
+                "retrieval_route": "network_fetch",
+                "requested_url": remote,
+            },
         ),
         path,
     )
@@ -837,6 +890,7 @@ def run_document_enrichment(
             {"name": "reviewer_dossiers_hide_nutev_taxonomy", "status": "PASS"},
             {"name": "machine_signals_are_not_screening_decisions", "status": "PASS"},
             {"name": "missing_content_not_fabricated", "status": "PASS"},
+            {"name": "network_redirect_targets_validated_before_fetch", "status": "PASS"},
         ],
         "interpretation_guardrail": (
             "Reviewer dossiers are reading aids derived from retrieved text or the recorded abstract. "
