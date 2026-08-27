@@ -105,3 +105,32 @@ jobs:
         run: ruff check src tools nutev_tests --select F,E9
       - name: Ruff advisory style
         run: ruff check src tools nutev_tests || true
+
+  hetzner-container-smoke:
+    name: hetzner container smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate Compose contract
+        env:
+          NUTEV_DOMAIN: nutev.example.invalid
+          NUTEV_BASIC_AUTH_USER: ci
+          NUTEV_BASIC_AUTH_HASH: ci-placeholder-hash
+          NUTEV_OCR_LANG: eng+por
+        run: |
+          cp deploy/hetzner/.env.example deploy/hetzner/.env
+          docker compose --env-file deploy/hetzner/.env -f deploy/hetzner/compose.yaml config >/dev/null
+      - name: Build production image
+        run: docker build -f deploy/hetzner/Dockerfile -t nutev-hetzner:ci .
+      - name: Start image and verify health
+        run: |
+          container_id="$(docker run -d -p 127.0.0.1:8765:8765 nutev-hetzner:ci)"
+          trap 'docker logs "$container_id" || true; docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:8765/api/health >/tmp/nutev-health.json; then
+              cat /tmp/nutev-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1

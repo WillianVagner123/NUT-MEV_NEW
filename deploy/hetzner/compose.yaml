@@ -1,0 +1,50 @@
+services:
+  nutev:
+    build:
+      context: ../..
+      dockerfile: deploy/hetzner/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NUTEV_OCR_LANG: ${NUTEV_OCR_LANG:-eng+por}
+    expose:
+      - "8765"
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - nutev_output:/app/project_output_reference
+    networks:
+      - nutev_internal
+    security_opt:
+      - no-new-privileges:true
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      nutev:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - nutev_internal
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  nutev_internal:
+    driver: bridge
+
+volumes:
+  nutev_output:
+  caddy_data:
+  caddy_config:
