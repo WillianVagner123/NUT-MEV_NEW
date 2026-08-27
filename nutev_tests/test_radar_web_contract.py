@@ -9,7 +9,7 @@ def test_radar_is_first_class_in_main_navigation() -> None:
     index = (WEB / "index.html").read_text(encoding="utf-8")
     radar = (WEB / "radar.html").read_text(encoding="utf-8")
     assert 'href="/radar.html"' in index
-    assert "NutEV Radar" in index
+    assert "Panorama" in index
     assert 'id="summaryCards"' in radar
     assert 'id="priorityBoard"' in radar
     assert 'id="providerBoard"' in radar
@@ -43,3 +43,28 @@ def test_radar_frontend_does_not_fabricate_demo_metrics() -> None:
     assert ".topic-card" in css
     assert ".priority-board" in css
     assert ".topic-dialog" in css
+
+
+def test_primary_web_experience_is_plain_language_by_default() -> None:
+    index = (WEB / "index.html").read_text(encoding="utf-8")
+    radar = (WEB / "radar.html").read_text(encoding="utf-8")
+    simple_css = (WEB / "simple-ui.css").read_text(encoding="utf-8")
+    simple_js = (WEB / "simple-ui.js").read_text(encoding="utf-8")
+
+    assert "O que você quer saber?" in index
+    assert ">Pesquisar<" in index
+    assert "Pesquisar em todas as fontes" in index
+    assert "Ferramentas avançadas" in index
+    assert '<details class="advanced">' in index
+    assert '<details class="advanced" open>' not in index
+
+    assert "O que já sabemos e o que ainda falta" in radar
+    assert "O que precisa de atenção" in radar
+    assert "Fontes de pesquisa" in radar
+    assert "Temas acompanhados" in radar
+    assert "Como interpretar estes números" in radar
+
+    assert ".nav-advanced" in simple_css
+    assert "engine conectado" in simple_js
+    assert "Documentos únicos" in simple_js
+    assert "Texto completo" in simple_js
