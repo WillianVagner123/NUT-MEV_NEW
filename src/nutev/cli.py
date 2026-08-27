@@ -12,12 +12,14 @@ from nutev.science import (
     ScientificExportError,
     SemanticDeconstructionError,
     ScreeningImportError,
+    TopicAuditError,
     run_core_bank_export,
     run_document_enrichment,
     run_relational_mapping,
     run_scientific_export,
     run_semantic_deconstruction,
     run_screening_import,
+    run_topic_competency_audit,
 )
 
 PROVIDERS = (
@@ -75,6 +77,33 @@ def build_parser() -> argparse.ArgumentParser:
     _path_argument(p, "--semantic-facts-jsonl", "project_output_reference/scientific/semantic/semantic_fact_candidates.jsonl")
     _path_argument(p, "--semantic-manifest", "project_output_reference/scientific/semantic/SEMANTIC_MANIFEST.json")
     _path_argument(p, "--output-dir", "project_output_reference/scientific/relations")
+
+    p = sub.add_parser(
+        "science-topics",
+        help="Audit active NutEV topics/competencies and materialize gap-driven search plans.",
+    )
+    _path_argument(
+        p,
+        "--relational-records-jsonl",
+        "project_output_reference/scientific/relations/nutev_core_records_relational.jsonl",
+    )
+    _path_argument(
+        p,
+        "--relations-manifest",
+        "project_output_reference/scientific/relations/RELATIONS_MANIFEST.json",
+    )
+    _path_argument(
+        p,
+        "--topic-profile",
+        "config/nutev/topic_profiles/article1_prefreeze_v1.json",
+    )
+    p.add_argument(
+        "--execute-search",
+        action="store_true",
+        help="Execute only providers with explicit status-aware adapters; currently PubMed.",
+    )
+    p.add_argument("--limit", type=int, default=20, help="Per-topic PubMed discovery limit.")
+    _path_argument(p, "--output-dir", "project_output_reference/scientific/topics")
 
     p = sub.add_parser("science-screening", help="Import final resolved screening decisions and derive explicit PRISMA events.")
     _path_argument(p, "--documents-jsonl", "project_output_reference/scientific/document_candidates.jsonl")
@@ -143,6 +172,19 @@ def main(argv: list[str] | None = None) -> int:
             ))
         except RelationalMappingError as exc:
             print(f"NutEV relational mapping failure: {exc}")
+            return 2
+    if args.command == "science-topics":
+        try:
+            return _print(run_topic_competency_audit(
+                Path(args.relational_records_jsonl),
+                Path(args.relations_manifest),
+                Path(args.topic_profile),
+                Path(args.output_dir),
+                execute_search=bool(args.execute_search),
+                limit=int(args.limit),
+            ))
+        except TopicAuditError as exc:
+            print(f"NutEV topic/competency audit failure: {exc}")
             return 2
     if args.command == "science-screening":
         require_enrichment = not bool(args.allow_unenriched)
