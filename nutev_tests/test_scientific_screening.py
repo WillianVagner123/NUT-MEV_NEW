@@ -235,6 +235,7 @@ def test_cli_science_screening_runs_final_decision_import(tmp_path: Path, capsys
             str(documents),
             "--science-manifest",
             str(manifest),
+            "--allow-unenriched",
             "--decisions-jsonl",
             str(decisions),
             "--output-dir",
