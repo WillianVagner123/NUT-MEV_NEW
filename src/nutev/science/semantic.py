@@ -318,7 +318,6 @@ def extract_semantic_facts(
     """Extract conservative semantic candidates from traceable text blocks."""
 
     candidates: list[SemanticFactCandidate] = []
-    document_class = str((classification or {}).get("document_class") or "")
 
     for block in enrichment.get("blocks") or []:
         if not isinstance(block, Mapping):
