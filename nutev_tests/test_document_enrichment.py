@@ -188,3 +188,88 @@ def test_cli_science_enrich_builds_reviewer_dossier(tmp_path: Path, capsys):
     assert code == 0
     assert '"mode": "PRE_SCREENING_DOCUMENT_ENRICHMENT"' in captured.out
     assert (output / "reviewer_dossiers.jsonl").is_file()
+
+
+def test_cli_screening_requires_verified_enrichment_by_default(tmp_path: Path, capsys):
+    documents, manifest = _write_documents(tmp_path)
+    decisions = tmp_path / "decisions.jsonl"
+    decisions.write_text(
+        json.dumps(
+            {
+                "id": "decision-1",
+                "document_id": "doi:10.1000/enrich.1",
+                "stage": "title_abstract",
+                "decision": "include",
+                "decided_at": "2026-08-26T20:00:00+00:00",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    code = cli_main(
+        [
+            "science-screening",
+            "--documents-jsonl",
+            str(documents),
+            "--science-manifest",
+            str(manifest),
+            "--decisions-jsonl",
+            str(decisions),
+            "--dossiers-jsonl",
+            str(tmp_path / "missing-dossiers.jsonl"),
+            "--enrichment-manifest",
+            str(tmp_path / "missing-enrichment.json"),
+            "--output-dir",
+            str(tmp_path / "screening"),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "Scientific screening import failure" in captured.out
+
+
+def test_cli_screening_accepts_decision_after_verified_dossier(tmp_path: Path, capsys):
+    documents, manifest = _write_documents(tmp_path)
+    enrichment_dir = tmp_path / "enrichment"
+    run_document_enrichment(documents, manifest, enrichment_dir)
+
+    decisions = tmp_path / "decisions.jsonl"
+    decisions.write_text(
+        json.dumps(
+            {
+                "id": "decision-1",
+                "document_id": "doi:10.1000/enrich.1",
+                "stage": "title_abstract",
+                "decision": "include",
+                "decided_at": "2026-08-26T20:00:00+00:00",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    screening_dir = tmp_path / "screening"
+
+    code = cli_main(
+        [
+            "science-screening",
+            "--documents-jsonl",
+            str(documents),
+            "--science-manifest",
+            str(manifest),
+            "--dossiers-jsonl",
+            str(enrichment_dir / "reviewer_dossiers.jsonl"),
+            "--enrichment-manifest",
+            str(enrichment_dir / "ENRICHMENT_MANIFEST.json"),
+            "--decisions-jsonl",
+            str(decisions),
+            "--output-dir",
+            str(screening_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert '"pre_screening_enrichment_required": true' in captured.out
+    assert (screening_dir / "SCREENING_IMPORT_MANIFEST.json").is_file()
