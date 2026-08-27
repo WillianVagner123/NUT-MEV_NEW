@@ -42,6 +42,16 @@ from .screening import (
     events_from_screening_decision,
     run_screening_import,
 )
+from .semantic import (
+    SemanticCoverageBlock,
+    SemanticCoverageScore,
+    SemanticDeconstructionError,
+    SemanticFactCandidate,
+    build_semantic_layer,
+    extract_semantic_facts,
+    run_semantic_deconstruction,
+    semantic_coverage_score,
+)
 
 __all__ = [
     "ClaimEvaluation",
@@ -68,6 +78,10 @@ __all__ = [
     "ScientificExportError",
     "ScoreBlockResult",
     "Scorecard",
+    "SemanticCoverageBlock",
+    "SemanticCoverageScore",
+    "SemanticDeconstructionError",
+    "SemanticFactCandidate",
     "ScreeningDecision",
     "ScreeningDecisionValue",
     "ScreeningImportError",
@@ -75,11 +89,15 @@ __all__ = [
     "SearchCase",
     "TextBlock",
     "ValidationDecision",
+    "build_semantic_layer",
     "derive_prisma_counts",
     "events_from_screening_decision",
+    "extract_semantic_facts",
     "reference_to_scientific_objects",
     "run_core_bank_export",
     "run_document_enrichment",
     "run_scientific_export",
     "run_screening_import",
+    "run_semantic_deconstruction",
+    "semantic_coverage_score",
 ]
