@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "profile_kind": "NUTEV_TOPIC_COMPETENCY_REGISTRY",
+  "profile_id": "article1-topic-competency-prefreeze",
+  "version": "1.0.0-prefreeze",
+  "status": "PREFREEZE",
+  "source": {
+    "origin": "PR-1133 article1-search-profile",
+    "purpose": "Bootstrap active topic and competency audit without claiming a frozen ontology"
+  },
+  "question": "Quais parâmetros nutricionais, competências alimentares e contextos sociais da alimentação são atualmente recomendados, estruturados e utilizados por diretrizes e modelos operacionais para orientar avaliação, aconselhamento, prescrição e monitoramento alimentar aplicáveis à Medicina do Estilo de Vida?",
+  "formal_gate": {
+    "authorized": false,
+    "gate_id": "GF-10",
+    "guardrail": "PREFREEZE profile may drive discovery/audit only. It must not be presented as a canonical competency ontology until explicitly authorized and version-frozen."
+  },
+  "audit": {
+    "min_documents": 3,
+    "min_providers": 2,
+    "freshness_years": 5
+  },
+  "topics": [
+    {
+      "id": "nutrition_core",
+      "label": "Nutrition core",
+      "kind": "topic",
+      "query_mode": "terms_only",
+      "terms": [
+        "diet*",
+        "dietary",
+        "nutrition*",
+        "medical nutrition therapy",
+        "nutrition care",
+        "dietary care",
+        "healthy eating",
+        "dietary pattern*",
+        "food-based",
+        "food based"
+      ]
+    },
+    {
+      "id": "normative_markers",
+      "label": "Normative guidance and standards",
+      "kind": "context",
+      "query_mode": "anchor_and_terms",
+      "anchor_terms": ["diet*", "dietary", "nutrition*", "nutrition care", "healthy eating"],
+      "terms": [
+        "guideline*",
+        "clinical practice guideline*",
+        "consensus",
+        "consensus statement*",
+        "position statement*",
+        "scientific statement*",
+        "professional statement*",
+        "expert consensus",
+        "clinical guidance",
+        "standards of care",
+        "practice standard*",
+        "professional standard*",
+        "clinical recommendation*",
+        "practice recommendation*",
+        "dietary recommendation*"
+      ]
+    },
+    {
+      "id": "structural_care",
+      "label": "Nutrition care structure and professional process",
+      "kind": "topic",
+      "query_mode": "terms_only",
+      "terms": [
+        "nutrition care process",
+        "nutrition care model*",
+        "nutrition care framework*",
+        "nutrition care pathway*",
+        "nutrition pathway*",
+        "medical nutrition therapy",
+        "diet prescription*",
+        "dietary prescription*",
+        "nutrition prescription*",
+        "food prescription*",
+        "meal plan*",
+        "nutrition counseling",
+        "nutrition counselling",
+        "dietetic care",
+        "dietitian-led",
+        "scope of practice",
+        "professional standard*",
+        "practice standard*",
+        "clinical decision framework*",
+        "model of care",
+        "lifestyle medicine"
+      ]
+    },
+    {
+      "id": "food_competence",
+      "label": "Food and culinary competencies",
+      "kind": "competency",
+      "query_mode": "anchor_terms_qualifiers",
+      "anchor_terms": ["diet*", "dietary", "nutrition*", "food", "lifestyle medicine"],
+      "terms": [
+        "food literacy",
+        "nutrition literacy",
+        "culinary literacy",
+        "food skill*",
+        "cooking skill*",
+        "meal planning skill*",
+        "food competence",
+        "food competency",
+        "food competencies",
+        "culinary competenc*",
+        "food agency",
+        "food resource management",
+        "meal preparation skill*",
+        "shopping skill*"
+      ],
+      "qualifier_terms": [
+        "framework*",
+        "model*",
+        "standard*",
+        "guideline*",
+        "curriculum",
+        "toolkit*",
+        "consensus",
+        "statement*",
+        "scope of competence"
+      ]
+    },
+    {
+      "id": "professional_competence",
+      "label": "Professional nutrition competencies",
+      "kind": "competency",
+      "query_mode": "anchor_terms_qualifiers",
+      "anchor_terms": ["nutrition*", "dietitian", "nutritionist", "dietetic", "lifestyle medicine"],
+      "terms": [
+        "nutrition competenc*",
+        "dietitian competence",
+        "dietitian competency",
+        "dietitian competencies",
+        "nutritionist competence",
+        "nutritionist competency",
+        "nutritionist competencies",
+        "clinical nutrition skill",
+        "clinical nutrition skills",
+        "competency framework*",
+        "nutrition counseling skill*",
+        "nutrition counselling skill*",
+        "dietetic competenc*"
+      ],
+      "qualifier_terms": [
+        "framework*",
+        "model*",
+        "standard*",
+        "guideline*",
+        "curriculum",
+        "toolkit*",
+        "consensus",
+        "statement*",
+        "scope of practice",
+        "scope of competence"
+      ]
+    },
+    {
+      "id": "implementation",
+      "label": "Implementation and monitoring",
+      "kind": "implementation",
+      "query_mode": "anchor_and_terms",
+      "anchor_terms": ["nutrition*", "diet*", "guideline*", "practice"],
+      "terms": [
+        "implementation framework*",
+        "implementation strateg*",
+        "implementation guide*",
+        "implementation toolkit*",
+        "implementation plan*",
+        "implementation model*",
+        "implementation project*",
+        "dissemination framework*",
+        "dissemination strateg*",
+        "guideline implementation",
+        "practice implementation",
+        "quality improvement framework*",
+        "quality improvement strateg*",
+        "monitoring framework*",
+        "monitoring system*",
+        "implementation monitoring",
+        "implementation evaluation"
+      ]
+    },
+    {
+      "id": "dietary_orientation",
+      "label": "Dietary orientation and patterns",
+      "kind": "topic",
+      "query_mode": "anchor_terms_qualifiers",
+      "anchor_terms": ["nutrition*", "diet*", "food"],
+      "terms": [
+        "dietary pattern*",
+        "food pattern*",
+        "healthy eating pattern*",
+        "dietary approach*",
+        "dietary strateg*",
+        "eating pattern*",
+        "meal pattern*",
+        "dietary model*",
+        "food-based approach*"
+      ],
+      "qualifier_terms": [
+        "guideline*",
+        "recommendation*",
+        "prescription*",
+        "standard*",
+        "consensus",
+        "practice point*"
+      ]
+    }
+  ]
+}
