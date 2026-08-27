@@ -38,6 +38,23 @@ _NO_RESULT_MARKERS = (
     "0 resultados",
     "0 results",
 )
+_SCIELO_OFFICIAL_DOMAINS = (
+    "scielo.org",
+    "scielo.br",
+    "scielo.cl",
+    "scielo.org.mx",
+    "scielo.org.co",
+    "scielo.org.pe",
+    "scielo.org.za",
+    "scielo.sld.cu",
+    "scielo.edu.uy",
+    "scielo.org.ar",
+    "scielo.org.bo",
+    "scielo.sa.cr",
+    "scielo.org.ve",
+    "scielo.pt",
+    "scielo.es",
+)
 
 
 def _clean(value: Any) -> str:
@@ -50,6 +67,23 @@ def _atomic_text(path: Path, text: str) -> str:
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
     return sha256(path.read_bytes()).hexdigest()
+
+
+def _host_matches_domain(hostname: str | None, domain: str) -> bool:
+    host = str(hostname or "").strip().rstrip(".").casefold()
+    allowed = domain.strip().rstrip(".").casefold()
+    return bool(host and allowed and (host == allowed or host.endswith(f".{allowed}")))
+
+
+def _is_bvs_host(hostname: str | None) -> bool:
+    return _host_matches_domain(hostname, "bvsalud.org")
+
+
+def _is_scielo_host(hostname: str | None) -> bool:
+    return any(
+        _host_matches_domain(hostname, domain)
+        for domain in _SCIELO_OFFICIAL_DOMAINS
+    )
 
 
 class _AnchorParser(HTMLParser):
@@ -103,8 +137,10 @@ def _candidate(
     title = _clean(title)
     if len(title) < 20:
         return None
+    if parsed.scheme not in {"http", "https"}:
+        return None
     if provider == "lilacs_bvs":
-        if "bvsalud.org" not in parsed.netloc:
+        if not _is_bvs_host(parsed.hostname):
             return None
         if (
             "/resource/" not in parsed.path
@@ -114,7 +150,7 @@ def _candidate(
             return None
         source_provider = "lilacs_bvs_native"
     elif provider == "scielo":
-        if "scielo" not in parsed.netloc:
+        if not _is_scielo_host(parsed.hostname):
             return None
         if not any(
             token in url.lower()
