@@ -20,6 +20,12 @@ VALIDATION_ROOT = REPO_ROOT / "apps" / "nutev-validation"
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
+from article_workbench_data import (
+    ArticleWorkbenchDataError,
+    load_article_detail,
+    load_article_page,
+    workbench_status,
+)
 from progress_search import search_evidence_progressive
 from query_compiler import compile_query_plan
 from radar_data import RadarDataError, load_radar_state
@@ -317,6 +323,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "structured_review_query_builder": True,
                     "provider_specific_queries": True,
                     "radar_dashboard": True,
+                    "article_workbench": True,
                     "server_backed_blind_review": True,
                     "human_adjudication": True,
                     "canonical_gold_validation": True,
@@ -400,6 +407,74 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     {
                         "status": "invalid",
                         "error": "radar_data_invalid",
+                        "message": str(exc),
+                    },
+                    HTTPStatus.CONFLICT,
+                )
+            return
+        if path == "/api/articles/status":
+            try:
+                self._json(workbench_status())
+            except ArticleWorkbenchDataError as exc:
+                self._json(
+                    {
+                        "status": "invalid",
+                        "error": "article_workbench_invalid",
+                        "message": str(exc),
+                    },
+                    HTTPStatus.CONFLICT,
+                )
+            return
+        if path == "/api/articles":
+            query = parse_qs(parsed.query)
+            try:
+                limit = int((query.get("limit") or ["50"])[0])
+            except ValueError:
+                limit = 50
+            try:
+                self._json(
+                    load_article_page(
+                        q=(query.get("q") or [""])[0],
+                        limit=limit,
+                        cursor=(query.get("cursor") or [None])[0],
+                        source_provider=(query.get("source_provider") or [""])[0],
+                        document_class=(query.get("document_class") or [""])[0],
+                        full_text_status=(query.get("full_text_status") or [""])[0],
+                    )
+                )
+            except FileNotFoundError:
+                self._json(workbench_status())
+            except ArticleWorkbenchDataError as exc:
+                status = (
+                    HTTPStatus.BAD_REQUEST
+                    if "cursor" in str(exc).casefold()
+                    else HTTPStatus.CONFLICT
+                )
+                self._json(
+                    {
+                        "status": "invalid",
+                        "error": "article_workbench_query_invalid",
+                        "message": str(exc),
+                    },
+                    status,
+                )
+            return
+        if path.startswith("/api/articles/"):
+            document_id = unquote(path[len("/api/articles/"):]).strip()
+            if not document_id:
+                self._json({"error": "article_not_found"}, HTTPStatus.NOT_FOUND)
+                return
+            try:
+                self._json(load_article_detail(document_id))
+            except KeyError:
+                self._json({"error": "article_not_found"}, HTTPStatus.NOT_FOUND)
+            except FileNotFoundError:
+                self._json(workbench_status())
+            except ArticleWorkbenchDataError as exc:
+                self._json(
+                    {
+                        "status": "invalid",
+                        "error": "article_workbench_invalid",
                         "message": str(exc),
                     },
                     HTTPStatus.CONFLICT,
