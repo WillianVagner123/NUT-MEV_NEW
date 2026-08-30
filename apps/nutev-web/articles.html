@@ -22,7 +22,7 @@
         <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
         <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
       </nav>
-      <div class="sidebar-note">A biblioteca carrega apenas páginas filtradas. Trechos, tiers e resultados são auxiliares operacionais rastreáveis, não conclusões científicas aceitas.</div>
+      <div class="sidebar-note">A biblioteca carrega apenas páginas filtradas. Trechos, tiers, perfis e resultados são auxiliares operacionais rastreáveis, não conclusões científicas aceitas.</div>
     </aside>
 
     <main class="main articles-main">
@@ -67,15 +67,22 @@
             <option value="scielo_native">SciELO</option>
           </select>
         </label>
-        <label>Tipo
+        <label>Tipo / perfil
           <select id="classFilter">
             <option value="">Todos</option>
+            <option value="food_based_dietary_guideline">Guia alimentar / FBDG</option>
+            <option value="clinical_practice_guideline">Diretriz clínica</option>
+            <option value="consensus_statement">Consenso</option>
+            <option value="position_statement">Position / scientific statement</option>
+            <option value="framework_model">Framework / modelo operacional</option>
+            <option value="competency_curriculum">Competências / currículo</option>
+            <option value="evidence_synthesis">Síntese de evidência</option>
+            <option value="implementation_evaluation">Implementação / viabilidade</option>
             <option value="primary_randomized">Ensaio randomizado</option>
             <option value="primary_observational">Observacional</option>
             <option value="primary_qualitative">Qualitativo</option>
-            <option value="evidence_synthesis">Síntese de evidência</option>
             <option value="review">Revisão</option>
-            <option value="guidance">Diretriz / guidance</option>
+            <option value="guidance">Diretriz / guidance genérica</option>
             <option value="unclassified">Não classificado</option>
           </select>
         </label>
@@ -85,6 +92,7 @@
             <option value="retrieved">Disponível</option>
             <option value="partial">Parcial</option>
             <option value="unavailable">Indisponível</option>
+            <option value="not_retrieved">Não recuperado</option>
             <option value="not_attempted">Ainda não buscado</option>
           </select>
         </label>
@@ -117,7 +125,7 @@
 
       <section class="card workbench-guardrail">
         <strong>Como ler esta tela</strong>
-        <p>Tier A/B/C/D, rank e score indicam prioridade operacional de leitura/processamento. Não equivalem a inclusão científica, qualidade metodológica, risco de viés, certeza, causalidade ou recomendação. Resultados, campos semânticos e trechos continuam sendo candidatos rastreáveis.</p>
+        <p>Tier A/B/C/D, rank, score, classe documental e banda de aderência são auxiliares operacionais de leitura/processamento. Não equivalem a inclusão científica, qualidade metodológica, risco de viés, certeza, causalidade ou recomendação. Resultados, campos semânticos, perfis e trechos continuam sendo candidatos rastreáveis.</p>
       </section>
     </main>
   </div>
