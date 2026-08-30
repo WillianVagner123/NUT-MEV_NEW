@@ -56,6 +56,7 @@ def test_prepare_search_for_bank_preserves_all_rows_and_gaps(tmp_path: Path) -> 
 
     assert result["status"] == "PREPARED"
     assert result["records"] == 100
+    assert result["quarantined_records"] == 0
     assert result["tier_counts"] == {"A": 2, "B": 8, "C": 30, "D": 60}
     assert result["provider_gaps"] == ["openalex", "scielo_native"]
 
@@ -73,12 +74,46 @@ def test_prepare_search_for_bank_preserves_all_rows_and_gaps(tmp_path: Path) -> 
     manifest = json.loads(Path(result["bank_import_manifest"]).read_text())
     assert manifest["initial_materialization"]["network_full_text_retrieval"] is False
     assert manifest["initial_materialization"]["external_llm_calls"] == 0
-    assert manifest["guardrails"] if "guardrails" in manifest else True
+    assert manifest["guardrails"]["bank_presence_is_not_scientific_inclusion"] is True
 
     audit = json.loads(Path(result["audit_manifest"]).read_text())
     expected = audit["outputs"]["ranking_jsonl"]["sha256"]
     assert expected == sha256(ranking.read_bytes()).hexdigest()
     assert audit["guardrails"]["prisma_event_not_created"] is True
+
+
+def test_prepare_search_for_bank_quarantines_structurally_incomplete_rows(tmp_path: Path) -> None:
+    search_id = _write_search(tmp_path, n=4)
+    result_path = tmp_path / "15_web_searches" / search_id / "result.json"
+    payload = json.loads(result_path.read_text())
+    payload["results"][1]["title"] = ""
+    payload["results"][2].pop("source_provider")
+    payload["results"][3] = "not-an-object"
+    result_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = prepare_search_for_bank(search_id, output_root=tmp_path)
+
+    assert result["status"] == "PREPARED_WITH_QUARANTINE"
+    assert result["source_records"] == 4
+    assert result["records"] == 1
+    assert result["quarantined_records"] == 3
+    ranking_rows = [json.loads(line) for line in Path(result["ranking_jsonl"]).read_text().splitlines()]
+    assert len(ranking_rows) == 1
+    assert ranking_rows[0]["title"] == "Article 1"
+    assert ranking_rows[0]["source_search_position"] == 1
+
+    quarantined = [json.loads(line) for line in Path(result["quarantine_jsonl"]).read_text().splitlines()]
+    assert [item["reason"] for item in quarantined] == [
+        "missing_title",
+        "missing_provider",
+        "record_not_object",
+    ]
+    assert all("not scientific exclusion" in item["semantics"] for item in quarantined)
+
+    manifest = json.loads(Path(result["bank_import_manifest"]).read_text())
+    assert manifest["status"] == "PASS_WITH_QUARANTINE"
+    assert manifest["quarantined_records"] == 3
+    assert manifest["guardrails"]["quarantine_is_not_scientific_exclusion"] is True
 
 
 def test_prepare_search_for_bank_rejects_unfinished_run(tmp_path: Path) -> None:
