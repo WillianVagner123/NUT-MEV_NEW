@@ -22,7 +22,7 @@
         <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
         <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
       </nav>
-      <div class="sidebar-note">A biblioteca carrega apenas páginas filtradas. Trechos e resultados são candidatos rastreáveis, não conclusões científicas aceitas.</div>
+      <div class="sidebar-note">A biblioteca carrega apenas páginas filtradas. Trechos, tiers e resultados são auxiliares operacionais rastreáveis, não conclusões científicas aceitas.</div>
     </aside>
 
     <main class="main articles-main">
@@ -37,6 +37,22 @@
       <section class="article-toolbar card">
         <label class="article-search">Buscar no banco
           <input id="articleQuery" type="search" autocomplete="off" placeholder="Título, DOI, PMID, autor, revista, população, outcome…">
+        </label>
+        <label>Prioridade NutEV
+          <select id="tierFilter">
+            <option value="">Todos os tiers</option>
+            <option value="A">Tier A · aprofundar primeiro</option>
+            <option value="B">Tier B · alta prioridade</option>
+            <option value="C">Tier C · contexto relevante</option>
+            <option value="D">Tier D · cauda do corpus</option>
+          </select>
+        </label>
+        <label>Ordenar por
+          <select id="sortFilter">
+            <option value="relevance">Relevância NutEV</option>
+            <option value="newest">Mais recentes</option>
+            <option value="oldest">Mais antigos</option>
+          </select>
         </label>
         <label>Fonte
           <select id="providerFilter">
@@ -69,6 +85,7 @@
             <option value="retrieved">Disponível</option>
             <option value="partial">Parcial</option>
             <option value="unavailable">Indisponível</option>
+            <option value="not_attempted">Ainda não buscado</option>
           </select>
         </label>
         <button id="clearFilters" class="ghost" type="button">Limpar</button>
@@ -76,7 +93,7 @@
 
       <section class="articles-summary">
         <div><strong id="articleCount">—</strong><span> artigos no filtro atual</span></div>
-        <div class="scale-note">50 por página · filtros no servidor · detalhe sob demanda</div>
+        <div class="scale-note">50 por página · filtros e ordenação no servidor · detalhe sob demanda</div>
       </section>
 
       <div id="workbenchState" class="workbench-state">Carregando índice…</div>
@@ -100,7 +117,7 @@
 
       <section class="card workbench-guardrail">
         <strong>Como ler esta tela</strong>
-        <p>Resultados, campos semânticos e trechos são candidatos gerados a partir de material-fonte rastreável. Eles ajudam leitura, busca e síntese, mas não equivalem a elegibilidade, qualidade, certeza, causalidade, recomendação ou EvidenceClaim validado.</p>
+        <p>Tier A/B/C/D, rank e score indicam prioridade operacional de leitura/processamento. Não equivalem a inclusão científica, qualidade metodológica, risco de viés, certeza, causalidade ou recomendação. Resultados, campos semânticos e trechos continuam sendo candidatos rastreáveis.</p>
       </section>
     </main>
   </div>
