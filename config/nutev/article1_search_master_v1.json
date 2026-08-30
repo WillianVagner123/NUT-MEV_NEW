@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "master_type": "NUTEV_ARTICLE1_SEARCH_MASTER",
+  "master_version": "article1-search-master-v1",
+  "status": "DISCOVERY_CLOSED_FORMAL_SEARCH_PENDING_PRESS_FREEZE",
+  "question": "Quais parâmetros nutricionais, competências alimentares e contextos sociais da alimentação são atualmente recomendados, estruturados e utilizados por diretrizes e modelos operacionais para orientar avaliação, aconselhamento, prescrição e monitoramento alimentar aplicáveis à Medicina do Estilo de Vida?",
+  "canonical_human_file": "ARTICLE1_SEARCH_MASTER.md",
+  "agent_entrypoint": "AI_CONTEXT.md",
+  "query_draft": "config/nutev/article1_query_draft_v1.json",
+  "topic_registry": "config/nutev/topic_profiles/article1_prefreeze_v1.json",
+  "production_search_id": "web_20260830T182743+0000_91bde5be",
+  "production_snapshot": {
+    "captured_at": "2026-08-30",
+    "provenance": "operator-verified production outputs; runtime manifests remain authoritative for mutable counts and hashes",
+    "discovery": {
+      "status": "COMPLETE_DISCOVERY_HARVEST_NOT_PRISMA",
+      "records_before_dedup": 41139,
+      "unique_references": 33839,
+      "accepted_structural_records": 33067,
+      "structurally_quarantined_records": 772,
+      "provider_counts": {
+        "pubmed": 5836,
+        "europe_pmc": 5225,
+        "openalex": 20000,
+        "crossref": 9978,
+        "doaj": 100,
+        "semantic_scholar": 0
+      },
+      "provider_gaps": [
+        "lilacs_bvs_native unavailable in discovery run",
+        "scielo_native unavailable in discovery run",
+        "OpenAlex result cap/non-exhaustive concern"
+      ]
+    },
+    "tier_a_deepening": {
+      "status": "COMPLETE",
+      "records": 662,
+      "retrieved": 504,
+      "partial": 90,
+      "not_retrieved": 68,
+      "retrieved_or_partial": 594,
+      "retrieved_or_partial_pct": 89.73,
+      "extraction_methods": {
+        "abstract_only": 69,
+        "direct_text": 2,
+        "html_text": 62,
+        "pdf_text": 119,
+        "xml_text": 410
+      },
+      "ocr_used": 0,
+      "external_llm_calls": 0,
+      "integrity_audit": {
+        "status": "PASS",
+        "v3_batches": 27,
+        "rank_coverage_count": 662,
+        "checked_sha256_artifacts": 459,
+        "errors": 0,
+        "warnings": 0
+      }
+    },
+    "article_workbench": {
+      "status": "READY",
+      "articles": 33067,
+      "evidence_excerpts": 42847,
+      "result_bundles": 36648,
+      "priority_index": true,
+      "review_profile_index": true,
+      "review_profile_tiers": ["A"]
+    },
+    "article1_review_routes": {
+      "status": "COMPLETE_NAVIGATION_ONLY",
+      "tier_records": 662,
+      "B-NORM": 85,
+      "C-STRUCT": 316,
+      "route_union_documents": 351,
+      "route_overlap_documents": 50,
+      "unrouted_documents": 311,
+      "route_queue_manifest_sha256": "7e48c9ee2827f35c0e39ee84a1369a8e1f60dede9e77d58495c66829e8261f45"
+    },
+    "vocabulary_audit": {
+      "status": "COMPLETE",
+      "B-NORM_documents": 85,
+      "C-STRUCT_documents": 316,
+      "B-NORM_manual_query_review_candidates": 27,
+      "C-STRUCT_manual_query_review_candidates": 49,
+      "report_sha256": "62c8e76ca02ba8a4a725867e0ae853db6981794e5ef981983a2d316ef99e179f"
+    }
+  },
+  "search_architecture": {
+    "B-NORM": {
+      "status": "CANDIDATE_FOR_PRESS",
+      "purpose": "normative guidance, guidelines, consensus and statements"
+    },
+    "C-STRUCT": {
+      "status": "CANDIDATE_FOR_PRESS",
+      "aggregation": "UNION_AND_DEDUPLICATE_SUBROUTES",
+      "subroutes": {
+        "C1-CARE-PROCESS": "candidate",
+        "C2-COMPETENCY-LITERACY": "candidate",
+        "C3-IMPLEMENTATION": "candidate",
+        "C4-SOCIAL-CONTEXT": "PRESS_ONLY_CANDIDATE_NOT_APPROVED"
+      }
+    }
+  },
+  "formal_search": {
+    "press_status": "NOT_YET_RECORDED_AS_PASS",
+    "gf10_authorized": false,
+    "query_freeze_complete": false,
+    "formal_provider_search_executed": false,
+    "prisma_search_event_emitted": false,
+    "next_gate": "PRESS review + delta tests + provider-specific syntax validation + explicit GF-10 authorization"
+  },
+  "runtime_authorities": {
+    "deepening_manifest": "project_output_reference/scientific/deepening/<search_id>/tier-A/DEEPENING_MANIFEST.json",
+    "review_profile_manifest": "project_output_reference/scientific/review_queue/<search_id>/tier-A/REVIEW_QUEUE_MANIFEST.json",
+    "route_queue_manifest": "project_output_reference/scientific/review_routes/<search_id>/article1/ROUTE_QUEUE_MANIFEST.json",
+    "vocabulary_audit": "project_output_reference/scientific/review_routes/<search_id>/article1/VOCABULARY_AUDIT.json",
+    "workbench_manifest": "project_output_reference/scientific/workbench/WORKBENCH_MANIFEST.json",
+    "agent_context_manifest": "project_output_reference/agent_context/article1/CONTEXT_MANIFEST.json"
+  },
+  "guardrails": {
+    "discovery_is_not_formal_prisma_search": true,
+    "structural_quarantine_is_not_scientific_exclusion": true,
+    "bank_tier_is_not_quality_or_eligibility": true,
+    "review_route_is_not_screening_decision": true,
+    "machine_profile_is_not_inclusion_or_exclusion": true,
+    "formal_search_must_remain_false_until_freeze": true,
+    "do_not_commit_protected_full_text_to_repo": true
+  }
+}
