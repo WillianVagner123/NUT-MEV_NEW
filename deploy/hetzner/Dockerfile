@@ -19,7 +19,9 @@ WORKDIR /app
 COPY . /app
 RUN python -m pip install --no-cache-dir . \
     && useradd --create-home --uid 10001 --shell /usr/sbin/nologin nutev \
-    && mkdir -p /app/project_output_reference \
+    && mkdir -p /app/project_output_reference/agent_context \
+    && mkdir -p /app/apps/nutev-web/agent-context \
+    && ln -s /app/project_output_reference/agent_context/article1 /app/apps/nutev-web/agent-context/article1 \
     && chown -R nutev:nutev /app
 
 USER nutev
