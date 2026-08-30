@@ -26,6 +26,17 @@ O NutEV Reference Engine coleta metadados de referências, preserva identidade d
 12. Não versionar segredos, dados privados ou texto completo protegido sem direito de redistribuição.
 13. Tags e releases publicadas são imutáveis.
 
+## Contexto compartilhado para agentes
+
+Para trabalho científico ou operacional no Artigo 1, agentes ChatGPT/Codex, Claude e similares devem usar a mesma fonte de verdade:
+
+1. `AI_CONTEXT.md` — ponto de entrada compartilhado;
+2. `ARTICLE1_SEARCH_MASTER.md` — estado humano canônico da busca;
+3. `config/nutev/article1_search_master_v1.json` — estado machine-readable;
+4. quando existir, `project_output_reference/agent_context/article1/CONTEXT_MANIFEST.json` — snapshot vivo de produção.
+
+O bundle de agentes é somente navegação/contexto. Ele não autoriza PRESS, GF-10, freeze, inclusão/exclusão ou PRISMA e não deve expor full text, Bank rank/score/tier ou machine relevance score/band.
+
 ## Runtime canônico
 
 - `Iniciar-NutEV-Windows.bat`
