@@ -7,6 +7,7 @@ from pathlib import Path
 from nutev.__version__ import __version__
 from nutev.science import (
     DocumentEnrichmentError,
+    EvidenceExcerptError,
     LongitudinalWatchError,
     NutEVCoreError,
     RelationalMappingError,
@@ -16,6 +17,7 @@ from nutev.science import (
     TopicAuditError,
     run_core_bank_export,
     run_document_enrichment,
+    run_evidence_excerpt_extraction,
     run_longitudinal_watch,
     run_relational_mapping,
     run_scientific_export,
@@ -73,6 +75,31 @@ def build_parser() -> argparse.ArgumentParser:
     _path_argument(p, "--enrichments-jsonl", "project_output_reference/scientific/enrichment/document_enrichments.jsonl")
     _path_argument(p, "--enrichment-manifest", "project_output_reference/scientific/enrichment/ENRICHMENT_MANIFEST.json")
     _path_argument(p, "--output-dir", "project_output_reference/scientific/semantic")
+
+    p = sub.add_parser(
+        "science-excerpts",
+        help="Build short source-linked excerpts, result bundles, and low-token article cards.",
+    )
+    _path_argument(
+        p,
+        "--semantic-records-jsonl",
+        "project_output_reference/scientific/semantic/nutev_core_records_semantic.jsonl",
+    )
+    _path_argument(
+        p,
+        "--semantic-facts-jsonl",
+        "project_output_reference/scientific/semantic/semantic_fact_candidates.jsonl",
+    )
+    _path_argument(
+        p,
+        "--semantic-manifest",
+        "project_output_reference/scientific/semantic/SEMANTIC_MANIFEST.json",
+    )
+    _path_argument(
+        p,
+        "--output-dir",
+        "project_output_reference/scientific/excerpts",
+    )
 
     p = sub.add_parser("science-relations", help="Link semantic candidates into conservative scientific relations.")
     _path_argument(p, "--semantic-records-jsonl", "project_output_reference/scientific/semantic/nutev_core_records_semantic.jsonl")
@@ -196,6 +223,17 @@ def main(argv: list[str] | None = None) -> int:
             ))
         except SemanticDeconstructionError as exc:
             print(f"NutEV semantic deconstruction failure: {exc}")
+            return 2
+    if args.command == "science-excerpts":
+        try:
+            return _print(run_evidence_excerpt_extraction(
+                Path(args.semantic_records_jsonl),
+                Path(args.semantic_facts_jsonl),
+                Path(args.semantic_manifest),
+                Path(args.output_dir),
+            ))
+        except EvidenceExcerptError as exc:
+            print(f"NutEV evidence excerpt failure: {exc}")
             return 2
     if args.command == "science-relations":
         try:
