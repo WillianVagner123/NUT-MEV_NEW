@@ -1,0 +1,138 @@
+name: deploy-hetzner
+
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hetzner-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy production
+    if: >-
+      ${{ vars.HETZNER_AUTODEPLOY == 'true' &&
+          (github.event_name == 'workflow_dispatch' ||
+           (github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.head_branch == 'main')) }}
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    env:
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+      HETZNER_USER: ${{ secrets.HETZNER_USER }}
+      HETZNER_PORT: ${{ secrets.HETZNER_PORT }}
+      HETZNER_APP_DIR: ${{ secrets.HETZNER_APP_DIR }}
+      HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+
+    steps:
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$TARGET_SHA"
+          test -n "$HETZNER_HOST"
+          test -n "$HETZNER_USER"
+          test -n "$HETZNER_APP_DIR"
+          test -n "$HETZNER_SSH_KEY"
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${HETZNER_PORT:-22}"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$HETZNER_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$PORT" -H "$HETZNER_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy verified commit to Hetzner
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${HETZNER_PORT:-22}"
+          APP_DIR_Q=$(printf '%q' "$HETZNER_APP_DIR")
+          TARGET_SHA_Q=$(printf '%q' "$TARGET_SHA")
+
+          ssh -p "$PORT" "$HETZNER_USER@$HETZNER_HOST" \
+            "APP_DIR=$APP_DIR_Q TARGET_SHA=$TARGET_SHA_Q bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          cd "$APP_DIR"
+          test -d .git
+          test -f deploy/hetzner/.env
+
+          git fetch --prune origin main
+          git checkout -f main
+          git reset --hard "$TARGET_SHA"
+
+          IMAGE="nutev:${TARGET_SHA}"
+          COMPOSE=(docker compose --env-file deploy/hetzner/.env -f deploy/hetzner/compose.yaml)
+
+          OLD_CONTAINER="$("${COMPOSE[@]}" ps -q nutev 2>/dev/null || true)"
+          if [[ -n "$OLD_CONTAINER" ]]; then
+            OLD_IMAGE_ID="$(docker inspect -f '{{.Image}}' "$OLD_CONTAINER")"
+            docker tag "$OLD_IMAGE_ID" nutev:rollback
+          fi
+
+          docker build -f deploy/hetzner/Dockerfile -t "$IMAGE" .
+
+          docker rm -f nutev-preflight >/dev/null 2>&1 || true
+          docker run -d \
+            --name nutev-preflight \
+            --env-file deploy/hetzner/.env \
+            -p 127.0.0.1:18765:8765 \
+            "$IMAGE" >/dev/null
+
+          cleanup_preflight() {
+            docker rm -f nutev-preflight >/dev/null 2>&1 || true
+          }
+          trap cleanup_preflight EXIT
+
+          preflight_ok=0
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18765/api/health >/dev/null; then
+              preflight_ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$preflight_ok" != "1" ]]; then
+            docker logs nutev-preflight || true
+            exit 1
+          fi
+          cleanup_preflight
+          trap - EXIT
+
+          NUTEV_IMAGE="$IMAGE" "${COMPOSE[@]}" up -d --no-build nutev caddy
+
+          production_ok=0
+          for _ in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:8765/api/health >/dev/null; then
+              production_ok=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ "$production_ok" != "1" ]]; then
+            "${COMPOSE[@]}" logs --tail=200 nutev || true
+            if docker image inspect nutev:rollback >/dev/null 2>&1; then
+              echo "Health check failed; rolling back previous NutEV image."
+              NUTEV_IMAGE=nutev:rollback "${COMPOSE[@]}" up -d --no-build nutev caddy
+              sleep 5
+              curl -fsS http://127.0.0.1:8765/api/health >/dev/null || true
+            fi
+            exit 1
+          fi
+
+          echo "NutEV deployed successfully at commit $TARGET_SHA"
+          docker image prune -f --filter "until=168h" >/dev/null 2>&1 || true
+          REMOTE
