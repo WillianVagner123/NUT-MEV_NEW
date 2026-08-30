@@ -11,7 +11,6 @@ from collections import Counter
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-import re
 import shutil
 import sqlite3
 from typing import Any, Iterable, Mapping
