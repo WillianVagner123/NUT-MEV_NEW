@@ -13,15 +13,15 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from nutev.science.deepening import run_selective_bank_deepening
+from nutev.science.deepening_resolved import run_selective_bank_deepening_resolved
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Selectively deepen a persisted NutEV bank tier using full-text retrieval, "
-            "text extraction/OCR, CORE, semantic extraction, excerpts, and an atomic "
-            "Workbench overlay. No external LLM calls are performed."
+            "Selectively deepen a persisted NutEV bank tier using public/open-access "
+            "full-text resolution, text extraction/OCR, CORE, semantic extraction, "
+            "excerpts, and an atomic Workbench overlay. No external LLM calls are performed."
         )
     )
     parser.add_argument("--search-id", required=True, help="Persisted NutEV bank search ID.")
@@ -38,7 +38,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--allow-network",
         action="store_true",
-        help="Allow retrieval of recorded/derived document URLs. Without this flag, deepening is offline.",
+        help=(
+            "Allow public/open-access resolver calls plus retrieval of selected document URLs. "
+            "Without this flag, deepening is offline."
+        ),
     )
     return parser
 
@@ -49,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     def progress(event: dict[str, object]) -> None:
         print(json.dumps({"progress": event}, ensure_ascii=False), flush=True)
 
-    result = run_selective_bank_deepening(
+    result = run_selective_bank_deepening_resolved(
         args.search_id,
         output_root=Path(args.output_root),
         tier=args.tier,
