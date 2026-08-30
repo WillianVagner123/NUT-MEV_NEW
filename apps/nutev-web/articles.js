@@ -5,9 +5,11 @@ const fmt=value=>new Intl.NumberFormat('pt-BR').format(Number(value||0));
 const fmtScore=value=>value===null||value===undefined||value===''?'—':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2});
 
 const kindLabels={objective:'Objetivo',method:'Método / contexto',main_result:'Resultado principal',secondary_result:'Resultado secundário',conclusion:'Conclusão',limitation:'Limitação',disclosure:'Financiamento / conflitos'};
-const classLabels={primary_randomized:'Ensaio randomizado',primary_observational:'Observacional',primary_qualitative:'Qualitativo',evidence_synthesis:'Síntese de evidência',review:'Revisão',guidance:'Diretriz / guidance',unclassified:'Não classificado'};
+const classLabels={food_based_dietary_guideline:'Guia alimentar / FBDG',clinical_practice_guideline:'Diretriz clínica',consensus_statement:'Consenso',position_statement:'Position / scientific statement',framework_model:'Framework / modelo operacional',competency_curriculum:'Competências / currículo',implementation_evaluation:'Implementação / viabilidade',primary_randomized:'Ensaio randomizado',primary_observational:'Observacional',primary_qualitative:'Qualitativo',evidence_synthesis:'Síntese de evidência',review:'Revisão',guidance:'Diretriz / guidance',unclassified:'Não classificado'};
+const domainLabels={nutrition_assessment:'Avaliação nutricional',dietary_counseling:'Aconselhamento alimentar',nutrition_prescription:'Prescrição nutricional',monitoring_follow_up:'Monitoramento / seguimento',food_skills_competencies:'Competências e habilidades alimentares',food_literacy:'Food / nutrition literacy',social_context:'Contexto social da alimentação',food_based_guidance:'Orientação baseada em alimentos',nutrition_care_process:'Nutrition Care Process',lifestyle_medicine:'Medicina do Estilo de Vida',implementation_practice:'Implementação na prática'};
 const providerLabels={pubmed:'PubMed',europepmc:'Europe PMC',openalex:'OpenAlex',crossref:'Crossref',doaj:'DOAJ',semantic_scholar:'Semantic Scholar',lilacs_bvs_native:'LILACS/BVS',scielo_native:'SciELO'};
 const fullTextLabels={retrieved:'Texto completo',partial:'Texto parcial',unavailable:'Sem texto completo',not_attempted:'Ainda não buscado',not_retrieved:'Não recuperado'};
+const relevanceLabels={high:'aderência operacional alta',medium:'aderência operacional média',low:'aderência operacional baixa'};
 
 function tierFromReference(value){const match=String(value||'').match(/^BANK_([ABCD])_PROCESSING_PRIORITY$/);return match?match[1]:''}
 function tierLabel(value){const tier=tierFromReference(value);return tier?`Tier ${tier}`:''}
@@ -45,6 +47,7 @@ function articleRow(article){
   const ids=[article.doi?`DOI ${article.doi}`:'',article.pmid?`PMID ${article.pmid}`:''].filter(Boolean);
   const tier=tierLabel(article.reference_tier);
   const priority=[tier,article.reference_rank?`rank #${fmt(article.reference_rank)}`:'',article.reference_score!==null&&article.reference_score!==undefined?`score ${fmtScore(article.reference_score)}`:''].filter(Boolean);
+  const relevance=article.machine_relevance_band?relevanceLabels[article.machine_relevance_band]||article.machine_relevance_band:'';
   return `<button class="article-row${state.selected===article.document_id?' active':''}" type="button" data-document-id="${esc(article.document_id)}">
     <div>
       <div class="article-title">${esc(article.title||'Sem título')}</div>
@@ -57,6 +60,7 @@ function articleRow(article){
     </div>
     <div class="article-row-side">
       ${priority.map(value=>`<span class="mini-pill">${esc(value)}</span>`).join('')}
+      ${relevance?`<span class="mini-pill">${esc(relevance)}</span>`:''}
       <span class="mini-pill ${fullGood?'good':''}">${esc(full)}</span>
       <span class="mini-pill">contexto IA ${fmt(article.llm_context_chars)} chars</span>
     </div>
@@ -82,7 +86,10 @@ async function loadPage({append=false}={}){
       return;
     }
     if(data.status!=='ready')throw new Error(data.message||'Workbench indisponível');
-    $('#articleHealth').textContent=data.performance?.server_side_priority_sort?'banco + prioridade verificados':'banco verificado';
+    const healthParts=['banco'];
+    if(data.performance?.server_side_priority_sort)healthParts.push('prioridade');
+    if(data.performance?.review_profile_index)healthParts.push('perfil científico');
+    $('#articleHealth').textContent=healthParts.join(' + ')+' verificados';
     $('#articleHealth').className='status-pill ok';
     $('#articleCount').textContent=fmt(data.total_filtered);
     state.cursor=data.next_cursor||null;
@@ -133,19 +140,38 @@ function excerptHtml(excerpt){
   </article>`;
 }
 
+function reviewProfileHtml(profile,machine){
+  if(!profile)return '<p class="provenance">Perfil de revisão ainda não materializado para este artigo.</p>';
+  const domains=profile.operational_domains||[];
+  const matches=profile.operational_domain_matches||{};
+  const className=classLabels[profile.primary_document_class]||profile.primary_document_class||'Não classificado';
+  const band=relevanceLabels[machine?.band]||machine?.band||'n/d';
+  const domainRows=domains.map(domain=>{
+    const terms=(matches[domain]||[]).slice(0,6);
+    return `<div class="snapshot-item"><strong>${esc(domainLabels[domain]||domain)}</strong><span>${terms.length?esc(terms.join(' · ')):'sinal detectado'}</span></div>`;
+  }).join('');
+  return `<div class="detail-chips"><span class="mini-pill">${esc(className)}</span><span class="mini-pill">${esc(band)}</span><span class="mini-pill">score operacional ${esc(fmtScore(machine?.score))}</span></div>
+    ${domainRows?`<div class="snapshot-grid">${domainRows}</div>`:'<p class="provenance">Nenhum domínio operacional específico detectado pelas regras atuais.</p>'}
+    <p class="provenance">Perfil determinístico para navegação do revisor. Não é decisão de elegibilidade, inclusão/exclusão, qualidade, risco de viés, certeza ou recomendação.</p>`;
+}
+
 function detailHtml(data){
   const card=data.card||{};
   const identity=card.identity||{};
   const reference=card.reference||{};
   const priority=data.bank_priority||{};
+  const profile=data.review_profile||null;
+  const machine=data.machine_relevance||{};
   const results=data.result_bundles||[];
   const supporting=(data.evidence_excerpts||[]).filter(item=>!['main_result','secondary_result'].includes(item.kind));
-  const chips=[identity.year,classLabels[card.document_class]||card.document_class,providerLabels[identity.source_provider]||identity.source_provider,fullTextLabels[card.full_text_status]||card.full_text_status,tierLabel(priority.reference_tier),priority.reference_rank?`rank #${fmt(priority.reference_rank)}`:'',priority.reference_score!==null&&priority.reference_score!==undefined?`score ${fmtScore(priority.reference_score)}`:''].filter(Boolean);
+  const effectiveClass=profile?.primary_document_class||card.document_class;
+  const chips=[identity.year,classLabels[effectiveClass]||effectiveClass,providerLabels[identity.source_provider]||identity.source_provider,fullTextLabels[card.full_text_status]||card.full_text_status,tierLabel(priority.reference_tier),priority.reference_rank?`rank #${fmt(priority.reference_rank)}`:'',priority.reference_score!==null&&priority.reference_score!==undefined?`score ${fmtScore(priority.reference_score)}`:''].filter(Boolean);
   return `<div class="detail-head">
     <h2>${esc(identity.title||'Sem título')}</h2>
     <div class="detail-ref">${esc(reference.reference_stub||'Referência incompleta')}</div>
     <div class="detail-chips">${chips.map(value=>`<span class="mini-pill">${esc(value)}</span>`).join('')}</div>
   </div>
+  <section class="detail-section"><h3>Perfil para revisão</h3>${reviewProfileHtml(profile,machine)}</section>
   <section class="detail-section"><h3>Visão rápida</h3>${snapshotHtml(card.study_snapshot)}</section>
   <section class="detail-section"><h3>Principais resultados</h3>${results.length?results.map(resultHtml).join(''):'<p class="provenance">Nenhum ResultBundle materializado para este artigo.</p>'}</section>
   <section class="detail-section"><h3>Trechos-chave</h3>${supporting.length?supporting.map(excerptHtml).join(''):'<p class="provenance">Nenhum trecho adicional selecionado.</p>'}</section>
