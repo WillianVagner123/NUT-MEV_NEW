@@ -21,7 +21,12 @@ def test_autodeploy_is_guarded_by_ci_and_explicit_enable_flag() -> None:
     assert "github.event.workflow_run.conclusion == 'success'" in workflow
     assert "github.event.workflow_run.head_branch == 'main'" in workflow
     assert "vars.HETZNER_AUTODEPLOY == 'true'" in workflow
-    assert 'environment: production' in workflow
+    assert 'environment: HETZNER' in workflow
+    assert 'HETZNER_HOST: ${{ vars.HETZNER_HOST }}' in workflow
+    assert 'HETZNER_USER: ${{ vars.HETZNER_USER }}' in workflow
+    assert 'HETZNER_PORT: ${{ vars.HETZNER_PORT }}' in workflow
+    assert 'HETZNER_APP_DIR: ${{ vars.HETZNER_APP_DIR }}' in workflow
+    assert 'HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}' in workflow
 
 
 def test_autodeploy_preflights_and_rolls_back_on_health_failure() -> None:
