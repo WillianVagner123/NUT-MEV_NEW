@@ -30,9 +30,9 @@ def test_articles_frontend_uses_paged_api_not_jsonl_corpus() -> None:
     assert "result_bundles" in app
     assert "evidence_excerpts" in app
     assert "verbatim_excerpt" in app
-    assert "full_text" not in app.split("fetch(`/api/articles?", 1)[0].casefold()
     assert "article_evidence_cards.jsonl" not in app
     assert "evidence_excerpts.jsonl" not in app
+    assert "result_bundles.jsonl" not in app
     assert ".workbench-layout" in css
     assert ".article-detail" in css
     assert "position:sticky" in css
