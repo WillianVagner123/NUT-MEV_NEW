@@ -2,7 +2,7 @@
 
 The agent-context bundle is a deterministic, read-only summary layer over the verified Article 1 production artifacts. It exists so ChatGPT/Codex, Claude and other agents can retrieve the current scientific/technical state without reconstructing it from chat history or scanning unrelated files.
 
-## Canonical location
+## Canonical persistent location
 
 ```text
 project_output_reference/agent_context/article1/
@@ -12,15 +12,18 @@ project_output_reference/agent_context/article1/
   ARTICLE_SUMMARIES.jsonl
 ```
 
-Build it with:
+Build it in production with:
 
 ```bash
 python tools/build_article1_agent_context.py \
   --search-id web_20260830T182743+0000_91bde5be \
-  --output-root project_output_reference
+  --output-root project_output_reference \
+  --web-mirror-root apps/nutev-web/agent-context/article1
 ```
 
-The command verifies the active Workbench database/hash and the Article 1 route outputs before materializing the bundle.
+Inside the Docker container the corresponding production paths are normally `/app/project_output_reference` and `/app/apps/nutev-web/agent-context/article1`.
+
+The command verifies the active Workbench database/hash and the Article 1 rank-blind route outputs before materializing the bundle. Only the four safe bundle files are eligible for the optional web mirror.
 
 ## Files
 
@@ -58,16 +61,18 @@ It deliberately omits:
 - recommendations;
 - PRISMA events.
 
-## Web access
+## Web access for ChatGPT/Claude
 
-When the bundle exists in production, the NutEV web service exposes only this safe context layer:
+When `--web-mirror-root apps/nutev-web/agent-context/article1` is used inside the running container, the existing static web server serves the safe copies without a new backend endpoint:
 
 ```text
-GET /api/agent-context/article1
-GET /api/agent-context/article1/articles?limit=50&offset=0
+https://nutev.mindsperformance.com.br/agent-context/article1/CONTEXT_MANIFEST.json
+https://nutev.mindsperformance.com.br/agent-context/article1/SEARCH_STATE.json
+https://nutev.mindsperformance.com.br/agent-context/article1/SEARCH_SUMMARY.md
+https://nutev.mindsperformance.com.br/agent-context/article1/ARTICLE_SUMMARIES.jsonl
 ```
 
-Supported article filters are `route`, `document_class` and `q`. The endpoint is read-only and page-limited. It never returns protected full text.
+The persistent volume remains authoritative. The web mirror is a disposable read-only copy for agent access and can be regenerated after a container deploy/restart.
 
 For a specific document's existing Workbench detail, use `/api/articles/{document_id}`. Evidence excerpts and result bundles returned there remain machine/index artifacts, not accepted EvidenceClaims.
 
