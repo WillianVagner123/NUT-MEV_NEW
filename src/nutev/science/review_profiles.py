@@ -19,7 +19,7 @@ from uuid import uuid4
 from nutev.audit_guardrails import sha256_file
 
 
-PROFILE_VERSION = "nutev_review_profile_rule_v1"
+PROFILE_VERSION = "nutev_review_profile_rule_v2"
 _TIERS = {"A", "B", "C", "D"}
 
 
@@ -110,18 +110,40 @@ def _flatten_strings(value: Any) -> list[str]:
     return output
 
 
+def _card(row: Mapping[str, Any]) -> dict[str, Any]:
+    try:
+        value = json.loads(str(row.get("card_json") or "{}"))
+    except json.JSONDecodeError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
 def _profile_text(row: Mapping[str, Any]) -> str:
     parts = [
         str(row.get("title") or ""),
         str(row.get("reference_stub") or ""),
         str(row.get("search_text") or ""),
     ]
-    try:
-        card = json.loads(str(row.get("card_json") or "{}"))
-    except json.JSONDecodeError:
-        card = {}
-    parts.extend(_flatten_strings(card))
+    parts.extend(_flatten_strings(_card(row)))
     return _normalize(" ".join(parts))[:120000]
+
+
+def _document_title_text(row: Mapping[str, Any]) -> str:
+    """Return narrow bibliographic text used for document-shape classification.
+
+    Full extracted text is deliberately excluded here because references and
+    background sections can mention systematic reviews/guidelines that are not
+    the current document's own design.
+    """
+    card = _card(row)
+    identity = card.get("identity") or {}
+    reference = card.get("reference") or {}
+    parts = [str(row.get("title") or "")]
+    if isinstance(identity, Mapping):
+        parts.append(str(identity.get("title") or ""))
+    if isinstance(reference, Mapping):
+        parts.append(str(reference.get("title") or ""))
+    return _normalize(" ".join(parts))[:12000]
 
 
 def _hits(text: str, phrases: Iterable[str]) -> list[str]:
@@ -133,69 +155,165 @@ def _hits(text: str, phrases: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(found))
 
 
-_DOCUMENT_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    (
-        "food_based_dietary_guideline",
-        (
-            "food-based dietary guideline",
-            "food based dietary guideline",
-            "food-based dietary guidelines",
-            "dietary guidelines for americans",
-            "national dietary guideline",
-            "guias alimentares",
-            "guia alimentar",
-        ),
-    ),
-    (
-        "clinical_practice_guideline",
-        (
-            "clinical practice guideline",
-            "practice guideline",
-            "clinical guideline",
-            "guideline from the",
-            "guideline for",
-            "guidelines for",
-        ),
-    ),
-    (
-        "consensus_statement",
-        ("consensus statement", "expert consensus", "consensus report", "consensus recommendations"),
-    ),
-    (
-        "position_statement",
-        ("position statement", "scientific statement", "professional statement", "position paper"),
-    ),
-    (
-        "framework_model",
-        (
-            "conceptual framework",
-            "operational framework",
-            "care framework",
-            "practice model",
-            "conceptual model",
-            "implementation framework",
-        ),
-    ),
-    (
-        "competency_curriculum",
-        (
-            "competenc",
-            "curriculum",
-            "medical education",
-            "nutrition education",
-            "culinary medicine curriculum",
-            "training program",
-        ),
-    ),
-    (
-        "evidence_synthesis",
-        ("systematic review", "scoping review", "meta-analysis", "meta analysis", "umbrella review"),
-    ),
-    (
-        "implementation_evaluation",
-        ("implementation study", "implementation evaluation", "feasibility study", "quality improvement"),
-    ),
+_GUIDANCE_AS_SUBJECT = (
+    "adherence to",
+    "compliance with",
+    "implementation of",
+    "evaluation of",
+    "impact of",
+    "effects of",
+    "comparison of",
+    "assessment of",
+    "uptake of",
+    "barriers to",
+    "knowledge of",
+    "awareness of",
+    "use of",
 )
+
+_FBDG_PHRASES = (
+    "food-based dietary guideline",
+    "food based dietary guideline",
+    "food-based dietary guidelines",
+    "food based dietary guidelines",
+    "dietary guidelines for americans",
+    "national dietary guideline",
+    "national dietary guidelines",
+    "guia alimentar",
+    "guias alimentares",
+)
+
+_CLINICAL_GUIDELINE_PHRASES = (
+    "clinical practice guideline",
+    "clinical practice guidelines",
+    "practice guideline",
+    "clinical guideline",
+    "guideline from the",
+    "guideline for",
+    "guidelines for",
+)
+
+_CONSENSUS_PHRASES = (
+    "consensus statement",
+    "expert consensus",
+    "consensus report",
+    "consensus recommendations",
+)
+
+_POSITION_PHRASES = (
+    "position statement",
+    "scientific statement",
+    "professional statement",
+    "position paper",
+)
+
+_EVIDENCE_SYNTHESIS_PHRASES = (
+    "systematic review",
+    "scoping review",
+    "meta-analysis",
+    "meta analysis",
+    "umbrella review",
+)
+
+_RANDOMIZED_TITLE_PHRASES = (
+    "randomized controlled trial",
+    "randomised controlled trial",
+    "randomized trial",
+    "randomised trial",
+)
+
+_OBSERVATIONAL_TITLE_PHRASES = (
+    "prospective cohort",
+    "retrospective cohort",
+    "cohort study",
+    "cross-sectional",
+    "cross sectional",
+    "case-control",
+    "case control",
+    "is associated with",
+    "was associated with",
+    "associated with",
+)
+
+_QUALITATIVE_TITLE_PHRASES = (
+    "qualitative study",
+    "qualitative analysis",
+    "qualitative research",
+    "focus group study",
+)
+
+_FRAMEWORK_PHRASES = (
+    "conceptual framework",
+    "operational framework",
+    "care framework",
+    "practice model",
+    "conceptual model",
+    "implementation framework",
+)
+
+_COMPETENCY_DOCUMENT_PHRASES = (
+    "core competencies",
+    "core competency",
+    "competency framework",
+    "competency standards",
+    "curriculum framework",
+    "curriculum recommendations",
+    "curriculum guidance",
+)
+
+_IMPLEMENTATION_TITLE_PHRASES = (
+    "implementation study",
+    "implementation evaluation",
+    "feasibility study",
+    "quality improvement",
+)
+
+_TRUSTED_INHERITED_CLASSES = {
+    "primary_randomized",
+    "primary_observational",
+    "primary_qualitative",
+}
+
+
+def _guidance_is_subject_only(title_text: str) -> bool:
+    return any(marker in title_text for marker in _GUIDANCE_AS_SUBJECT)
+
+
+def _document_class_from_title(
+    title_text: str,
+) -> tuple[str | None, dict[str, list[str]], str | None]:
+    """Classify document shape from narrow title evidence only."""
+    class_hits: dict[str, list[str]] = {}
+    subject_only = _guidance_is_subject_only(title_text)
+
+    fbdg_hits = _hits(title_text, _FBDG_PHRASES)
+    if fbdg_hits and not subject_only:
+        class_hits["food_based_dietary_guideline"] = fbdg_hits
+        return "food_based_dietary_guideline", class_hits, None
+
+    guideline_hits = _hits(title_text, _CLINICAL_GUIDELINE_PHRASES)
+    if guideline_hits and not subject_only:
+        class_hits["clinical_practice_guideline"] = guideline_hits
+        return "clinical_practice_guideline", class_hits, None
+
+    for label, phrases in (
+        ("consensus_statement", _CONSENSUS_PHRASES),
+        ("position_statement", _POSITION_PHRASES),
+        ("evidence_synthesis", _EVIDENCE_SYNTHESIS_PHRASES),
+        ("primary_randomized", _RANDOMIZED_TITLE_PHRASES),
+        ("primary_qualitative", _QUALITATIVE_TITLE_PHRASES),
+        ("primary_observational", _OBSERVATIONAL_TITLE_PHRASES),
+        ("framework_model", _FRAMEWORK_PHRASES),
+        ("competency_curriculum", _COMPETENCY_DOCUMENT_PHRASES),
+        ("implementation_evaluation", _IMPLEMENTATION_TITLE_PHRASES),
+    ):
+        matches = _hits(title_text, phrases)
+        if matches:
+            class_hits[label] = matches
+            return label, class_hits, None
+
+    warning = "guidance_mentioned_as_study_subject_not_document_type" if subject_only else None
+    return None, class_hits, warning
 
 
 _DOMAIN_RULES: dict[str, tuple[str, ...]] = {
@@ -279,15 +397,22 @@ _DOMAIN_WEIGHTS = {
 def build_review_profile(row: Mapping[str, Any]) -> dict[str, Any]:
     """Build one deterministic reviewer-navigation profile."""
     text = _profile_text(row)
-    class_hits: dict[str, list[str]] = {}
-    primary = str(row.get("document_class") or "unclassified").strip() or "unclassified"
-    for label, phrases in _DOCUMENT_RULES:
-        matches = _hits(text, phrases)
-        if matches:
-            class_hits[label] = matches
-            if primary in {"", "unclassified", "review", "guidance"}:
-                primary = label
-            break
+    title_text = _document_title_text(row)
+    inherited = str(row.get("document_class") or "unclassified").strip() or "unclassified"
+    detected, class_hits, class_warning = _document_class_from_title(title_text)
+
+    if detected:
+        primary = detected
+        classification_basis = "title_specific_rule"
+        class_confidence = "high"
+    elif inherited in _TRUSTED_INHERITED_CLASSES:
+        primary = inherited
+        classification_basis = "inherited_explicit_primary_design_signal"
+        class_confidence = "medium"
+    else:
+        primary = "unclassified"
+        classification_basis = "insufficient_document_shape_signal"
+        class_confidence = "low"
 
     domains: dict[str, list[str]] = {}
     for label, phrases in _DOMAIN_RULES.items():
@@ -305,6 +430,7 @@ def build_review_profile(row: Mapping[str, Any]) -> dict[str, Any]:
     else:
         band = "low"
 
+    warnings = [class_warning] if class_warning else []
     return {
         "profile_version": PROFILE_VERSION,
         "document_id": str(row.get("document_id") or ""),
@@ -312,8 +438,13 @@ def build_review_profile(row: Mapping[str, Any]) -> dict[str, Any]:
         "reference_score": row.get("reference_score"),
         "reference_tier": row.get("reference_tier"),
         "title": row.get("title"),
+        "source_document_class": inherited,
         "primary_document_class": primary,
+        "document_classification_basis": classification_basis,
+        "document_class_confidence": class_confidence,
         "document_class_matches": class_hits,
+        "document_class_warnings": warnings,
+        "document_class_signal_scope": "title_and_identity_title_only",
         "operational_domains": list(domains),
         "operational_domain_matches": domains,
         "machine_relevance_score": score,
