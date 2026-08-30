@@ -155,6 +155,7 @@ def _materialize_ranking_row(
     source_path: Path,
 ) -> dict[str, Any]:
     row = dict(raw)
+    row["source_reference_rank"] = row.get("reference_rank")
     row["reference_rank"] = position
     row["source_reference_tier"] = row.get("reference_tier")
     row["reference_tier"] = f"BANK_{tier}_PROCESSING_PRIORITY"
@@ -173,45 +174,78 @@ def _materialize_ranking_row(
     return row
 
 
+def _structural_quarantine_reason(value: object) -> str | None:
+    if not isinstance(value, dict):
+        return "record_not_object"
+    title = str(value.get("title") or "").strip()
+    provider = str(
+        value.get("reference_provider") or value.get("source_provider") or value.get("source") or ""
+    ).strip()
+    missing: list[str] = []
+    if not title:
+        missing.append("title")
+    if not provider:
+        missing.append("provider")
+    return "missing_" + "_and_".join(missing) if missing else None
+
+
 def prepare_search_for_bank(
     search_id: str,
     *,
     output_root: Path = Path("project_output_reference"),
 ) -> dict[str, Any]:
-    """Tier and audit every deduplicated record from a persisted web search."""
+    """Tier valid records and quarantine structurally incomplete search rows.
+
+    Quarantine is an ingestion integrity action only. It is not scientific
+    exclusion, screening, risk-of-bias assessment, or a PRISMA event.
+    """
     output_root = output_root.resolve()
     search_id = _safe_search_id(search_id)
     search, source_path, source_sha = _load_search(output_root, search_id)
-    rows = [dict(item) for item in search["results"] if isinstance(item, dict)]
-    if len(rows) != len(search["results"]):
-        raise SearchBankError("results contém item que não é objeto")
+    source_rows = list(search["results"])
 
-    boundaries = tier_boundaries(len(rows))
+    valid_rows: list[tuple[int, dict[str, Any]]] = []
+    quarantined: list[dict[str, Any]] = []
+    for source_position, raw in enumerate(source_rows, start=1):
+        reason = _structural_quarantine_reason(raw)
+        if reason:
+            quarantined.append(
+                {
+                    "source_position": source_position,
+                    "reason": reason,
+                    "search_id": search_id,
+                    "record": raw,
+                    "semantics": "structural ingestion quarantine; not scientific exclusion",
+                }
+            )
+            continue
+        valid_rows.append((source_position, dict(raw)))
+
+    if not valid_rows:
+        raise SearchBankError("nenhum registro estruturalmente válido restou após quarentena")
+
+    boundaries = tier_boundaries(len(valid_rows))
     prepared: list[dict[str, Any]] = []
-    for position, raw in enumerate(rows, start=1):
-        title = str(raw.get("title") or "").strip()
-        provider = str(raw.get("source_provider") or raw.get("source") or "").strip()
-        if not title or not provider:
-            raise SearchBankError(
-                f"registro {position} sem título ou provider não pode entrar no banco"
-            )
-        tier = _tier_for_position(position, boundaries)
-        prepared.append(
-            _materialize_ranking_row(
-                raw,
-                position=position,
-                tier=tier,
-                search_id=search_id,
-                search_sha=source_sha,
-                source_path=source_path,
-            )
+    for bank_position, (source_position, raw) in enumerate(valid_rows, start=1):
+        tier = _tier_for_position(bank_position, boundaries)
+        row = _materialize_ranking_row(
+            raw,
+            position=bank_position,
+            tier=tier,
+            search_id=search_id,
+            search_sha=source_sha,
+            source_path=source_path,
         )
+        row["source_search_position"] = source_position
+        prepared.append(row)
 
     bank_root = output_root / "bank" / "searches" / search_id
     ranking_path = bank_root / "reference_ranking.jsonl"
+    quarantine_path = bank_root / "quarantined_records.jsonl"
     audit_path = bank_root / "AUDIT_MANIFEST.json"
     import_manifest_path = bank_root / "BANK_IMPORT_MANIFEST.json"
     ranking_sha = _write_jsonl(ranking_path, prepared)
+    quarantine_sha = _write_jsonl(quarantine_path, quarantined)
 
     tier_counts = Counter(str(row["bank_processing_tier"]) for row in prepared)
     audit_manifest = {
@@ -225,15 +259,23 @@ def prepare_search_for_bank(
             "result_json_sha256": source_sha,
             "search_status": search.get("status"),
             "search_mode": search.get("search_mode"),
+            "source_records": len(source_rows),
+            "accepted_records": len(prepared),
+            "quarantined_records": len(quarantined),
         },
         "outputs": {
-            "ranking_jsonl": {"path": str(ranking_path), "sha256": ranking_sha}
+            "ranking_jsonl": {"path": str(ranking_path), "sha256": ranking_sha},
+            "quarantined_records_jsonl": {
+                "path": str(quarantine_path),
+                "sha256": quarantine_sha,
+            },
         },
         "guardrails": {
             "tiers_are_operational_not_eligibility": True,
             "ranking_is_not_quality": True,
             "formal_search_not_inferred": True,
             "prisma_event_not_created": True,
+            "structurally_incomplete_records_quarantined_not_inferred": True,
         },
     }
     audit_sha = _write_json(audit_path, audit_manifest)
@@ -248,13 +290,16 @@ def prepare_search_for_bank(
     import_manifest = {
         "schema_version": 1,
         "import_type": "NUTEV_WEB_SEARCH_TO_BANK",
-        "status": "PASS",
+        "status": "PASS_WITH_QUARANTINE" if quarantined else "PASS",
         "created_at": _now(),
         "search_id": search_id,
         "source_result_sha256": source_sha,
+        "source_records": len(source_rows),
         "records": len(prepared),
+        "quarantined_records": len(quarantined),
+        "quarantine_semantics": "structural ingestion quarantine only; not scientific exclusion or PRISMA screening",
         "tier_policy": {
-            "A": "top 2% by existing NutEV reading-priority rank",
+            "A": "top 2% by existing NutEV reading-priority rank among structurally valid records",
             "B": "2-10%",
             "C": "10-40%",
             "D": "40-100%",
@@ -268,16 +313,28 @@ def prepare_search_for_bank(
             "external_llm_calls": 0,
             "abstract_fallback_allowed": True,
         },
+        "guardrails": {
+            "bank_presence_is_not_scientific_inclusion": True,
+            "quarantine_is_not_scientific_exclusion": True,
+            "prisma_event_not_created": True,
+        },
         "outputs": {
             "ranking_jsonl": {"path": str(ranking_path), "sha256": ranking_sha},
+            "quarantined_records_jsonl": {
+                "path": str(quarantine_path),
+                "sha256": quarantine_sha,
+            },
             "audit_manifest": {"path": str(audit_path), "sha256": audit_sha},
         },
     }
     import_sha = _write_json(import_manifest_path, import_manifest)
     return {
-        "status": "PREPARED",
+        "status": "PREPARED_WITH_QUARANTINE" if quarantined else "PREPARED",
         "search_id": search_id,
+        "source_records": len(source_rows),
         "records": len(prepared),
+        "quarantined_records": len(quarantined),
+        "quarantine_jsonl": str(quarantine_path),
         "tier_counts": import_manifest["tier_counts"],
         "provider_gaps": provider_gaps,
         "ranking_jsonl": str(ranking_path),
@@ -295,9 +352,9 @@ def run_search_bank_pipeline(
 ) -> dict[str, Any]:
     """Materialize one saved search into the low-token Article Workbench.
 
-    This pass intentionally disables network full-text retrieval. All references
-    can therefore enter the operational library using available abstracts or
-    metadata, while A/B tiers remain explicitly marked for later deepening.
+    This pass intentionally disables network full-text retrieval. All structurally
+    valid references can enter the operational library using available abstracts
+    or metadata, while A/B tiers remain explicitly marked for later deepening.
     """
     output_root = output_root.resolve()
     search_id = _safe_search_id(search_id)
@@ -309,7 +366,12 @@ def run_search_bank_pipeline(
     ranking = Path(str(prepared["ranking_jsonl"]))
     audit = Path(str(prepared["audit_manifest"]))
 
-    _emit(on_progress, "scientific_export", records=prepared["records"])
+    _emit(
+        on_progress,
+        "scientific_export",
+        records=prepared["records"],
+        quarantined_records=prepared["quarantined_records"],
+    )
     export = run_scientific_export(ranking, audit, scientific)
 
     _emit(on_progress, "enrichment_abstract_only", records=prepared["records"])
@@ -361,10 +423,13 @@ def run_search_bank_pipeline(
     completion = {
         "schema_version": 1,
         "run_type": "NUTEV_SEARCH_BANK_MATERIALIZATION",
-        "status": "COMPLETE",
+        "status": "COMPLETE_WITH_QUARANTINE" if prepared["quarantined_records"] else "COMPLETE",
         "created_at": _now(),
         "search_id": search_id,
+        "source_records": prepared["source_records"],
         "records": prepared["records"],
+        "quarantined_records": prepared["quarantined_records"],
+        "quarantine_jsonl": prepared["quarantine_jsonl"],
         "tier_counts": prepared["tier_counts"],
         "provider_gaps_preserved": prepared["provider_gaps"],
         "cost_policy": {
@@ -383,17 +448,26 @@ def run_search_bank_pipeline(
         "guardrails": {
             "bank_presence_is_not_scientific_inclusion": True,
             "tiers_are_not_quality_or_risk_of_bias": True,
+            "quarantine_is_not_scientific_exclusion": True,
             "no_prisma_events_inferred": True,
             "provider_gaps_not_recoded_as_zero_coverage": True,
         },
     }
     completion_path = output_root / "bank" / "searches" / search_id / "BANK_PIPELINE_MANIFEST.json"
     completion_sha = _write_json(completion_path, completion)
-    _emit(on_progress, "complete", records=prepared["records"])
+    _emit(
+        on_progress,
+        "complete",
+        records=prepared["records"],
+        quarantined_records=prepared["quarantined_records"],
+    )
     return {
-        "status": "COMPLETE",
+        "status": completion["status"],
         "search_id": search_id,
+        "source_records": prepared["source_records"],
         "records": prepared["records"],
+        "quarantined_records": prepared["quarantined_records"],
+        "quarantine_jsonl": prepared["quarantine_jsonl"],
         "tier_counts": prepared["tier_counts"],
         "provider_gaps": prepared["provider_gaps"],
         "workbench": workbench,
