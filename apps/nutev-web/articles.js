@@ -2,19 +2,29 @@ const state={cursor:null,loading:false,selected:null,debounce:null};
 const $=selector=>document.querySelector(selector);
 const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const fmt=value=>new Intl.NumberFormat('pt-BR').format(Number(value||0));
+const fmtScore=value=>value===null||value===undefined||value===''?'—':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2});
 
 const kindLabels={objective:'Objetivo',method:'Método / contexto',main_result:'Resultado principal',secondary_result:'Resultado secundário',conclusion:'Conclusão',limitation:'Limitação',disclosure:'Financiamento / conflitos'};
 const classLabels={primary_randomized:'Ensaio randomizado',primary_observational:'Observacional',primary_qualitative:'Qualitativo',evidence_synthesis:'Síntese de evidência',review:'Revisão',guidance:'Diretriz / guidance',unclassified:'Não classificado'};
 const providerLabels={pubmed:'PubMed',europepmc:'Europe PMC',openalex:'OpenAlex',crossref:'Crossref',doaj:'DOAJ',semantic_scholar:'Semantic Scholar',lilacs_bvs_native:'LILACS/BVS',scielo_native:'SciELO'};
-const fullTextLabels={retrieved:'Texto completo',partial:'Texto parcial',unavailable:'Sem texto completo'};
+const fullTextLabels={retrieved:'Texto completo',partial:'Texto parcial',unavailable:'Sem texto completo',not_attempted:'Ainda não buscado',not_retrieved:'Não recuperado'};
+
+function tierFromReference(value){const match=String(value||'').match(/^BANK_([ABCD])_PROCESSING_PRIORITY$/);return match?match[1]:''}
+function tierLabel(value){const tier=tierFromReference(value);return tier?`Tier ${tier}`:''}
 
 function currentParams(cursor=null){
   const params=new URLSearchParams();
   const q=$('#articleQuery').value.trim();
+  const tier=$('#tierFilter').value;
+  const sort=$('#sortFilter').value||'relevance';
   const provider=$('#providerFilter').value;
   const docClass=$('#classFilter').value;
   const fullText=$('#fullTextFilter').value;
-  if(q)params.set('q',q);
+  const qParts=[];
+  if(q)qParts.push(q);
+  if(tier)qParts.push(`__nutev_tier:${tier}`);
+  if(sort)qParts.push(`__nutev_sort:${sort}`);
+  if(qParts.length)params.set('q',qParts.join(' '));
   if(provider)params.set('source_provider',provider);
   if(docClass)params.set('document_class',docClass);
   if(fullText)params.set('full_text_status',fullText);
@@ -33,6 +43,8 @@ function articleRow(article){
   const full=fullTextLabels[article.full_text_status]||article.full_text_status||'Texto não informado';
   const fullGood=article.full_text_status==='retrieved';
   const ids=[article.doi?`DOI ${article.doi}`:'',article.pmid?`PMID ${article.pmid}`:''].filter(Boolean);
+  const tier=tierLabel(article.reference_tier);
+  const priority=[tier,article.reference_rank?`rank #${fmt(article.reference_rank)}`:'',article.reference_score!==null&&article.reference_score!==undefined?`score ${fmtScore(article.reference_score)}`:''].filter(Boolean);
   return `<button class="article-row${state.selected===article.document_id?' active':''}" type="button" data-document-id="${esc(article.document_id)}">
     <div>
       <div class="article-title">${esc(article.title||'Sem título')}</div>
@@ -44,6 +56,7 @@ function articleRow(article){
       ${ids.length?`<div class="article-identifiers">${ids.map(id=>`<span>${esc(id)}</span>`).join('')}</div>`:''}
     </div>
     <div class="article-row-side">
+      ${priority.map(value=>`<span class="mini-pill">${esc(value)}</span>`).join('')}
       <span class="mini-pill ${fullGood?'good':''}">${esc(full)}</span>
       <span class="mini-pill">contexto IA ${fmt(article.llm_context_chars)} chars</span>
     </div>
@@ -69,7 +82,7 @@ async function loadPage({append=false}={}){
       return;
     }
     if(data.status!=='ready')throw new Error(data.message||'Workbench indisponível');
-    $('#articleHealth').textContent='banco verificado';
+    $('#articleHealth').textContent=data.performance?.server_side_priority_sort?'banco + prioridade verificados':'banco verificado';
     $('#articleHealth').className='status-pill ok';
     $('#articleCount').textContent=fmt(data.total_filtered);
     state.cursor=data.next_cursor||null;
@@ -124,9 +137,10 @@ function detailHtml(data){
   const card=data.card||{};
   const identity=card.identity||{};
   const reference=card.reference||{};
+  const priority=data.bank_priority||{};
   const results=data.result_bundles||[];
   const supporting=(data.evidence_excerpts||[]).filter(item=>!['main_result','secondary_result'].includes(item.kind));
-  const chips=[identity.year,classLabels[card.document_class]||card.document_class,providerLabels[identity.source_provider]||identity.source_provider,fullTextLabels[card.full_text_status]||card.full_text_status].filter(Boolean);
+  const chips=[identity.year,classLabels[card.document_class]||card.document_class,providerLabels[identity.source_provider]||identity.source_provider,fullTextLabels[card.full_text_status]||card.full_text_status,tierLabel(priority.reference_tier),priority.reference_rank?`rank #${fmt(priority.reference_rank)}`:'',priority.reference_score!==null&&priority.reference_score!==undefined?`score ${fmtScore(priority.reference_score)}`:''].filter(Boolean);
   return `<div class="detail-head">
     <h2>${esc(identity.title||'Sem título')}</h2>
     <div class="detail-ref">${esc(reference.reference_stub||'Referência incompleta')}</div>
@@ -135,6 +149,9 @@ function detailHtml(data){
   <section class="detail-section"><h3>Visão rápida</h3>${snapshotHtml(card.study_snapshot)}</section>
   <section class="detail-section"><h3>Principais resultados</h3>${results.length?results.map(resultHtml).join(''):'<p class="provenance">Nenhum ResultBundle materializado para este artigo.</p>'}</section>
   <section class="detail-section"><h3>Trechos-chave</h3>${supporting.length?supporting.map(excerptHtml).join(''):'<p class="provenance">Nenhum trecho adicional selecionado.</p>'}</section>
+  <section class="detail-section"><h3>Prioridade operacional</h3>
+    <div class="provenance">${esc(tierLabel(priority.reference_tier)||'Tier n/d')} · rank ${esc(priority.reference_rank?`#${fmt(priority.reference_rank)}`:'n/d')} · score ${esc(fmtScore(priority.reference_score))}. Esses valores orientam ordem de leitura/processamento e não são julgamento científico.</div>
+  </section>
   <section class="detail-section"><h3>Proveniência e custo</h3>
     <div class="provenance">Cache: ${esc(String(card.cache_key||'').slice(0,16))}… · contexto compacto: ${fmt(card.llm_context_chars)} caracteres · chamadas externas de LLM nesta etapa: ${Number(card.token_cost_policy?.external_llm_calls||0)} · texto integral enviado para LLM: ${card.token_cost_policy?.full_text_sent_to_llm?'sim':'não'}.</div>
   </section>`;
@@ -158,8 +175,8 @@ function resetAndLoad(){state.cursor=null;state.selected=null;$('#articleDetail'
 function debouncedLoad(){clearTimeout(state.debounce);state.debounce=setTimeout(resetAndLoad,260)}
 
 $('#articleQuery').addEventListener('input',debouncedLoad);
-['providerFilter','classFilter','fullTextFilter'].forEach(id=>$('#'+id).addEventListener('change',resetAndLoad));
-$('#clearFilters').addEventListener('click',()=>{$('#articleQuery').value='';$('#providerFilter').value='';$('#classFilter').value='';$('#fullTextFilter').value='';resetAndLoad()});
+['tierFilter','sortFilter','providerFilter','classFilter','fullTextFilter'].forEach(id=>$('#'+id).addEventListener('change',resetAndLoad));
+$('#clearFilters').addEventListener('click',()=>{$('#articleQuery').value='';$('#tierFilter').value='';$('#sortFilter').value='relevance';$('#providerFilter').value='';$('#classFilter').value='';$('#fullTextFilter').value='';resetAndLoad()});
 $('#loadMore').addEventListener('click',()=>loadPage({append:true}));
 $('#articleList').addEventListener('click',event=>{const row=event.target.closest('.article-row');if(row)openArticle(row.dataset.documentId)});
 
