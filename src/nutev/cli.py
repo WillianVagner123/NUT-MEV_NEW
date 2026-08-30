@@ -15,6 +15,7 @@ from nutev.science import (
     SemanticDeconstructionError,
     ScreeningImportError,
     TopicAuditError,
+    WorkbenchIndexError,
     run_core_bank_export,
     run_document_enrichment,
     run_evidence_excerpt_extraction,
@@ -24,6 +25,7 @@ from nutev.science import (
     run_semantic_deconstruction,
     run_screening_import,
     run_topic_competency_audit,
+    run_workbench_index,
 )
 
 PROVIDERS = (
@@ -99,6 +101,36 @@ def build_parser() -> argparse.ArgumentParser:
         p,
         "--output-dir",
         "project_output_reference/scientific/excerpts",
+    )
+
+    p = sub.add_parser(
+        "science-workbench-index",
+        help="Build the paged/filterable SQLite Article Workbench index.",
+    )
+    _path_argument(
+        p,
+        "--excerpts-jsonl",
+        "project_output_reference/scientific/excerpts/evidence_excerpts.jsonl",
+    )
+    _path_argument(
+        p,
+        "--result-bundles-jsonl",
+        "project_output_reference/scientific/excerpts/result_bundles.jsonl",
+    )
+    _path_argument(
+        p,
+        "--article-cards-jsonl",
+        "project_output_reference/scientific/excerpts/article_evidence_cards.jsonl",
+    )
+    _path_argument(
+        p,
+        "--excerpt-manifest",
+        "project_output_reference/scientific/excerpts/EXCERPT_MANIFEST.json",
+    )
+    _path_argument(
+        p,
+        "--output-dir",
+        "project_output_reference/scientific/workbench",
     )
 
     p = sub.add_parser("science-relations", help="Link semantic candidates into conservative scientific relations.")
@@ -234,6 +266,18 @@ def main(argv: list[str] | None = None) -> int:
             ))
         except EvidenceExcerptError as exc:
             print(f"NutEV evidence excerpt failure: {exc}")
+            return 2
+    if args.command == "science-workbench-index":
+        try:
+            return _print(run_workbench_index(
+                Path(args.excerpts_jsonl),
+                Path(args.result_bundles_jsonl),
+                Path(args.article_cards_jsonl),
+                Path(args.excerpt_manifest),
+                Path(args.output_dir),
+            ))
+        except WorkbenchIndexError as exc:
+            print(f"NutEV Workbench index failure: {exc}")
             return 2
     if args.command == "science-relations":
         try:

@@ -91,6 +91,7 @@ from .watch import (
     compare_watch_snapshots,
     run_longitudinal_watch,
 )
+from .workbench import WorkbenchIndexError, run_workbench_index
 
 __all__ = [
     "ClaimEvaluation",
@@ -143,6 +144,7 @@ __all__ = [
     "ValidationDecision",
     "WatchCase",
     "WatchEvent",
+    "WorkbenchIndexError",
     "assign_topics",
     "audit_topics",
     "build_active_search_plan",
@@ -169,5 +171,6 @@ __all__ = [
     "run_screening_import",
     "run_semantic_deconstruction",
     "run_topic_competency_audit",
+    "run_workbench_index",
     "semantic_coverage_score",
 ]
