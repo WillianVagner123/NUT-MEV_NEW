@@ -1,0 +1,27 @@
+{$NUTEV_DOMAIN} {
+    encode zstd gzip
+
+    basic_auth {
+        {$NUTEV_BASIC_AUTH_USER} {$NUTEV_BASIC_AUTH_HASH}
+    }
+
+    reverse_proxy nutev:8765 {
+        health_uri /api/health
+        health_interval 30s
+        health_timeout 5s
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+        X-Frame-Options "SAMEORIGIN"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
