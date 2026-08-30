@@ -14,32 +14,47 @@ def _sha(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _row(**overrides):
+    row = {
+        "document_id": "doi:10.test/base",
+        "title": "Untitled nutrition article",
+        "reference_stub": "Nutrition reference.",
+        "search_text": "nutrition",
+        "card_json": json.dumps({"identity": {"title": "Untitled nutrition article"}}),
+        "document_class": "unclassified",
+        "full_text_status": "retrieved",
+        "reference_rank": 1,
+        "reference_score": 100.0,
+        "reference_tier": "BANK_A_PROCESSING_PRIORITY",
+    }
+    row.update(overrides)
+    return row
+
+
 def test_review_profile_detects_guidance_domains_without_scientific_decision() -> None:
     profile = build_review_profile(
-        {
-            "document_id": "doi:10.test/fbdg",
-            "title": "Food-Based Dietary Guidelines for Lifestyle Medicine Practice",
-            "reference_stub": "National dietary guideline with nutrition assessment and dietary counseling.",
-            "search_text": (
+        _row(
+            document_id="doi:10.test/fbdg",
+            title="Food-Based Dietary Guidelines for Lifestyle Medicine Practice",
+            reference_stub="National dietary guideline with nutrition assessment and dietary counseling.",
+            search_text=(
                 "food-based dietary guideline lifestyle medicine nutrition assessment "
                 "dietary counseling food literacy social determinants monitoring"
             ),
-            "card_json": json.dumps(
+            card_json=json.dumps(
                 {
+                    "identity": {"title": "Food-Based Dietary Guidelines for Lifestyle Medicine Practice"},
                     "study_snapshot": {
                         "objective": ["Support nutrition care and monitoring in clinical practice"]
-                    }
+                    },
                 }
             ),
-            "document_class": "unclassified",
-            "full_text_status": "retrieved",
-            "reference_rank": 1,
-            "reference_score": 100.0,
-            "reference_tier": "BANK_A_PROCESSING_PRIORITY",
-        }
+        )
     )
 
+    assert profile["profile_version"] == "nutev_review_profile_rule_v2"
     assert profile["primary_document_class"] == "food_based_dietary_guideline"
+    assert profile["document_classification_basis"] == "title_specific_rule"
     assert profile["machine_relevance_band"] == "high"
     assert "nutrition_assessment" in profile["operational_domains"]
     assert "dietary_counseling" in profile["operational_domains"]
@@ -49,6 +64,93 @@ def test_review_profile_detects_guidance_domains_without_scientific_decision() -
     assert profile["guardrails"]["no_prisma_event_emitted"] is True
     assert "decision" not in profile
     assert "eligible" not in profile
+
+
+def test_specific_guideline_title_overrides_inherited_evidence_synthesis() -> None:
+    profile = build_review_profile(
+        _row(
+            document_id="doi:10.test/guideline",
+            title=(
+                "Executive Summary of Lifestyle Interventions for Treatment and Remission "
+                "of Type 2 Diabetes: A Clinical Practice Guideline From the American College "
+                "of Lifestyle Medicine"
+            ),
+            card_json=json.dumps(
+                {
+                    "identity": {
+                        "title": (
+                            "Executive Summary of Lifestyle Interventions: "
+                            "A Clinical Practice Guideline From the American College of Lifestyle Medicine"
+                        )
+                    }
+                }
+            ),
+            document_class="evidence_synthesis",
+            search_text="systematic review cited in background lifestyle medicine guideline",
+        )
+    )
+
+    assert profile["source_document_class"] == "evidence_synthesis"
+    assert profile["primary_document_class"] == "clinical_practice_guideline"
+    assert profile["document_class_confidence"] == "high"
+    assert "clinical practice guideline" in profile["document_class_matches"]["clinical_practice_guideline"]
+
+
+def test_curriculum_association_study_is_primary_observational_not_synthesis() -> None:
+    title = (
+        "Multisite Culinary Medicine Curriculum Is Associated With Cardioprotective "
+        "Dietary Patterns and Lifestyle Medicine Competencies Among Medical Trainees"
+    )
+    profile = build_review_profile(
+        _row(
+            document_id="doi:10.test/curriculum",
+            title=title,
+            card_json=json.dumps({"identity": {"title": title}}),
+            document_class="evidence_synthesis",
+            search_text="culinary medicine curriculum systematic review references",
+        )
+    )
+
+    assert profile["primary_document_class"] == "primary_observational"
+    assert profile["document_classification_basis"] == "title_specific_rule"
+    assert "food_skills_competencies" in profile["operational_domains"]
+
+
+def test_guideline_as_study_subject_is_not_mislabeled_as_fbdg() -> None:
+    title = (
+        "Environmental Impact of Increased Adherence to SENC Food Based Dietary Guidelines "
+        "in the Average Dietary Patterns in Spain"
+    )
+    profile = build_review_profile(
+        _row(
+            document_id="doi:10.test/adherence",
+            title=title,
+            card_json=json.dumps({"identity": {"title": title}}),
+            document_class="food_based_dietary_guideline",
+            search_text="food based dietary guidelines adherence dietary pattern",
+        )
+    )
+
+    assert profile["source_document_class"] == "food_based_dietary_guideline"
+    assert profile["primary_document_class"] == "unclassified"
+    assert profile["document_class_confidence"] == "low"
+    assert "guidance_mentioned_as_study_subject_not_document_type" in profile["document_class_warnings"]
+    assert "food_based_guidance" in profile["operational_domains"]
+
+
+def test_systematic_review_title_can_still_be_evidence_synthesis() -> None:
+    profile = build_review_profile(
+        _row(
+            document_id="doi:10.test/review",
+            title="Nutrition Counseling in Primary Care: A Systematic Review and Meta-Analysis",
+            card_json=json.dumps(
+                {"identity": {"title": "Nutrition Counseling in Primary Care: A Systematic Review and Meta-Analysis"}}
+            ),
+            document_class="unclassified",
+        )
+    )
+    assert profile["primary_document_class"] == "evidence_synthesis"
+    assert profile["document_class_confidence"] == "high"
 
 
 def test_build_tier_review_profiles_atomically_updates_workbench(tmp_path: Path) -> None:
@@ -88,7 +190,7 @@ def test_build_tier_review_profiles_atomically_updates_workbench(tmp_path: Path)
                 "Guideline for dietary counseling and nutrition monitoring.",
                 "clinical practice guideline lifestyle medicine nutrition care dietary counseling monitoring",
                 json.dumps({"identity": {"title": "Clinical Practice Guideline"}}),
-                "unclassified",
+                "evidence_synthesis",
                 "retrieved",
                 1,
                 99.0,
@@ -157,6 +259,7 @@ def test_build_tier_review_profiles_atomically_updates_workbench(tmp_path: Path)
         assert row[0] == "clinical_practice_guideline"
         assert row[1] in {"medium", "high"}
         profile = json.loads(row[2])
+        assert profile["profile_version"] == "nutev_review_profile_rule_v2"
         assert profile["guardrails"]["machine_profile_not_eligibility"] is True
 
         untouched = connection.execute(
@@ -171,4 +274,5 @@ def test_build_tier_review_profiles_atomically_updates_workbench(tmp_path: Path)
     extension = updated_manifest["extensions"]["review_profile_tier_A"]
     assert extension["status"] == "PASS"
     assert extension["records"] == 1
+    assert extension["profile_version"] == "nutev_review_profile_rule_v2"
     assert updated_manifest["outputs"]["database"]["sha256"] == result["database_sha256"]
