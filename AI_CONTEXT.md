@@ -16,7 +16,7 @@ Claude Code should also read `CLAUDE.md`; it points back to this same source of 
 
 ## Live production context
 
-After `tools/build_article1_agent_context.py` is run in production, the canonical live bundle is:
+After `tools/build_article1_agent_context.py` is run in production, the canonical persistent bundle is:
 
 ```text
 project_output_reference/agent_context/article1/
@@ -28,13 +28,14 @@ project_output_reference/agent_context/article1/
 
 `ARTICLE_SUMMARIES.jsonl` is deliberately rank-blind and contains structured article-level context only. It must not contain full text, Bank rank/score/tier, machine relevance score/band, eligibility decisions or PRISMA decisions.
 
-When the production web endpoint is available, use:
+In production the same four safe files can be mirrored to the NutEV static web root. The intended stable URLs are:
 
-- `GET /api/agent-context/article1` — current context/search state;
-- `GET /api/agent-context/article1/articles?limit=50&offset=0` — paged structured article summaries;
-- optional filters: `route`, `document_class`, `q`.
+- `https://nutev.mindsperformance.com.br/agent-context/article1/CONTEXT_MANIFEST.json`
+- `https://nutev.mindsperformance.com.br/agent-context/article1/SEARCH_STATE.json`
+- `https://nutev.mindsperformance.com.br/agent-context/article1/SEARCH_SUMMARY.md`
+- `https://nutev.mindsperformance.com.br/agent-context/article1/ARTICLE_SUMMARIES.jsonl`
 
-For full Workbench detail of one document use the existing `GET /api/articles/{document_id}` endpoint. Its excerpts/result bundles are machine-index objects, not accepted scientific claims.
+For full Workbench detail of one selected document, use the existing `GET /api/articles/{document_id}` endpoint. Its excerpts/result bundles are machine-index objects, not accepted scientific claims.
 
 ## Current Article 1 boundary
 
