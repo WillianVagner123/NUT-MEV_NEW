@@ -10,6 +10,12 @@ from .core import (
     run_core_bank_export,
 )
 from .enrichment import DocumentEnrichmentError, run_document_enrichment
+from .excerpts import (
+    EvidenceExcerpt,
+    EvidenceExcerptError,
+    ResultBundle,
+    run_evidence_excerpt_extraction,
+)
 from .export import ScientificExportError, run_scientific_export
 from .models import (
     ClaimEvaluation,
@@ -94,6 +100,8 @@ __all__ = [
     "DocumentState",
     "EvidenceClaim",
     "EvidenceConstraint",
+    "EvidenceExcerpt",
+    "EvidenceExcerptError",
     "EvidenceRecord",
     "EvidenceSet",
     "ExtractionMethod",
@@ -109,6 +117,7 @@ __all__ = [
     "RelationalCoverageScore",
     "RelationalMappingError",
     "ResearchQuestion",
+    "ResultBundle",
     "RetrievalStatus",
     "ReviewerDossier",
     "ScientificEntityCandidate",
@@ -153,6 +162,7 @@ __all__ = [
     "relational_coverage_score",
     "run_core_bank_export",
     "run_document_enrichment",
+    "run_evidence_excerpt_extraction",
     "run_longitudinal_watch",
     "run_relational_mapping",
     "run_scientific_export",
