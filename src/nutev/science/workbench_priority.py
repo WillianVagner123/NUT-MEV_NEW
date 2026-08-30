@@ -147,7 +147,8 @@ def _priority_rows(rows: Iterable[dict[str, Any]]) -> list[tuple[int, float | No
             score = float(raw_score) if raw_score not in (None, "") else None
         except (TypeError, ValueError):
             score = None
-        output.append((rank, score, _tier(row), document_id))
+        tier = _tier(row)
+        output.append((rank, score, f"BANK_{tier}_PROCESSING_PRIORITY", document_id))
     return output
 
 
