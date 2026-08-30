@@ -17,13 +17,12 @@ Build it in production with:
 ```bash
 python tools/build_article1_agent_context.py \
   --search-id web_20260830T182743+0000_91bde5be \
-  --output-root project_output_reference \
-  --web-mirror-root apps/nutev-web/agent-context/article1
+  --output-root project_output_reference
 ```
 
-Inside the Docker container the corresponding production paths are normally `/app/project_output_reference` and `/app/apps/nutev-web/agent-context/article1`.
+Inside Docker, use `/app/project_output_reference` as the output root.
 
-The command verifies the active Workbench database/hash and the Article 1 rank-blind route outputs before materializing the bundle. Only the four safe bundle files are eligible for the optional web mirror.
+The command verifies the active Workbench database/hash and the Article 1 rank-blind route outputs before materializing the bundle.
 
 ## Files
 
@@ -63,7 +62,7 @@ It deliberately omits:
 
 ## Web access for ChatGPT/Claude
 
-When `--web-mirror-root apps/nutev-web/agent-context/article1` is used inside the running container, the existing static web server serves the safe copies without a new backend endpoint:
+The Hetzner image creates a static symlink from the web application to the persistent Article 1 context directory. Therefore the same persistent files are available at stable URLs across container recreation/deploys:
 
 ```text
 https://nutev.mindsperformance.com.br/agent-context/article1/CONTEXT_MANIFEST.json
@@ -72,7 +71,7 @@ https://nutev.mindsperformance.com.br/agent-context/article1/SEARCH_SUMMARY.md
 https://nutev.mindsperformance.com.br/agent-context/article1/ARTICLE_SUMMARIES.jsonl
 ```
 
-The persistent volume remains authoritative. The web mirror is a disposable read-only copy for agent access and can be regenerated after a container deploy/restart.
+The persistent volume is authoritative; the web server does not maintain a second scientific copy. The CLI retains an optional `--web-mirror-root` only for non-Hetzner runtimes that do not use the persistent symlink.
 
 For a specific document's existing Workbench detail, use `/api/articles/{document_id}`. Evidence excerpts and result bundles returned there remain machine/index artifacts, not accepted EvidenceClaims.
 
