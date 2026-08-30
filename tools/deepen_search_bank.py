@@ -13,7 +13,9 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from nutev.science.deepening_lock import acquire_deepening_worker_lock
 from nutev.science.deepening_resolved_v3 import (
+    DEEPENING_PIPELINE_VERSION,
     run_selective_bank_deepening_resolved_v3,
 )
 
@@ -24,7 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
             "Selectively deepen a persisted NutEV bank tier using public/open-access "
             "candidate probing with sequential fallback, text extraction/OCR, CORE, "
             "semantic extraction, excerpts, and an atomic Workbench overlay. "
-            "No external LLM calls are performed."
+            "No external LLM calls are performed. Only one worker may run per "
+            "search/tier at a time."
         )
     )
     parser.add_argument("--search-id", required=True, help="Persisted NutEV bank search ID.")
@@ -52,20 +55,27 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    output_root = Path(args.output_root)
 
     def progress(event: dict[str, object]) -> None:
         print(json.dumps({"progress": event}, ensure_ascii=False), flush=True)
 
-    result = run_selective_bank_deepening_resolved_v3(
-        args.search_id,
-        output_root=Path(args.output_root),
+    with acquire_deepening_worker_lock(
+        output_root=output_root,
+        search_id=args.search_id,
         tier=args.tier,
-        batch_size=args.batch_size,
-        limit=args.limit,
-        start_rank=args.start_rank,
-        allow_network=args.allow_network,
-        on_progress=progress,
-    )
+        pipeline_version=DEEPENING_PIPELINE_VERSION,
+    ):
+        result = run_selective_bank_deepening_resolved_v3(
+            args.search_id,
+            output_root=output_root,
+            tier=args.tier,
+            batch_size=args.batch_size,
+            limit=args.limit,
+            start_rank=args.start_rank,
+            allow_network=args.allow_network,
+            on_progress=progress,
+        )
     print(json.dumps(result, ensure_ascii=False, indent=2), flush=True)
     return 0
 
