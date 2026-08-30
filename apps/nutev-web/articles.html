@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Artigos — NutEV Evidence Engine</title>
+  <meta name="description" content="Biblioteca operacional paginada do banco NutEV, com resultados e trechos científicos rastreáveis.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./articles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <a class="nav-item" href="/">⌕ <span>Buscar evidências</span></a>
+        <a class="nav-item" href="/radar.html">⌁ <span>Panorama</span></a>
+        <a class="nav-item active" href="/articles.html">▤ <span>Artigos</span></a>
+        <a class="nav-item" href="/?view=history">◷ <span>Minhas buscas</span></a>
+        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
+        <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
+        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+      </nav>
+      <div class="sidebar-note">A biblioteca carrega apenas páginas filtradas. Trechos e resultados são candidatos rastreáveis, não conclusões científicas aceitas.</div>
+    </aside>
+
+    <main class="main articles-main">
+      <header class="topbar">
+        <div>
+          <h1>Artigos</h1>
+          <p>Explore o banco em escala sem carregar o corpus inteiro no navegador.</p>
+        </div>
+        <span class="status-pill" id="articleHealth">verificando banco…</span>
+      </header>
+
+      <section class="article-toolbar card">
+        <label class="article-search">Buscar no banco
+          <input id="articleQuery" type="search" autocomplete="off" placeholder="Título, DOI, PMID, autor, revista, população, outcome…">
+        </label>
+        <label>Fonte
+          <select id="providerFilter">
+            <option value="">Todas</option>
+            <option value="pubmed">PubMed</option>
+            <option value="europepmc">Europe PMC</option>
+            <option value="openalex">OpenAlex</option>
+            <option value="crossref">Crossref</option>
+            <option value="doaj">DOAJ</option>
+            <option value="semantic_scholar">Semantic Scholar</option>
+            <option value="lilacs_bvs_native">LILACS/BVS</option>
+            <option value="scielo_native">SciELO</option>
+          </select>
+        </label>
+        <label>Tipo
+          <select id="classFilter">
+            <option value="">Todos</option>
+            <option value="primary_randomized">Ensaio randomizado</option>
+            <option value="primary_observational">Observacional</option>
+            <option value="primary_qualitative">Qualitativo</option>
+            <option value="evidence_synthesis">Síntese de evidência</option>
+            <option value="review">Revisão</option>
+            <option value="guidance">Diretriz / guidance</option>
+            <option value="unclassified">Não classificado</option>
+          </select>
+        </label>
+        <label>Texto completo
+          <select id="fullTextFilter">
+            <option value="">Todos</option>
+            <option value="retrieved">Disponível</option>
+            <option value="partial">Parcial</option>
+            <option value="unavailable">Indisponível</option>
+          </select>
+        </label>
+        <button id="clearFilters" class="ghost" type="button">Limpar</button>
+      </section>
+
+      <section class="articles-summary">
+        <div><strong id="articleCount">—</strong><span> artigos no filtro atual</span></div>
+        <div class="scale-note">50 por página · filtros no servidor · detalhe sob demanda</div>
+      </section>
+
+      <div id="workbenchState" class="workbench-state">Carregando índice…</div>
+
+      <section id="workbenchContent" class="workbench-layout hidden">
+        <div class="article-list-shell card">
+          <div id="articleList" class="article-list"></div>
+          <div class="load-more-row">
+            <button id="loadMore" class="ghost hidden" type="button">Carregar mais 50</button>
+          </div>
+        </div>
+
+        <aside class="article-detail card" id="articleDetail">
+          <div class="detail-placeholder">
+            <div class="placeholder-mark">▤</div>
+            <strong>Selecione um artigo</strong>
+            <p>O dossiê abre aqui sem tirar você da lista.</p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="card workbench-guardrail">
+        <strong>Como ler esta tela</strong>
+        <p>Resultados, campos semânticos e trechos são candidatos gerados a partir de material-fonte rastreável. Eles ajudam leitura, busca e síntese, mas não equivalem a elegibilidade, qualidade, certeza, causalidade, recomendação ou EvidenceClaim validado.</p>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./articles.js"></script>
+</body>
+</html>
