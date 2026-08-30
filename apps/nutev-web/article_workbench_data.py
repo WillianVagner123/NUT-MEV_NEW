@@ -137,8 +137,16 @@ def workbench_status(root: Path | None = None) -> dict[str, Any]:
             "message": "Article Workbench ainda sem índice. Rode `nutev science-workbench-index`.",
         }
     counts = manifest.get("counts") or {}
-    extension = ((manifest.get("extensions") or {}).get("bank_priority") or {})
+    extensions = manifest.get("extensions") or {}
+    extension = extensions.get("bank_priority") or {}
     priority_ready = isinstance(extension, dict) and extension.get("status") == "PASS"
+    review_tiers = sorted(
+        key.removeprefix("review_profile_tier_")
+        for key, value in extensions.items()
+        if key.startswith("review_profile_tier_")
+        and isinstance(value, dict)
+        and value.get("status") == "PASS"
+    )
     return {
         "status": "ready",
         "database": str(database),
@@ -147,6 +155,8 @@ def workbench_status(root: Path | None = None) -> dict[str, Any]:
         "result_bundles": int(counts.get("result_bundles") or 0),
         "priority_index": priority_ready,
         "priority_search_id": extension.get("search_id") if priority_ready else None,
+        "review_profile_index": bool(review_tiers),
+        "review_profile_tiers": review_tiers,
         "page_limit_max": 100,
         "full_corpus_sent_to_browser": False,
     }
@@ -173,6 +183,11 @@ def load_article_page(
             "reference_rank",
             "reference_score",
             "reference_tier",
+        }.issubset(columns)
+        review_ready = {
+            "review_profile_json",
+            "machine_relevance_score",
+            "machine_relevance_band",
         }.issubset(columns)
         if (tier or sort_mode == "relevance") and not priority_ready:
             raise ArticleWorkbenchDataError(
@@ -249,11 +264,16 @@ def load_article_page(
             if priority_ready
             else "NULL AS reference_rank, NULL AS reference_score, NULL AS reference_tier"
         )
+        review_select = (
+            "machine_relevance_score, machine_relevance_band"
+            if review_ready
+            else "NULL AS machine_relevance_score, NULL AS machine_relevance_band"
+        )
         rows = connection.execute(
             f"""
             SELECT document_id, title, year, doi, pmid, source_provider,
                    document_class, full_text_status, reference_stub, llm_context_chars,
-                   {priority_select}
+                   {priority_select}, {review_select}
             FROM article_cards
             """
             + page_where
@@ -290,6 +310,7 @@ def load_article_page(
         "performance": {
             "server_side_filtering": True,
             "server_side_priority_sort": priority_ready,
+            "review_profile_index": review_ready,
             "full_corpus_sent_to_browser": False,
             "max_page_size": 100,
         },
@@ -310,13 +331,23 @@ def load_article_detail(
             "reference_score",
             "reference_tier",
         }.issubset(columns)
+        review_ready = {
+            "review_profile_json",
+            "machine_relevance_score",
+            "machine_relevance_band",
+        }.issubset(columns)
         priority_select = (
             ", reference_rank, reference_score, reference_tier"
             if priority_ready
             else ", NULL AS reference_rank, NULL AS reference_score, NULL AS reference_tier"
         )
+        review_select = (
+            ", review_profile_json, machine_relevance_score, machine_relevance_band"
+            if review_ready
+            else ", NULL AS review_profile_json, NULL AS machine_relevance_score, NULL AS machine_relevance_band"
+        )
         card_row = connection.execute(
-            "SELECT card_json" + priority_select + " FROM article_cards WHERE document_id = ?",
+            "SELECT card_json" + priority_select + review_select + " FROM article_cards WHERE document_id = ?",
             (document_id,),
         ).fetchone()
         if card_row is None:
@@ -337,6 +368,13 @@ def load_article_detail(
             """,
             (document_id,),
         ).fetchall()
+    review_profile = None
+    raw_review = card_row["review_profile_json"]
+    if raw_review:
+        try:
+            review_profile = json.loads(raw_review)
+        except json.JSONDecodeError:
+            review_profile = None
     return {
         "status": "ready",
         "card": json.loads(card_row["card_json"]),
@@ -345,6 +383,15 @@ def load_article_detail(
             "reference_score": card_row["reference_score"],
             "reference_tier": card_row["reference_tier"],
             "semantics": "operational reading/processing priority; not scientific inclusion or quality",
+        },
+        "review_profile": review_profile,
+        "machine_relevance": {
+            "score": card_row["machine_relevance_score"],
+            "band": card_row["machine_relevance_band"],
+            "semantics": (
+                "deterministic reviewer-navigation signal; not eligibility, inclusion/exclusion, "
+                "quality, risk of bias, certainty, or recommendation"
+            ),
         },
         "evidence_excerpts": [json.loads(row["excerpt_json"]) for row in excerpts],
         "result_bundles": [json.loads(row["result_json"]) for row in results],
