@@ -22,6 +22,7 @@
         <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
         <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
         <a class="nav-item active" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
+        <a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
         <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
         <div class="nav-group-label">Review</div>
         <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
@@ -34,12 +35,12 @@
       <div class="sidebar-note">Domínios e perfis servem para navegação e síntese assistida. Não equivalem a decisão de elegibilidade ou recomendação.</div>
     </aside>
     <main class="main dashboard-main">
-      <header class="topbar"><div><h1>Evidence Explorer</h1><p>Entre no corpus pela pergunta científica, não apenas pela lista de artigos.</p></div><span class="status-pill" id="evidenceHealth">carregando…</span></header>
+      <header class="topbar"><div><h1>Evidence Explorer</h1><p>Entre no corpus pela pergunta científica, não apenas pela lista de artigos.</p></div><div class="dashboard-actions"><a class="ghost action-link" href="/evidence-map.html">Evidence Map</a><span class="status-pill" id="evidenceHealth">carregando…</span></div></header>
       <section class="card project-hero"><div><div class="project-eyebrow">DOMAIN-FIRST EXPLORATION · TIER A</div><h2>Parâmetros, competências e contextos operacionais</h2><p class="project-question">Explore como avaliação, aconselhamento, prescrição, monitoramento, food literacy, competências, contexto social e implementação aparecem no corpus aprofundado.</p></div></section>
       <div id="evidenceState" class="loading dashboard-state">Carregando resumos rank-blind…</div>
       <section id="evidenceContent" class="evidence-shell hidden">
         <aside class="card dashboard-card"><div class="panel-head"><div><h2>Operational domains</h2><p>Selecione um domínio para abrir o recorte correspondente.</p></div></div><div id="domainCards" class="domain-card-list"></div></aside>
-        <section class="card dashboard-card evidence-detail"><div class="evidence-detail-head"><div><h2 id="domainTitle">Domínio</h2><p id="domainMeta"></p></div><a class="panel-link" href="/articles.html">Abrir Corpus →</a></div><div id="domainClassMix" class="domain-class-mix"></div><div id="domainArticles"></div><p id="domainNote" class="small-state"></p></section>
+        <section class="card dashboard-card evidence-detail"><div class="evidence-detail-head"><div><h2 id="domainTitle">Domínio</h2><p id="domainMeta"></p></div><a id="evidenceCorpusLink" class="panel-link" href="/articles.html">Abrir Corpus →</a></div><div id="domainClassMix" class="domain-class-mix"></div><div id="domainArticles"></div><p id="domainNote" class="small-state"></p></section>
       </section>
     </main>
   </div>
