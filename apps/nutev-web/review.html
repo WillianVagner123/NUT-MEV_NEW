@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Review Control Center — NutEV</title>
+  <meta name="description" content="Centro de operação da revisão humana do Article 1: fila, progresso por rota, conflitos e adjudicação.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./articles.css">
+  <link rel="stylesheet" href="./intelligence.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
+        <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div>
+        <a class="nav-item active" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a>
+        <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <a class="nav-item" href="/regional-routes.html"><span class="nav-icon">◐</span><span>Regional routes</span></a>
+        <div class="nav-group-label">Validation</div>
+        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
+        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Estado humano de revisão é separado do estado de máquina. REVIEWED significa lido, não incluído. Inclusão/exclusão científica só existe pelo workflow canônico.</div>
+    </aside>
+
+    <main class="main workspace-main">
+      <header class="topbar">
+        <div>
+          <h1>Review Control Center</h1>
+          <p>Fila, progresso e conflitos da leitura humana do Article 1. Nenhum sinal de máquina é apresentado como decisão.</p>
+        </div>
+        <span class="status-pill" id="reviewHealth">carregando…</span>
+      </header>
+
+      <section class="card filter-bar" aria-label="Filtros da revisão">
+        <label for="routeFilter">Rota
+          <select id="routeFilter" data-filter="route">
+            <option value="all">Todas</option>
+            <option value="B-NORM">B-NORM</option>
+            <option value="C-STRUCT">C-STRUCT</option>
+            <option value="overlap">Overlap</option>
+            <option value="unrouted">Não roteados</option>
+          </select>
+        </label>
+        <label for="classFilter">Tipo documental
+          <select id="classFilter" data-filter="document_class"><option value="">Todos</option></select>
+        </label>
+        <label for="domainFilter">Domínio
+          <select id="domainFilter" data-filter="domain"><option value="">Todos</option></select>
+        </label>
+        <label for="statusFilter">Status de revisão
+          <select id="statusFilter" data-filter="review_status"><option value="">Todos</option></select>
+        </label>
+        <label for="fullTextFilter">Texto completo
+          <select id="fullTextFilter" data-filter="full_text_status">
+            <option value="">Todos</option>
+            <option value="retrieved">Recuperado</option>
+            <option value="partial">Parcial</option>
+            <option value="unavailable">Indisponível</option>
+            <option value="not_retrieved">Não recuperado</option>
+            <option value="not_attempted">Ainda não buscado</option>
+          </select>
+        </label>
+        <label for="reviewerInput">Revisor
+          <input id="reviewerInput" type="text" autocomplete="off" placeholder="identificador do revisor">
+        </label>
+        <div class="filter-actions">
+          <a class="ghost" id="openMap" href="/evidence-map.html">Abrir Evidence Map →</a>
+          <button id="clearFilters" class="ghost" type="button">Limpar</button>
+        </div>
+      </section>
+      <div id="activeFilters" class="active-filters"></div>
+
+      <div id="reviewState" class="state-note">Carregando estado da revisão…</div>
+
+      <section id="reviewContent" class="hidden">
+        <div id="reviewKpis" class="kpi-grid"></div>
+
+        <div class="tab-strip" role="tablist" aria-label="Visões da revisão">
+          <button class="tab-button" type="button" role="tab" id="tab-queue" data-tab="queue" aria-selected="true" aria-controls="panel-queue">Fila</button>
+          <button class="tab-button" type="button" role="tab" id="tab-progress" data-tab="progress" aria-selected="false" aria-controls="panel-progress">Progresso</button>
+          <button class="tab-button" type="button" role="tab" id="tab-conflicts" data-tab="conflicts" aria-selected="false" aria-controls="panel-conflicts">Conflitos</button>
+        </div>
+
+        <section class="card dashboard-card" id="panel-queue" role="tabpanel" aria-labelledby="tab-queue">
+          <div class="panel-head">
+            <div><h2>Review queue</h2><p id="queueMeta">Fila rank-blind: sem Bank rank, score, tier ou relevância de máquina.</p></div>
+            <a class="panel-link" href="/articles.html">Abrir Corpus →</a>
+          </div>
+          <div id="queueList" class="queue-list"></div>
+          <div class="load-more-row"><button id="queueMore" class="ghost hidden" type="button">Carregar mais</button></div>
+          <p class="small-state">Registrar um estado de revisão exige o navegador local do servidor. Estado humano nunca é inferido de rota, perfil ou recuperação de texto.</p>
+        </section>
+
+        <section class="card dashboard-card hidden" id="panel-progress" role="tabpanel" aria-labelledby="tab-progress">
+          <div class="panel-head"><div><h2>Progresso por rota</h2><p>Documentos lidos por um humano sobre o total da fila.</p></div></div>
+          <div id="routeProgress"></div>
+          <div class="panel-head" style="margin-top:1.2rem"><div><h2>Por tipo documental</h2><p>Distribuição do estado humano por classe.</p></div></div>
+          <div id="classProgress"></div>
+          <div class="panel-head" style="margin-top:1.2rem"><div><h2>Por revisor</h2><p>Volume e estados registrados por revisor.</p></div></div>
+          <div id="reviewerBoard" class="provider-board"></div>
+        </section>
+
+        <section class="card dashboard-card hidden" id="panel-conflicts" role="tabpanel" aria-labelledby="tab-conflicts">
+          <div class="panel-head"><div><h2>Conflitos e adjudicação</h2><p>Decisões independentes divergentes. Toda a proveniência é preservada.</p></div></div>
+          <div id="conflictList"></div>
+        </section>
+
+        <section class="card dashboard-card">
+          <div class="panel-head"><div><h2>Proveniência</h2><p id="reviewProvenance">—</p></div></div>
+          <p class="small-state">REVIEWED ≠ INCLUDED · rota ≠ elegibilidade · perfil de máquina ≠ risco de viés · texto completo ≠ elegibilidade.</p>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./review.js"></script>
+</body>
+</html>
