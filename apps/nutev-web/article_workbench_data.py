@@ -5,7 +5,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import sqlite3
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -171,6 +171,8 @@ def load_article_page(
     source_provider: str = "",
     document_class: str = "",
     full_text_status: str = "",
+    document_ids: Sequence[str] | None = None,
+    context_filters: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     base = root or DEFAULT_WORKBENCH_ROOT
     database, _manifest = _verified_database(base)
@@ -209,6 +211,15 @@ def load_article_page(
         if full_text_status:
             conditions.append("full_text_status = ?")
             parameters.append(full_text_status)
+        if document_ids is not None:
+            restricted = [str(value) for value in document_ids]
+            if not restricted:
+                # An empty restriction is a real, honest empty result, never "no filter".
+                conditions.append("1 = 0")
+            else:
+                placeholders = ",".join("?" for _ in restricted)
+                conditions.append(f"document_id IN ({placeholders})")
+                parameters.extend(restricted)
         if tier:
             conditions.append("reference_tier = ?")
             parameters.append(f"BANK_{tier}_PROCESSING_PRIORITY")
@@ -305,7 +316,9 @@ def load_article_page(
             "full_text_status": full_text_status,
             "tier": tier,
             "sort": sort_mode,
+            **({"context": dict(context_filters)} if context_filters else {}),
         },
+        "context_restricted": document_ids is not None,
         "articles": [dict(row) for row in visible],
         "performance": {
             "server_side_filtering": True,

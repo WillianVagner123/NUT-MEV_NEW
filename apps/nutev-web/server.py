@@ -20,6 +20,9 @@ VALIDATION_ROOT = REPO_ROOT / "apps" / "nutev-validation"
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
+import article1_context_index as context_index
+import human_review_store as review_store
+import review_control
 from article_workbench_data import (
     ArticleWorkbenchDataError,
     load_article_detail,
@@ -54,6 +57,37 @@ from validation_server import (
 )
 
 MAX_BODY_BYTES = 256 * 1024
+CONTEXT_UNAVAILABLE_MESSAGE = (
+    "Article 1 agent context bundle is not available. Run tools/build_article1_agent_context.py."
+)
+
+
+def _first(query: dict[str, list[str]], key: str, default: str = "") -> str:
+    values = query.get(key) or []
+    return str(values[0]).strip() if values else default
+
+
+def _year(query: dict[str, list[str]], key: str) -> int | None:
+    raw = _first(query, key)
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        raise ValueError(f"{key} must be a year") from None
+
+
+def _context_filters(query: dict[str, list[str]]) -> dict[str, object]:
+    return {
+        "route": _first(query, "route", "all") or "all",
+        "source_provider": _first(query, "source_provider"),
+        "full_text_status": _first(query, "full_text_status"),
+        "document_class": _first(query, "document_class"),
+        "domain": _first(query, "domain"),
+        "year_from": _year(query, "year_from"),
+        "year_to": _year(query, "year_to"),
+    }
+
 MAX_SEARCH_JOBS = 100
 _SEARCH_JOBS: dict[str, dict[str, object]] = {}
 _SEARCH_JOBS_LOCK = threading.Lock()
@@ -329,6 +363,13 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "canonical_gold_validation": True,
                     "validation_metrics_gate": True,
                     "validation_decision_lock": True,
+                    "scientific_intelligence_workspace_v2": True,
+                    "evidence_map": True,
+                    "dashboard_drill_down": True,
+                    "review_control_center": True,
+                    "human_review_event_log": True,
+                    "frontend_can_change_formal_search_gate": False,
+                    "frontend_can_emit_prisma_event": False,
                 }
             )
             return
@@ -412,6 +453,11 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     HTTPStatus.CONFLICT,
                 )
             return
+        if path.startswith("/api/dashboard/") or path.startswith("/api/evidence-map") \
+                or path in {"/api/timeline", "/api/routes/compare"} \
+                or path.startswith("/api/review/"):
+            self._handle_intelligence_get(path, parse_qs(parsed.query))
+            return
         if path == "/api/articles/status":
             try:
                 self._json(workbench_status())
@@ -432,14 +478,46 @@ class NutEVHandler(SimpleHTTPRequestHandler):
             except ValueError:
                 limit = 50
             try:
+                restriction = self._corpus_restriction(query)
+            except context_index.Article1ContextUnavailable as exc:
+                self._json(
+                    {
+                        "status": "not_ready",
+                        "error": "article1_context_unavailable",
+                        "message": str(exc) or CONTEXT_UNAVAILABLE_MESSAGE,
+                    },
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                )
+                return
+            except context_index.Article1ContextError as exc:
+                self._json(
+                    {
+                        "status": "invalid",
+                        "error": "article1_context_invalid",
+                        "message": str(exc),
+                    },
+                    HTTPStatus.CONFLICT,
+                )
+                return
+            except ValueError as exc:
+                self._json(
+                    {"error": "invalid_request", "message": str(exc)}, HTTPStatus.BAD_REQUEST
+                )
+                return
+            document_ids, context_filters = restriction
+            try:
                 self._json(
                     load_article_page(
                         q=(query.get("q") or [""])[0],
                         limit=limit,
                         cursor=(query.get("cursor") or [None])[0],
                         source_provider=(query.get("source_provider") or [""])[0],
-                        document_class=(query.get("document_class") or [""])[0],
+                        document_class=(
+                            "" if context_filters else (query.get("document_class") or [""])[0]
+                        ),
                         full_text_status=(query.get("full_text_status") or [""])[0],
+                        document_ids=document_ids,
+                        context_filters=context_filters,
                     )
                 )
             except FileNotFoundError:
@@ -504,8 +582,251 @@ class NutEVHandler(SimpleHTTPRequestHandler):
             return
         return super().do_GET()
 
+    def _corpus_restriction(
+        self,
+        query: dict[str, list[str]],
+    ) -> tuple[list[str] | None, dict[str, object]]:
+        """Resolve Evidence Map / review filters to a document-id restriction.
+
+        Domain, route and human review status only exist for the Tier A profiled set, so a
+        drill-down using them narrows the corpus page to those documents instead of silently
+        widening it. Without those parameters the corpus keeps its plain server-side filters.
+        """
+        route = _first(query, "route", "all") or "all"
+        domain = _first(query, "domain")
+        review_status_filter = _first(query, "review_status")
+        year_from = _year(query, "year_from")
+        year_to = _year(query, "year_to")
+        document_class = _first(query, "document_class")
+        needs_context = bool(
+            domain
+            or review_status_filter
+            or year_from is not None
+            or year_to is not None
+            or route != "all"
+        )
+        if not needs_context:
+            return None, {}
+        context = context_index.load_context()
+        rows = context.select(
+            route=route,
+            domain=domain,
+            document_class=document_class,
+            year_from=year_from,
+            year_to=year_to,
+        )
+        if review_status_filter:
+            wanted = review_status_filter.strip().upper()
+            if wanted not in review_store.REVIEW_STATUSES:
+                raise ValueError(f"unknown review status filter: {review_status_filter!r}")
+            states = review_store.document_states(row["document_id"] for row in rows)
+            rows = [
+                row
+                for row in rows
+                if str((states.get(row["document_id"]) or {}).get("status") or "NOT_STARTED")
+                == wanted
+            ]
+        filters = {
+            key: value
+            for key, value in {
+                "route": route if route != "all" else "",
+                "domain": domain,
+                "document_class": document_class,
+                "review_status": review_status_filter,
+                "year_from": year_from,
+                "year_to": year_to,
+            }.items()
+            if value not in ("", None)
+        }
+        filters["universe"] = context_index.UNIVERSE_LABEL
+        return [row["document_id"] for row in rows], filters
+
+    def _context(self) -> object | None:
+        """Return the verified Article 1 context bundle, or answer with an explicit state."""
+        try:
+            return context_index.load_context()
+        except context_index.Article1ContextUnavailable as exc:
+            self._json(
+                {
+                    "status": "not_ready",
+                    "error": "article1_context_unavailable",
+                    "message": str(exc) or CONTEXT_UNAVAILABLE_MESSAGE,
+                },
+                HTTPStatus.SERVICE_UNAVAILABLE,
+            )
+            return None
+        except context_index.Article1ContextError as exc:
+            self._json(
+                {
+                    "status": "invalid",
+                    "error": "article1_context_invalid",
+                    "message": str(exc),
+                },
+                HTTPStatus.CONFLICT,
+            )
+            return None
+
+    def _handle_intelligence_get(self, path: str, query: dict[str, list[str]]) -> None:
+        """Read-only scientific intelligence aggregates. None of these changes any gate."""
+        if path == "/api/review/status" or path == "/api/review/queue" or path == "/api/review/conflicts":
+            self._handle_review_get(path, query)
+            return
+        if path.startswith("/api/review/document/"):
+            document_id = unquote(path[len("/api/review/document/"):]).strip()
+            if not document_id:
+                self._json({"error": "document_id_required"}, HTTPStatus.BAD_REQUEST)
+                return
+            events = review_store.document_events(document_id)
+            self._json(
+                {
+                    "status": "ready",
+                    "document_id": document_id,
+                    "review": review_store.derive_document_state(events),
+                    "events": events,
+                    "vocabulary": {
+                        "statuses": list(review_store.REVIEW_STATUSES),
+                        "decisions": list(review_store.REVIEW_DECISIONS),
+                        "stages": list(review_store.REVIEW_STAGES),
+                    },
+                    "append_only": True,
+                    "guardrail": review_store.GUARDRAIL,
+                }
+            )
+            return
+        if path == "/api/review/store":
+            self._json(review_store.store_status())
+            return
+        context = self._context()
+        if context is None:
+            return
+        try:
+            filters = _context_filters(query)
+            if path == "/api/dashboard/overview":
+                self._json(context_index.dashboard_overview(context=context, **filters))
+                return
+            if path == "/api/evidence-map":
+                self._json(context_index.evidence_map(context=context, **filters))
+                return
+            if path == "/api/evidence-map/cell":
+                cell_filters = dict(filters)
+                domain = cell_filters.pop("domain")
+                document_class = cell_filters.pop("document_class")
+                self._json(
+                    context_index.evidence_map_cell(
+                        context=context,
+                        domain=domain,
+                        document_class=document_class,
+                        limit=int(_first(query, "limit", "50") or 50),
+                        offset=int(_first(query, "offset", "0") or 0),
+                        **cell_filters,
+                    )
+                )
+                return
+            if path == "/api/timeline":
+                series = [
+                    value
+                    for raw in (query.get("series") or [])
+                    for value in str(raw).split(",")
+                    if value.strip()
+                ]
+                self._json(
+                    context_index.timeline(
+                        context=context,
+                        series=[value.strip() for value in series] or None,
+                        **filters,
+                    )
+                )
+                return
+            if path == "/api/routes/compare":
+                self._json(
+                    context_index.routes_compare(
+                        context=context,
+                        source_provider=filters["source_provider"],
+                        full_text_status=filters["full_text_status"],
+                        year_from=filters["year_from"],
+                        year_to=filters["year_to"],
+                    )
+                )
+                return
+        except (context_index.Article1ContextError, ValueError) as exc:
+            self._json(
+                {"error": "invalid_request", "message": str(exc)}, HTTPStatus.BAD_REQUEST
+            )
+            return
+        self._json({"error": "not_found", "message": path}, HTTPStatus.NOT_FOUND)
+
+    def _handle_review_get(self, path: str, query: dict[str, list[str]]) -> None:
+        context = self._context()
+        if context is None:
+            return
+        states = review_store.document_states()
+        try:
+            if path == "/api/review/status":
+                self._json(
+                    review_control.review_status(
+                        context=context,
+                        states=states,
+                        route=_first(query, "route", "all") or "all",
+                        document_class=_first(query, "document_class"),
+                        domain=_first(query, "domain"),
+                    )
+                )
+                return
+            if path == "/api/review/conflicts":
+                self._json(
+                    {
+                        "status": "ready",
+                        "conflicts": review_control.conflicts(context=context, states=states),
+                        "guardrail": review_control.GUARDRAIL,
+                    }
+                )
+                return
+            self._json(
+                review_control.review_queue(
+                    context=context,
+                    states=states,
+                    route=_first(query, "route", "all") or "all",
+                    document_class=_first(query, "document_class"),
+                    domain=_first(query, "domain"),
+                    full_text_status=_first(query, "full_text_status"),
+                    review_status_filter=_first(query, "review_status"),
+                    reviewer_id=_first(query, "reviewer_id"),
+                    limit=int(_first(query, "limit", "50") or 50),
+                    offset=int(_first(query, "offset", "0") or 0),
+                )
+            )
+        except (context_index.Article1ContextError, ValueError) as exc:
+            self._json({"error": "invalid_request", "message": str(exc)}, HTTPStatus.BAD_REQUEST)
+
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+        if path == "/api/review/event":
+            # Human operational review state only. The web tier cannot approve PRESS, authorize
+            # GF-10, freeze a query, execute a formal search or emit a PRISMA event.
+            if not self._require_loopback():
+                return
+            try:
+                payload = self._read_json()
+                result = review_store.append_event(
+                    document_id=str(payload.get("document_id") or ""),
+                    reviewer_id=str(payload.get("reviewer_id") or ""),
+                    status=str(payload.get("status") or ""),
+                    stage=str(payload.get("stage") or "route_reading"),
+                    route=str(payload.get("route") or ""),
+                    decision=str(payload.get("decision") or ""),
+                    reason_code=str(payload.get("reason_code") or ""),
+                    reason_text=str(payload.get("reason_text") or ""),
+                    supersedes=str(payload.get("supersedes") or ""),
+                )
+                self._json(result, HTTPStatus.CREATED)
+            except review_store.HumanReviewError as exc:
+                self._json(
+                    {"error": "invalid_review_event", "message": str(exc)},
+                    HTTPStatus.BAD_REQUEST,
+                )
+            except ValueError as exc:
+                self._json({"error": "invalid_request", "message": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
         if path == "/api/query/compile":
             try:
                 payload = self._read_json()
