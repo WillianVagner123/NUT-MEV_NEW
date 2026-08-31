@@ -12,6 +12,11 @@ Esta pasta contém a documentação operacional, técnica, de auditoria, taxonom
 6. [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — limitações conhecidas e interpretação responsável dos outputs.
 7. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
+## Workspace científico
+
+- [`SCIENTIFIC_DASHBOARD.md`](SCIENTIFIC_DASHBOARD.md) — arquitetura de informação da web, contratos do dashboard, Evidence Map, Review Control Center e dossiê v2.
+- [`SCIENTIFIC_INTELLIGENCE_V2_PLAN.md`](SCIENTIFIC_INTELLIGENCE_V2_PLAN.md) — auditoria, plano de migração, riscos e critérios de aceitação do upgrade v2.
+
 ## Release, DOI e proveniência
 
 - [`RELEASE_V1_0_0.md`](RELEASE_V1_0_0.md) — identidade e conteúdo da release estável `v1.0.0`.

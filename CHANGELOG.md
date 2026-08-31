@@ -4,7 +4,36 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 
 ## [Unreleased]
 
+### Scientific Intelligence Workspace v2
+
+- Nova página `Evidence Map` (`/evidence-map.html`): matriz domínio operacional × classe documental,
+  com filtros server-side e drill-down para a lista exata de documentos de cada célula.
+- Novo `Review Control Center` (`/review.html`): fila rank-blind, progresso por rota/classe/revisor,
+  conflitos e adjudicação, sobre um log de eventos humanos append-only.
+- Dashboard passou a ser navegável: todo KPI, barra, fatia e ano leva aos documentos que formam o
+  número, com filtros globais representados na URL.
+- Dossiê científico v2 no Corpus Explorer, com abas Overview/Methods/Evidence/Domains/
+  Recommendations/Provenance/Human review e separação explícita entre sinal de máquina e decisão
+  humana.
+- Novos endpoints somente-leitura: `/api/dashboard/overview`, `/api/evidence-map`,
+  `/api/evidence-map/cell`, `/api/timeline`, `/api/routes/compare`, `/api/review/status`,
+  `/api/review/queue`, `/api/review/conflicts`, `/api/review/document/{id}`.
+- `GET /api/articles` aceita `domain`, `route`, `year_from`, `year_to` e `review_status`, resolvidos
+  no servidor para uma restrição de `document_id`, preservando a paginação por cursor.
+- `POST /api/review/event` registra estado humano de revisão. É loopback-only, append-only e recusa
+  vocabulário de elegibilidade, screening ou PRISMA.
+- Agregação passou a ser server-side: o navegador recebe contagens verificadas, nunca o corpus.
+
+### Correções
+
+- O dashboard deixou de exibir `press_status = NOT_YET_RECORDED_AS_PASS` como PRESS `PASS`. A
+  verificação usava `includes('PASS')` e casava com a própria negação; agora o gate só aparece como
+  aprovado quando o master registra `PASS`.
+
 ### Documentação e governança
+
+- `docs/SCIENTIFIC_INTELLIGENCE_V2_PLAN.md` — auditoria, arquitetura, contratos de dados, plano de
+  migração, riscos, guardrails e critérios de aceitação do upgrade.
 
 - README principal reescrito a partir do comportamento real da `main`.
 - POP operacional consolidado para instalação, atualização, execução, retomada, validação e registro de runs.

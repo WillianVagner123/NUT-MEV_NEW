@@ -37,6 +37,26 @@ In production the same four safe files can be mirrored to the NutEV static web r
 
 For full Workbench detail of one selected document, use the existing `GET /api/articles/{document_id}` endpoint. Its excerpts/result bundles are machine-index objects, not accepted scientific claims.
 
+## Read-only aggregates over the same bundle
+
+The web tier exposes server-side aggregates computed from the verified bundle, so no client has to
+download or re-aggregate it:
+
+- `GET /api/dashboard/overview` — KPIs, class/domain/full-text/route/timeline counts, provenance;
+- `GET /api/evidence-map` and `GET /api/evidence-map/cell` — operational-domain × document-class
+  matrix and the exact documents behind one cell;
+- `GET /api/timeline`, `GET /api/routes/compare`;
+- `GET /api/review/status`, `/api/review/queue`, `/api/review/conflicts`, `/api/review/document/{id}`.
+
+All of them are navigation/context. They carry a `guardrail` string and never emit eligibility,
+inclusion/exclusion, quality, risk of bias, certainty, recommendation or PRISMA state.
+
+Human review state lives in a separate append-only log
+(`project_output_reference/scientific/human_review/article1/`). `REVIEWED` means a human has read the
+document; it is not inclusion, and eligibility/screening/PRISMA vocabulary is rejected at write time.
+The web tier still cannot approve PRESS, authorize GF-10, freeze a query, execute a formal search or
+emit a PRISMA event.
+
 ## Current Article 1 boundary
 
 Discovery/harvest and Tier A deepening are technically complete, but the formal systematic-review search is not frozen or executed. PRESS is not yet PASS and GF-10 is not authorized.
