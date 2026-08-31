@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>NutEV — QA da estratégia</title>
+  <title>Strategy QA — NutEV</title>
   <meta name="description" content="QA determinístico de estratégias eletrônicas versionadas para revisão científica.">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./exact-strategy.css">
   <link rel="stylesheet" href="./review-qa.css">
 </head>
@@ -15,51 +16,41 @@
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
       <nav>
-        <a class="nav-item" href="/">⌕ <span>Buscar evidências</span></a>
-        <a class="nav-item" href="/?view=history">◷ <span>Minhas buscas</span></a>
-        <a class="nav-item active" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
-        <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
-        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item active" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div>
+        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
+        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
-      <div class="sidebar-note">QA de busca é controle metodológico. Não substitui triagem humana e não alimenta PRISMA antes do freeze formal.</div>
+      <div class="sidebar-note">QA é controle metodológico prospectivo. Não substitui triagem humana e não alimenta PRISMA antes do freeze formal.</div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div>
-          <h1>QA da estratégia</h1>
-          <p>Executa controles prospectivos de uma estratégia exata/versionada sem alterar a consulta principal.</p>
-        </div>
+        <div><h1>Strategy QA</h1><p>Controles prospectivos de uma estratégia exata/versionada sem alterar a consulta principal.</p></div>
         <span class="status-pill" id="qaHealth">carregando…</span>
       </header>
 
       <section class="qa-layout">
         <div class="card qa-card">
-          <div class="section-head">
-            <div>
-              <h2>1. Run principal</h2>
-              <p>O NutEV procura automaticamente o run compatível mais recente.</p>
-            </div>
-            <button id="refreshQa" class="ghost" type="button">Atualizar</button>
-          </div>
+          <div class="section-head"><div><h2>1. Run principal</h2><p>O NutEV procura automaticamente o run compatível mais recente.</p></div><button id="refreshQa" class="ghost" type="button">Atualizar</button></div>
           <div id="profileState" class="qa-state">Lendo perfis de QA…</div>
           <div id="mainRunCard"></div>
         </div>
-
         <div class="card qa-card">
-          <div class="section-head">
-            <div>
-              <h2>2. Executar QA completo</h2>
-              <p>Sentinelas + cinco ramos + exclusividade + amostra determinística por data de publicação.</p>
-            </div>
-          </div>
-          <div class="qa-actions">
-            <button id="runQaBtn" class="primary" type="button" disabled>Executar QA da estratégia</button>
-            <button id="downloadQaBtn" class="ghost" type="button" disabled>Exportar relatório JSON</button>
-          </div>
+          <div class="section-head"><div><h2>2. Executar QA completo</h2><p>Sentinelas + cinco ramos + exclusividade + amostra determinística por data de publicação.</p></div></div>
+          <div class="qa-actions"><button id="runQaBtn" class="primary" type="button" disabled>Executar QA da estratégia</button><button id="downloadQaBtn" class="ghost" type="button" disabled>Exportar relatório JSON</button></div>
           <div id="qaProgress" class="qa-state">Aguardando um run principal elegível.</div>
         </div>
-
         <section id="qaSummary" class="card qa-card hidden"></section>
         <section id="branchResults" class="qa-branches"></section>
       </section>
