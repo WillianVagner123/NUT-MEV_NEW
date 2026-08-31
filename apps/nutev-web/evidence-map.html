@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Evidence Map — NutEV</title>
+  <meta name="description" content="Matriz interativa domínio operacional x classe documental do Article 1, com drill-down para o Corpus Explorer.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./articles.css">
+  <link rel="stylesheet" href="./intelligence.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item active" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
+        <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div>
+        <a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a>
+        <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <a class="nav-item" href="/regional-routes.html"><span class="nav-icon">◐</span><span>Regional routes</span></a>
+        <div class="nav-group-label">Validation</div>
+        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
+        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">A intensidade da matriz representa apenas contagem de documentos. Nunca qualidade, certeza, força da evidência ou magnitude de efeito.</div>
+    </aside>
+
+    <main class="main workspace-main">
+      <header class="topbar">
+        <div>
+          <h1>Evidence Map</h1>
+          <p>Estrutura do corpus por domínio operacional × classe documental. Clique em uma célula para abrir a lista exata de documentos.</p>
+        </div>
+        <span class="status-pill" id="mapHealth">carregando…</span>
+      </header>
+
+      <section class="card filter-bar" aria-label="Filtros do Evidence Map">
+        <label for="routeFilter">Rota
+          <select id="routeFilter" data-filter="route">
+            <option value="all">Todas</option>
+            <option value="B-NORM">B-NORM</option>
+            <option value="C-STRUCT">C-STRUCT</option>
+            <option value="overlap">Overlap</option>
+            <option value="unrouted">Não roteados</option>
+          </select>
+        </label>
+        <label for="providerFilter">Fonte
+          <select id="providerFilter" data-filter="source_provider"><option value="">Todas</option></select>
+        </label>
+        <label for="fullTextFilter">Texto completo
+          <select id="fullTextFilter" data-filter="full_text_status"><option value="">Todos</option></select>
+        </label>
+        <label for="classFilter">Tipo documental
+          <select id="classFilter" data-filter="document_class"><option value="">Todos</option></select>
+        </label>
+        <label for="domainFilter">Domínio
+          <select id="domainFilter" data-filter="domain"><option value="">Todos</option></select>
+        </label>
+        <label for="yearFrom">Ano de
+          <input id="yearFrom" data-filter="year_from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="1990">
+        </label>
+        <label for="yearTo">Ano até
+          <input id="yearTo" data-filter="year_to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="2026">
+        </label>
+        <div class="filter-actions">
+          <a class="ghost" id="openCorpus" href="/articles.html">Abrir no Corpus →</a>
+          <button id="clearFilters" class="ghost" type="button">Limpar</button>
+        </div>
+      </section>
+      <div id="activeFilters" class="active-filters"></div>
+
+      <div id="mapState" class="state-note">Carregando matriz verificada…</div>
+
+      <section id="mapContent" class="hidden">
+        <div id="mapKpis" class="kpi-grid"></div>
+
+        <section class="card dashboard-card">
+          <div class="panel-head">
+            <div>
+              <h2>Domínio operacional × classe documental</h2>
+              <p id="mapUniverse">Universo do recorte.</p>
+            </div>
+          </div>
+          <div class="map-scroll">
+            <table class="evidence-matrix" id="evidenceMatrix">
+              <caption class="visually-hidden">Contagem de documentos por domínio operacional e classe documental.</caption>
+            </table>
+          </div>
+          <div id="mapMobile" class="map-mobile-list"></div>
+          <div class="map-legend">
+            <span>Menos documentos</span>
+            <span class="legend-scale"><span class="heat-0"></span><span class="heat-1"></span><span class="heat-2"></span><span class="heat-3"></span><span class="heat-4"></span><span class="heat-5"></span></span>
+            <span>Mais documentos</span>
+            <span id="mapIntensityNote">Intensidade = contagem de documentos apenas.</span>
+          </div>
+        </section>
+
+        <section class="card dashboard-card cell-drawer hidden" id="cellDrawer" tabindex="-1" aria-live="polite">
+          <div class="cell-drawer-head">
+            <div><h2 id="cellTitle">Célula</h2><p id="cellMeta"></p></div>
+            <div class="filter-actions">
+              <a class="ghost" id="cellCorpusLink" href="/articles.html">Abrir no Corpus Explorer →</a>
+              <button class="ghost" id="closeCell" type="button">Fechar</button>
+            </div>
+          </div>
+          <div id="cellDocs" class="cell-doc-list"></div>
+          <div class="load-more-row"><button id="cellMore" class="ghost hidden" type="button">Carregar mais</button></div>
+          <p id="cellGuardrail" class="small-state"></p>
+        </section>
+
+        <section class="card dashboard-card">
+          <div class="panel-head"><div><h2>Proveniência</h2><p id="mapProvenance">—</p></div></div>
+          <p class="small-state">Bank presence ≠ inclusão científica · rota ≠ elegibilidade · classe documental ≠ qualidade · contagem ≠ força da evidência.</p>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./evidence-map.js"></script>
+</body>
+</html>
