@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AI Context — NutEV</title>
+  <meta name="description" content="Contexto canônico e auditável do Article 1 para ChatGPT, Claude e outros agentes.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div>
+        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
+        <a class="nav-item active" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">O contexto para agentes é uma camada de navegação rank-blind. Ele não autoriza screening, inclusão, RoB, certeza ou PRISMA.</div>
+    </aside>
+
+    <main class="main dashboard-main">
+      <header class="topbar dashboard-topbar">
+        <div><h1>AI Context</h1><p>Fonte compartilhada e auditável para ChatGPT, Claude e outros agentes.</p></div>
+        <span class="status-pill" id="aiHealth">verificando contexto…</span>
+      </header>
+
+      <section class="card project-hero">
+        <div>
+          <div class="project-eyebrow">SHARED AGENT CONTEXT · ARTICLE 1</div>
+          <h2>Uma fonte de verdade para múltiplos agentes</h2>
+          <p class="project-question">Os agentes devem usar o mesmo Search State, o mesmo manifest e os mesmos resumos estruturados. Nenhum agente deve reconstruir o estado científico apenas a partir do histórico da conversa.</p>
+        </div>
+      </section>
+
+      <div id="contextState" class="loading dashboard-state">Carregando contexto verificado…</div>
+
+      <section id="contextContent" class="hidden">
+        <div id="contextCards" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>Canonical files</h2><p>Arquivos seguros expostos aos agentes, sem full text protegido.</p></div></div>
+            <div id="contextFiles" class="context-files"></div>
+          </section>
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>Formal-search boundary</h2><p>O contexto reflete o master; não altera gates.</p></div></div>
+            <div id="formalState"></div>
+          </section>
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Prompt canônico para agentes</h2><p>Use este prompt para iniciar uma nova conversa sem perder a fronteira científica.</p></div><button id="copyPrompt" class="ghost" type="button">Copiar prompt</button></div>
+            <textarea id="agentPrompt" class="agent-prompt" readonly></textarea>
+          </section>
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Scientific interpretation boundary</h2><p>Agent context ≠ adjudicação. Machine profile ≠ inclusão. Route membership ≠ eligibility. Evidence excerpt ≠ accepted EvidenceClaim. Formal search continua dependente de PRESS + GF-10 + freeze.</p></div></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./ai-context.js"></script>
+</body>
+</html>
