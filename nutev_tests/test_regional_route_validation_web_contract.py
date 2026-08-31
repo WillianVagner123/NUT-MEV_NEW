@@ -45,4 +45,4 @@ def test_full_export_requires_record_count_match_when_parseable() -> None:
 def test_press_page_links_to_regional_validation() -> None:
     html = (WEB / "press-review.html").read_text(encoding="utf-8")
     assert 'href="/regional-routes.html"' in html
-    assert "Rotas regionais" in html
+    assert "Regional routes" in html
