@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>Review Routes — NutEV</title>
-  <meta name="description" content="Filas de leitura B-NORM e C-STRUCT do Article 1, rank-blind e sem decisões de elegibilidade.">
+  <meta name="description" content="Filas e comparação B-NORM e C-STRUCT do Article 1, rank-blind e sem decisões de elegibilidade.">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./articles.css">
@@ -16,35 +16,38 @@
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
       <nav>
-        <div class="nav-group-label">Overview</div>
-        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
-        <div class="nav-group-label">Evidence</div>
-        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
-        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
-        <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
-        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
-        <div class="nav-group-label">Review</div>
-        <a class="nav-item active" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
-        <div class="nav-group-label">Strategy</div>
-        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
-        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
-        <div class="nav-group-label">System</div>
-        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a><a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a><a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div><a class="nav-item active" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div><a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
       <div class="sidebar-note">B-NORM e C-STRUCT são filas de leitura. Não produzem inclusão, exclusão, RoB, certeza, recomendação ou PRISMA.</div>
     </aside>
-    <main class="main dashboard-main">
-      <header class="topbar"><div><h1>Review Routes</h1><p>Leia o núcleo normativo e estrutural sem expor Bank rank ou transformar roteamento em screening.</p></div><span class="status-pill" id="routeHealth">carregando…</span></header>
-      <section class="card project-hero"><div><div class="project-eyebrow">ARTICLE 1 · RANK-BLIND HUMAN READING</div><h2>B-NORM × C-STRUCT</h2><p class="project-question">B-NORM concentra documentos normativos; C-STRUCT concentra estruturas de cuidado, competências, literacy, implementação e combinações operacionais. Overlap é permitido.</p></div></section>
+    <main class="main dashboard-main route-main">
+      <header class="topbar"><div><h1>Review Routes</h1><p>Compare o núcleo normativo e estrutural sem expor Bank rank ou transformar roteamento em screening.</p></div><span class="status-pill" id="routeHealth">carregando…</span></header>
+      <section class="card project-hero"><div><div class="project-eyebrow">ARTICLE 1 · RANK-BLIND HUMAN READING</div><h2>B-NORM × C-STRUCT</h2><p class="project-question">B-NORM concentra documentos normativos; C-STRUCT concentra estruturas de cuidado, competências, literacy, implementação e combinações operacionais. Overlap é permitido e não significa inclusão.</p></div></section>
       <div id="routeState" class="loading dashboard-state">Carregando filas verificadas…</div>
       <section id="routeContent" class="hidden">
-        <div id="routeKpis" class="kpi-grid"></div>
+        <div id="routeKpis" class="kpi-grid route-kpis"></div>
         <section class="card dashboard-card">
-          <div id="routeTabs" class="route-tabs"><button class="route-tab active" type="button" data-route="B-NORM">B-NORM</button><button class="route-tab" type="button" data-route="C-STRUCT">C-STRUCT</button></div>
-          <div class="panel-head"><div><h2 id="activeRouteTitle">B-NORM</h2><p id="activeRouteMeta"></p></div><a class="panel-link" href="/articles.html">Abrir Corpus →</a></div>
-          <div id="routeClassMix" class="route-info"></div>
-          <div id="routeList" class="route-list"></div>
-          <p id="routeGuardrail" class="small-state"></p>
+          <div id="routeTabs" class="route-tabs" role="tablist" aria-label="Visão das rotas"><button class="route-tab active" type="button" data-route="B-NORM">B-NORM</button><button class="route-tab" type="button" data-route="C-STRUCT">C-STRUCT</button><button class="route-tab" type="button" data-view="compare">Compare</button></div>
+          <div id="routeListView">
+            <div class="panel-head"><div><h2 id="activeRouteTitle">B-NORM</h2><p id="activeRouteMeta"></p></div><a id="routeEvidenceLink" class="panel-link" href="/evidence.html?route=B-NORM">Explorar rota →</a></div>
+            <div id="routeClassMix" class="route-info"></div><div id="routeList" class="route-list"></div><p id="routeGuardrail" class="small-state"></p>
+          </div>
+          <div id="routeCompareView" class="hidden">
+            <div class="panel-head"><div><h2>Route comparator</h2><p>Diferenças descritivas entre as duas filas; números não representam superioridade científica.</p></div><a class="panel-link" href="/evidence-map.html?view=route">Evidence Map →</a></div>
+            <div class="comparison-grid">
+              <section><h3>Document types</h3><div id="compareClasses"></div></section>
+              <section><h3>Full-text status</h3><div id="compareFulltext"></div></section>
+              <section><h3>Providers</h3><div id="compareProviders"></div></section>
+              <section><h3>Publications over time</h3><div id="compareTimeline" class="route-timeline"></div><div id="compareTimelineAxis" class="timeline-axis"></div></section>
+            </div>
+            <section class="domain-comparison-shell"><div class="panel-head"><div><h3>Operational domains</h3><p>Contagem por rota, overlap e diferença absoluta.</p></div></div><div class="route-table-scroll"><table class="route-domain-table"><thead><tr><th>Domínio</th><th>B-NORM</th><th>C-STRUCT</th><th>Overlap</th><th>Δ C−B</th><th>Explorar</th></tr></thead><tbody id="compareDomains"></tbody></table></div></section>
+            <section><div class="panel-head"><div><h3>Exclusive and shared documents</h3><p>Exclusividade aqui é exclusividade de roteamento, não inclusão/exclusão científica.</p></div></div><div id="compareSets" class="set-comparison"></div></section>
+            <p class="small-state comparator-boundary">Os valores desta tela descrevem roteamento operacional. “Exclusive B-NORM/C-STRUCT” significa somente que o documento foi roteado para uma fila e não para a outra.</p>
+          </div>
         </section>
       </section>
     </main>
