@@ -8,6 +8,7 @@
   <meta name="description" content="Dashboard científico do NutEV Evidence Engine: corpus, cobertura, rotas, processamento e prontidão metodológica.">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./intelligence.css">
 </head>
 <body>
   <div class="app-shell">
@@ -19,13 +20,16 @@
         <div class="nav-group-label">Evidence</div>
         <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
         <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
         <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
         <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
         <div class="nav-group-label">Review</div>
+        <a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a>
         <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
         <div class="nav-group-label">Strategy</div>
         <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
         <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <a class="nav-item" href="/regional-routes.html"><span class="nav-icon">◐</span><span>Regional routes</span></a>
         <div class="nav-group-label">Validation</div>
         <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
         <div class="nav-group-label">System</div>
@@ -46,6 +50,48 @@
         <div id="heroStatuses" class="hero-statuses"></div>
       </section>
 
+      <section class="card filter-bar" aria-label="Filtros globais do dashboard">
+        <label for="routeFilter">Rota
+          <select id="routeFilter" data-filter="route">
+            <option value="all">Todas</option>
+            <option value="B-NORM">B-NORM</option>
+            <option value="C-STRUCT">C-STRUCT</option>
+            <option value="overlap">Overlap</option>
+            <option value="unrouted">Não roteados</option>
+          </select>
+        </label>
+        <label for="classFilter">Tipo documental
+          <select id="classFilter" data-filter="document_class"><option value="">Todos</option></select>
+        </label>
+        <label for="domainFilter">Domínio
+          <select id="domainFilter" data-filter="domain"><option value="">Todos</option></select>
+        </label>
+        <label for="providerFilter">Fonte
+          <select id="providerFilter" data-filter="source_provider"><option value="">Todas</option></select>
+        </label>
+        <label for="fullTextFilter">Texto completo
+          <select id="fullTextFilter" data-filter="full_text_status">
+            <option value="">Todos</option>
+            <option value="retrieved">Recuperado</option>
+            <option value="partial">Parcial</option>
+            <option value="unavailable">Indisponível</option>
+            <option value="not_retrieved">Não recuperado</option>
+            <option value="not_attempted">Ainda não buscado</option>
+          </select>
+        </label>
+        <label for="yearFrom">Ano de
+          <input id="yearFrom" data-filter="year_from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="1990">
+        </label>
+        <label for="yearTo">Ano até
+          <input id="yearTo" data-filter="year_to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="2026">
+        </label>
+        <div class="filter-actions">
+          <a class="ghost" id="openMap" href="/evidence-map.html">Abrir Evidence Map →</a>
+          <button id="clearFilters" class="ghost" type="button">Limpar tudo</button>
+        </div>
+      </section>
+      <div id="activeFilters" class="active-filters"></div>
+
       <div id="dashboardState" class="loading dashboard-state">Carregando estado científico verificado…</div>
 
       <section id="dashboardContent" class="hidden">
@@ -58,8 +104,8 @@
           <section class="card dashboard-card span-7"><div class="panel-head"><div><h2>Extraction method</h2><p>Formato efetivamente usado no aprofundamento.</p></div></div><div id="extractionChart"></div></section>
           <section class="card dashboard-card span-5"><div class="panel-head"><div><h2>Article 1 routes</h2><p>B-NORM e C-STRUCT são filas de navegação, não inclusão científica.</p></div><a class="panel-link" href="/review-routes.html">Abrir rotas →</a></div><div id="routesChart"></div></section>
           <section class="card dashboard-card span-7"><div class="panel-head"><div><h2>Document types</h2><p>Classificação documental do Tier A, derivada do perfil v2.</p></div><a class="panel-link" href="/articles.html">Abrir Corpus Explorer →</a></div><div id="classChart"></div></section>
-          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Operational domains</h2><p>Dimensões detectadas para navegação e síntese futura.</p></div><a class="panel-link" href="/evidence.html">Abrir Evidence Explorer →</a></div><div id="domainChart"></div></section>
-          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Publications over time</h2><p>Distribuição temporal do Tier A. Não implica tendência causal ou força de evidência.</p></div></div><div id="timelineChart" class="timeline-chart"></div><div id="timelineAxis" class="timeline-axis"></div></section>
+          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Operational domains</h2><p>Dimensões detectadas para navegação e síntese futura. Clique para abrir o Evidence Map filtrado.</p></div><a class="panel-link" href="/evidence-map.html">Abrir Evidence Map →</a></div><div id="domainChart"></div></section>
+          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Publications over time</h2><p>Distribuição temporal do Tier A. Não implica tendência causal ou força de evidência.</p></div></div><div id="timelineSeries" class="map-legend" role="group" aria-label="Séries do gráfico temporal"></div><div id="timelineChart" class="timeline-chart"></div><div id="timelineAxis" class="timeline-axis"></div><p id="timelineNote" class="small-state"></p></section>
           <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Provider operations</h2><p>Status operacional do Radar; gap de provider não significa ausência de literatura.</p></div><a class="panel-link" href="/radar.html">Abrir Radar →</a></div><div id="providerBoard" class="provider-board"></div></section>
           <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Provenance & AI context</h2><p>Contexto vivo e versão que sustentam o dashboard.</p></div><a class="panel-link" href="/ai-context.html">Abrir AI Context →</a></div><div id="provenance" class="provider-board"></div></section>
           <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Scientific interpretation boundary</h2><p>Discovery ≠ busca formal · Tier ≠ qualidade · rota ≠ inclusão · full text ≠ elegibilidade · perfil de máquina ≠ RoB · excerpt ≠ EvidenceClaim aceito.</p></div></div></section>
