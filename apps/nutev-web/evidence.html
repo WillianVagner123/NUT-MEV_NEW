@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Evidence Explorer — NutEV</title>
+  <meta name="description" content="Exploração do Tier A por domínios operacionais, rotas e tipos documentais.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./articles.css">
+  <link rel="stylesheet" href="./evidence.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item active" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div>
+        <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Domínios e perfis servem para navegação e síntese assistida. Não equivalem a decisão de elegibilidade ou recomendação.</div>
+    </aside>
+    <main class="main dashboard-main">
+      <header class="topbar"><div><h1>Evidence Explorer</h1><p>Entre no corpus pela pergunta científica, não apenas pela lista de artigos.</p></div><span class="status-pill" id="evidenceHealth">carregando…</span></header>
+      <section class="card project-hero"><div><div class="project-eyebrow">DOMAIN-FIRST EXPLORATION · TIER A</div><h2>Parâmetros, competências e contextos operacionais</h2><p class="project-question">Explore como avaliação, aconselhamento, prescrição, monitoramento, food literacy, competências, contexto social e implementação aparecem no corpus aprofundado.</p></div></section>
+      <div id="evidenceState" class="loading dashboard-state">Carregando resumos rank-blind…</div>
+      <section id="evidenceContent" class="evidence-shell hidden">
+        <aside class="card dashboard-card"><div class="panel-head"><div><h2>Operational domains</h2><p>Selecione um domínio para abrir o recorte correspondente.</p></div></div><div id="domainCards" class="domain-card-list"></div></aside>
+        <section class="card dashboard-card evidence-detail"><div class="evidence-detail-head"><div><h2 id="domainTitle">Domínio</h2><p id="domainMeta"></p></div><a class="panel-link" href="/articles.html">Abrir Corpus →</a></div><div id="domainClassMix" class="domain-class-mix"></div><div id="domainArticles"></div><p id="domainNote" class="small-state"></p></section>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./evidence.js"></script>
+</body>
+</html>

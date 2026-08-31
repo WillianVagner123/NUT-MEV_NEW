@@ -6,25 +6,28 @@ WEB_ROOT = REPO_ROOT / "apps" / "nutev-web"
 VALIDATION_ROOT = REPO_ROOT / "apps" / "nutev-validation"
 
 
-def test_web_app_exposes_search_and_validation_without_csv_ui() -> None:
+def test_web_app_exposes_dashboard_search_and_validation_without_csv_ui() -> None:
     index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
-    assert "Buscar evidências" in index
+    assert "Scientific Overview" in index
+    assert 'href="/search.html"' in index
+    assert "Buscar evidências" in search
     assert "/validation/" in index
     assert "/api/search/jobs" in app
     for forbidden in (".csv", "upload csv", "importar csv"):
-        assert forbidden not in index.casefold()
+        assert forbidden not in search.casefold()
 
 
 def test_global_search_is_a_first_class_exhaustive_action() -> None:
-    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
     css = (WEB_ROOT / "styles.css").read_text(encoding="utf-8")
     progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
-    assert 'id="globalSearchBtn"' in index
-    assert "Busca global" in index
-    assert "sem teto interno" in index
-    assert "Não há corte interno de 100, 300 ou outro número" in index
+    assert 'id="globalSearchBtn"' in search
+    assert "Busca global" in search
+    assert "sem teto interno" in search
+    assert "Não há corte interno de 100, 300 ou outro número" in search
     assert "GLOBAL_EXHAUSTIVE_SENTINEL=0" in app
     assert "state.providers.map(p=>p.id)" in app
     assert "runSearch({global:true})" in app
@@ -39,16 +42,16 @@ def test_global_search_is_a_first_class_exhaustive_action() -> None:
 
 
 def test_structured_review_builder_is_first_class_and_auditable() -> None:
-    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
     server = (WEB_ROOT / "server.py").read_text(encoding="utf-8")
     progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
     compiler = (WEB_ROOT / "query_compiler.py").read_text(encoding="utf-8")
-    assert 'id="structuredReviewToggle"' in index
-    assert 'id="frameworkSelect"' in index
-    assert "PCC" in index and "PICO" in index and "PECO" in index
-    assert "mesh:Termo" in index
-    assert "decs:Termo" in index
+    assert 'id="structuredReviewToggle"' in search
+    assert 'id="frameworkSelect"' in search
+    assert "PCC" in search and "PICO" in search and "PECO" in search
+    assert "mesh:Termo" in search
+    assert "decs:Termo" in search
     assert "/api/query/compile" in app
     assert 'path == "/api/query/compile"' in server
     assert "compile_query_plan" in server
@@ -102,7 +105,7 @@ def test_web_history_uses_persisted_engine_runs() -> None:
     adapter = (WEB_ROOT / "search_adapter.py").read_text(encoding="utf-8")
     server = (WEB_ROOT / "server.py").read_text(encoding="utf-8")
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
-    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")
     assert "15_web_searches" in adapter
     assert "list_search_runs" in adapter
     assert "load_search_run" in adapter
@@ -111,7 +114,7 @@ def test_web_history_uses_persisted_engine_runs() -> None:
     assert "fetch('/api/searches?limit=50')" in app
     assert "params.get('view')==='history'" in app
     assert "localStorage" not in app
-    assert "Runs persistidos pelo NutEV Evidence Engine" in index
+    assert "Runs persistidos pelo NutEV Evidence Engine" in search
 
 
 def test_validation_entry_uses_same_product_navigation_and_hides_technical_first_step() -> None:

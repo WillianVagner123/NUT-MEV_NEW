@@ -40,7 +40,7 @@ def test_press_ui_never_authorizes_freeze_and_returns_material_change_to_pilot()
     assert "RETURN_TO_PILOT" in script
     assert "MATERIAL_REVISION" in script
     assert "independentAttestation" in html
-    assert "PRESS da estratégia" in html
+    assert "PRESS Workspace" in html
 
 
 def test_main_navigation_exposes_press_module() -> None:
@@ -48,4 +48,4 @@ def test_main_navigation_exposes_press_module() -> None:
     review_qa = (WEB_ROOT / "review-qa.html").read_text(encoding="utf-8")
     for source in (index, review_qa):
         assert 'href="/press-review.html"' in source
-        assert "PRESS da estratégia" in source
+        assert ">PRESS<" in source

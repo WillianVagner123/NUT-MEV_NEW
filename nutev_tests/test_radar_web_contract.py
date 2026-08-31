@@ -9,7 +9,8 @@ def test_radar_is_first_class_in_main_navigation() -> None:
     index = (WEB / "index.html").read_text(encoding="utf-8")
     radar = (WEB / "radar.html").read_text(encoding="utf-8")
     assert 'href="/radar.html"' in index
-    assert "NutEV Radar" in index
+    assert "Evidence Radar" in index
+    assert "Evidence Radar" in radar
     assert 'id="summaryCards"' in radar
     assert 'id="priorityBoard"' in radar
     assert 'id="providerBoard"' in radar

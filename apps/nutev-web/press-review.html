@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>NutEV — PRESS da estratégia</title>
+  <title>PRESS Workspace — NutEV</title>
   <meta name="description" content="Pacote e registro de revisão PRESS independente para estratégias eletrônicas versionadas.">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./exact-strategy.css">
   <link rel="stylesheet" href="./review-qa.css">
   <link rel="stylesheet" href="./press-review.css">
@@ -16,19 +17,28 @@
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
       <nav>
-        <a class="nav-item" href="/">⌕ <span>Buscar evidências</span></a>
-        <a class="nav-item" href="/?view=history">◷ <span>Minhas buscas</span></a>
-        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
-        <a class="nav-item active" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
-        <a class="nav-item" href="/regional-routes.html">⌁ <span>Rotas regionais</span></a>
-        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item active" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <a class="nav-item" href="/regional-routes.html"><span class="nav-icon">↗</span><span>Regional routes</span></a>
+        <div class="nav-group-label">Validation</div>
+        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
+        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
       <div class="sidebar-note">PRESS é revisão independente da estratégia. Não autoriza freeze, busca formal ou PRISMA por si só.</div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div><h1>PRESS da estratégia</h1><p>Gera o pacote de revisão externa, registra o parecer e aplica o gate de materialidade sem alterar as queries.</p></div>
+        <div><h1>PRESS Workspace</h1><p>Pacote de revisão externa, parecer independente e gate de materialidade sem alterar silenciosamente as queries.</p></div>
         <span class="status-pill" id="pressHealth">carregando…</span>
       </header>
 
@@ -70,10 +80,7 @@
           </div>
           <label>Comentários finais<textarea id="finalComments" rows="6" placeholder="Síntese do parecer, termos ausentes, erros, redundâncias, justificativas e recomendações."></textarea></label>
           <label>Alterações sugeridas<textarea id="suggestedChanges" rows="6" placeholder="Se houver alteração proposta, descreva exatamente o que deve mudar. Não edite a query aqui."></textarea></label>
-          <div class="press-actions">
-            <button id="evaluatePressBtn" class="primary" type="button">Avaliar gate PRESS</button>
-            <button id="downloadReviewBtn" class="ghost" type="button" disabled>Exportar parecer JSON</button>
-          </div>
+          <div class="press-actions"><button id="evaluatePressBtn" class="primary" type="button">Avaliar gate PRESS</button><button id="downloadReviewBtn" class="ghost" type="button" disabled>Exportar parecer JSON</button></div>
           <div id="pressGate" class="qa-state">Aguardando parecer completo.</div>
         </div>
       </section>
