@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Search Workspace — NutEV Evidence Engine</title>
+  <meta name="description" content="Workspace de busca de evidências e estratégias versionadas do NutEV.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./exact-strategy.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <button class="nav-item active" data-view="search"><span class="nav-icon">⌕</span><span>Search</span></button>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div>
+        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div>
+        <button class="nav-item" data-view="history"><span class="nav-icon">◷</span><span>Search runs</span></button>
+        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">A busca prioriza leitura. Não substitui avaliação metodológica, triagem humana nem decisão científica.</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar"><div><h1 id="pageTitle">Search Workspace</h1><p id="pageSubtitle">Pergunta, estratégia, providers e execução em um fluxo auditável.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
+
+      <section id="searchView" class="view">
+        <div class="hero card">
+          <label for="question">Qual evidência você quer encontrar?</label>
+          <textarea id="question" rows="4" placeholder="Pergunta humana da revisão; a estratégia eletrônica pode ser estruturada separadamente abaixo."></textarea>
+
+          <div class="review-mode-switch">
+            <label><input id="structuredReviewToggle" type="checkbox"> <strong>Modo revisão científica</strong></label>
+            <span>Construa PCC/PICO/PECO ou use uma estratégia eletrônica exata/versionada por base.</span>
+          </div>
+
+          <section id="strategyBuilder" class="strategy-builder hidden">
+            <div class="strategy-type-switch">
+              <label><input type="radio" name="strategyType" value="structured" checked> Construtor PCC/PICO/PECO</label>
+              <label><input type="radio" name="strategyType" value="exact"> Estratégia exata por base</label>
+            </div>
+
+            <div id="structuredStrategyPanel">
+              <div class="strategy-head">
+                <div>
+                  <strong>Construtor de estratégia</strong>
+                  <p>O NutEV compila uma query por base. Ele não inventa vocabulário controlado: MeSH/DeCS precisam estar explicitamente aprovados nesta estratégia.</p>
+                </div>
+                <label>Framework
+                  <select id="frameworkSelect">
+                    <option value="PCC" selected>PCC</option>
+                    <option value="PICO">PICO</option>
+                    <option value="PECO">PECO</option>
+                  </select>
+                </label>
+              </div>
+              <div class="term-help">
+                <strong>Um termo por linha.</strong> Use <code>mesh:Termo</code>, <code>decs:Termo</code> ou <code>free:termo livre</code>. Sem prefixo = texto livre. Sinônimos ficam no mesmo bloco e são unidos por OR; blocos diferentes são unidos por AND.
+              </div>
+              <div id="conceptBuilder" class="concept-builder"></div>
+            </div>
+
+            <div id="exactStrategyPanel" class="hidden">
+              <div class="strategy-head">
+                <div>
+                  <strong>Estratégia eletrônica exata</strong>
+                  <p>Use este modo para estratégias já versionadas/revisadas. O NutEV preserva literalmente operadores, campos, headings, filtros e datas; não converte nem simplifica a string.</p>
+                </div>
+                <label>Classe da execução
+                  <select id="runClassSelect">
+                    <option value="PREFLIGHT">PREFLIGHT</option>
+                    <option value="PILOT" selected>PILOT</option>
+                    <option value="DEVELOPMENT">DEVELOPMENT</option>
+                    <option value="SUPPLEMENTARY">SUPPLEMENTARY</option>
+                    <option value="FORMAL">FORMAL</option>
+                  </select>
+                </label>
+              </div>
+              <div class="exact-meta-grid">
+                <label>Strategy ID<input id="strategyId" type="text" placeholder="Ex.: B-NORM-PUBMED"></label>
+                <label>Versão<input id="strategyVersion" type="text" placeholder="Ex.: v0.7"></label>
+              </div>
+              <div class="term-help"><strong>Selecione abaixo apenas as bases que possuem uma string aprovada.</strong> Para cada base selecionada, cole a consulta exatamente como deve ser enviada. Em modo exato, “Busca global” remove o teto apenas dessas bases; não adiciona providers sem query.</div>
+              <div id="exactQueryBuilder" class="exact-query-builder"></div>
+            </div>
+
+            <div class="strategy-actions">
+              <button id="compileStrategyBtn" type="button" class="ghost">Visualizar estratégia por base</button>
+              <span id="strategyStatus">A estratégia só será usada quando este modo estiver ativado.</span>
+            </div>
+            <div id="strategyPreview" class="strategy-preview hidden"></div>
+          </section>
+
+          <details class="advanced" open>
+            <summary>Fontes e limites</summary>
+            <div class="provider-grid" id="providerGrid"></div>
+            <div class="controls-row">
+              <label>Por fonte <input id="perProvider" type="number" min="1" max="100" value="25"></label>
+              <label>Exibir até <input id="maxResults" type="number" min="1" max="300" value="100"></label>
+            </div>
+          </details>
+          <div class="search-actions">
+            <button id="searchBtn" class="primary">Buscar evidências</button>
+            <button id="globalSearchBtn" class="global-search" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Busca global</button>
+            <span id="searchHint">carregando fontes…</span>
+          </div>
+          <div class="global-search-note"><strong>Busca global = sem teto interno.</strong> Não há corte interno de 100, 300 ou outro número. No modo comum, usa todas as fontes conectadas. No modo de estratégia exata, usa somente as bases para as quais existe query exata e que estão selecionadas. Limites ou bloqueios impostos pela própria fonte permanecem explícitos.</div>
+        </div>
+
+        <div id="searchState" class="hidden"></div>
+        <section id="summary" class="hidden"></section>
+        <section id="results" class="results"></section>
+      </section>
+
+      <section id="historyView" class="view hidden">
+        <div class="card"><div class="section-head"><div><h2>Search runs</h2><p>Runs persistidos pelo NutEV Evidence Engine.</p></div><button id="refreshHistory" class="ghost">Atualizar</button></div><div id="historyList"></div></div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
