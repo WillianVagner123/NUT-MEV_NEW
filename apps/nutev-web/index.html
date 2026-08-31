@@ -4,123 +4,126 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>NutEV — Evidence Engine</title>
-  <meta name="description" content="Busca de evidências e validação científica do NutEV em uma interface única.">
+  <title>NutEV — Scientific Overview</title>
+  <meta name="description" content="Dashboard científico do NutEV Evidence Engine: corpus, cobertura, rotas, processamento e prontidão metodológica.">
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./exact-strategy.css">
+  <link rel="stylesheet" href="./dashboard.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
       <nav>
-        <button class="nav-item active" data-view="search">⌕ <span>Buscar evidências</span></button>
-        <a class="nav-item" href="/radar.html">⌁ <span>NutEV Radar</span></a>
-        <a class="nav-item" href="/articles.html">▤ <span>Artigos</span></a>
-        <button class="nav-item" data-view="history">◷ <span>Minhas buscas</span></button>
-        <a class="nav-item" href="/review-qa.html">◎ <span>QA da estratégia</span></a>
-        <a class="nav-item" href="/press-review.html">▣ <span>PRESS da estratégia</span></a>
-        <a class="nav-item" href="/validation/">✓ <span>Validação científica</span></a>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item active" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div>
+        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
+        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
-      <div class="sidebar-note">A busca prioriza leitura. Não substitui avaliação metodológica nem decisão clínica.</div>
+      <div class="sidebar-note">O dashboard mostra processamento e contexto auditável. Volume, tier, rota e perfil não equivalem a qualidade, elegibilidade ou decisão PRISMA.</div>
     </aside>
 
-    <main class="main">
-      <header class="topbar"><div><h1 id="pageTitle">Buscar evidências</h1><p id="pageSubtitle">Faça uma pergunta. Para revisão, use estratégia estruturada ou preserve uma string exata/versionada por base.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
-
-      <section id="searchView" class="view">
-        <div class="hero card">
-          <label for="question">Qual evidência você quer encontrar?</label>
-          <textarea id="question" rows="4" placeholder="Pergunta humana da revisão; a estratégia eletrônica pode ser estruturada separadamente abaixo."></textarea>
-
-          <div class="review-mode-switch">
-            <label><input id="structuredReviewToggle" type="checkbox"> <strong>Modo revisão científica</strong></label>
-            <span>Construa PCC/PICO/PECO ou use uma estratégia eletrônica exata/versionada por base.</span>
-          </div>
-
-          <section id="strategyBuilder" class="strategy-builder hidden">
-            <div class="strategy-type-switch">
-              <label><input type="radio" name="strategyType" value="structured" checked> Construtor PCC/PICO/PECO</label>
-              <label><input type="radio" name="strategyType" value="exact"> Estratégia exata por base</label>
-            </div>
-
-            <div id="structuredStrategyPanel">
-              <div class="strategy-head">
-                <div>
-                  <strong>Construtor de estratégia</strong>
-                  <p>O NutEV compila uma query por base. Ele não inventa vocabulário controlado: MeSH/DeCS precisam estar explicitamente aprovados nesta estratégia.</p>
-                </div>
-                <label>Framework
-                  <select id="frameworkSelect">
-                    <option value="PCC" selected>PCC</option>
-                    <option value="PICO">PICO</option>
-                    <option value="PECO">PECO</option>
-                  </select>
-                </label>
-              </div>
-              <div class="term-help">
-                <strong>Um termo por linha.</strong> Use <code>mesh:Termo</code>, <code>decs:Termo</code> ou <code>free:termo livre</code>. Sem prefixo = texto livre. Sinônimos ficam no mesmo bloco e são unidos por OR; blocos diferentes são unidos por AND.
-              </div>
-              <div id="conceptBuilder" class="concept-builder"></div>
-            </div>
-
-            <div id="exactStrategyPanel" class="hidden">
-              <div class="strategy-head">
-                <div>
-                  <strong>Estratégia eletrônica exata</strong>
-                  <p>Use este modo para estratégias já versionadas/revisadas. O NutEV preserva literalmente operadores, campos, headings, filtros e datas; não converte nem simplifica a string.</p>
-                </div>
-                <label>Classe da execução
-                  <select id="runClassSelect">
-                    <option value="PREFLIGHT">PREFLIGHT</option>
-                    <option value="PILOT" selected>PILOT</option>
-                    <option value="DEVELOPMENT">DEVELOPMENT</option>
-                    <option value="SUPPLEMENTARY">SUPPLEMENTARY</option>
-                    <option value="FORMAL">FORMAL</option>
-                  </select>
-                </label>
-              </div>
-              <div class="exact-meta-grid">
-                <label>Strategy ID<input id="strategyId" type="text" placeholder="Ex.: B-NORM-PUBMED"></label>
-                <label>Versão<input id="strategyVersion" type="text" placeholder="Ex.: v0.7"></label>
-              </div>
-              <div class="term-help"><strong>Selecione abaixo apenas as bases que possuem uma string aprovada.</strong> Para cada base selecionada, cole a consulta exatamente como deve ser enviada. Em modo exato, “Busca global” remove o teto apenas dessas bases; não adiciona providers sem query.</div>
-              <div id="exactQueryBuilder" class="exact-query-builder"></div>
-            </div>
-
-            <div class="strategy-actions">
-              <button id="compileStrategyBtn" type="button" class="ghost">Visualizar estratégia por base</button>
-              <span id="strategyStatus">A estratégia só será usada quando este modo estiver ativado.</span>
-            </div>
-            <div id="strategyPreview" class="strategy-preview hidden"></div>
-          </section>
-
-          <details class="advanced" open>
-            <summary>Fontes e limites</summary>
-            <div class="provider-grid" id="providerGrid"></div>
-            <div class="controls-row">
-              <label>Por fonte <input id="perProvider" type="number" min="1" max="100" value="25"></label>
-              <label>Exibir até <input id="maxResults" type="number" min="1" max="300" value="100"></label>
-            </div>
-          </details>
-          <div class="search-actions">
-            <button id="searchBtn" class="primary">Buscar evidências</button>
-            <button id="globalSearchBtn" class="global-search" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Busca global</button>
-            <span id="searchHint">carregando fontes…</span>
-          </div>
-          <div class="global-search-note"><strong>Busca global = sem teto interno.</strong> Não há corte interno de 100, 300 ou outro número. No modo comum, usa todas as fontes conectadas. No modo de estratégia exata, usa somente as bases para as quais existe query exata e que estão selecionadas. Limites ou bloqueios impostos pela própria fonte permanecem explícitos.</div>
+    <main class="main dashboard-main">
+      <header class="topbar dashboard-topbar">
+        <div>
+          <h1>Scientific Overview</h1>
+          <p>Article 1 · Nutrition & Lifestyle Medicine</p>
         </div>
+        <div class="dashboard-actions">
+          <button id="presentationToggle" class="ghost secondary-action" type="button">Presentation View</button>
+          <button id="refreshDashboard" class="ghost" type="button">Atualizar</button>
+          <span class="status-pill" id="dashboardHealth">verificando engine…</span>
+        </div>
+      </header>
 
-        <div id="searchState" class="hidden"></div>
-        <section id="summary" class="hidden"></section>
-        <section id="results" class="results"></section>
+      <section class="card project-hero">
+        <div>
+          <div class="project-eyebrow">ACTIVE PROJECT · ARTICLE 1</div>
+          <h2>Nutrition parameters, food competencies and social eating context</h2>
+          <p id="projectQuestion" class="project-question">Carregando pergunta científica…</p>
+        </div>
+        <div id="heroStatuses" class="hero-statuses"></div>
       </section>
 
-      <section id="historyView" class="view hidden">
-        <div class="card"><div class="section-head"><div><h2>Minhas buscas</h2><p>Runs persistidos pelo NutEV Evidence Engine.</p></div><button id="refreshHistory" class="ghost">Atualizar</button></div><div id="historyList"></div></div>
+      <div id="dashboardState" class="loading dashboard-state">Carregando estado científico verificado…</div>
+
+      <section id="dashboardContent" class="hidden">
+        <div id="kpiGrid" class="kpi-grid"></div>
+
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Scientific pipeline</h2><p>Estado técnico/metodológico do projeto. Etapas futuras permanecem bloqueadas até o gate canônico.</p></div><a class="panel-link" href="/press-review.html">Abrir PRESS →</a></div>
+            <div id="pipeline" class="pipeline" aria-label="Pipeline científico"></div>
+          </section>
+
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Evidence processing funnel</h2><p>Funil operacional — não é PRISMA.</p></div><a class="panel-link" href="/articles.html">Explorar corpus →</a></div>
+            <div id="funnel" class="funnel"></div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Formal search readiness</h2><p>O frontend apenas reflete o master. Ele não autoriza GF-10 nem cria freeze.</p></div></div>
+            <div id="readinessGrid" class="readiness-grid"></div>
+            <div id="nextAction" class="next-action"></div>
+          </section>
+
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Full-text coverage</h2><p>Recuperação técnica do Tier A; não equivale a elegibilidade.</p></div></div>
+            <div class="donut-layout"><div id="fullTextDonut" class="donut"></div><div id="fullTextLegend" class="legend-list"></div></div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Extraction method</h2><p>Formato efetivamente usado no aprofundamento.</p></div></div>
+            <div id="extractionChart"></div>
+          </section>
+
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Article 1 routes</h2><p>B-NORM e C-STRUCT são filas de navegação, não inclusão científica.</p></div></div>
+            <div id="routesChart"></div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Document types</h2><p>Classificação documental do Tier A, derivada do perfil v2.</p></div><a class="panel-link" href="/articles.html">Abrir Corpus Explorer →</a></div>
+            <div id="classChart"></div>
+          </section>
+
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>Operational domains</h2><p>Dimensões detectadas para navegação e síntese futura.</p></div></div>
+            <div id="domainChart"></div>
+          </section>
+
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>Publications over time</h2><p>Distribuição temporal do Tier A. Não implica tendência causal ou força de evidência.</p></div></div>
+            <div id="timelineChart" class="timeline-chart"></div>
+            <div id="timelineAxis" class="timeline-axis"></div>
+          </section>
+
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>Provider operations</h2><p>Status operacional do Radar; gap de provider não significa ausência de literatura.</p></div><a class="panel-link" href="/radar.html">Abrir Radar →</a></div>
+            <div id="providerBoard" class="provider-board"></div>
+          </section>
+
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>Provenance</h2><p>Contexto vivo e versão que sustentam o dashboard.</p></div><a class="panel-link" href="/agent-context/article1/CONTEXT_MANIFEST.json">Abrir manifest →</a></div>
+            <div id="provenance" class="provider-board"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Scientific interpretation boundary</h2><p>Discovery ≠ busca formal · Tier ≠ qualidade · rota ≠ inclusão · full text ≠ elegibilidade · perfil de máquina ≠ RoB · excerpt ≠ EvidenceClaim aceito.</p></div></div>
+          </section>
+        </div>
       </section>
     </main>
   </div>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./dashboard.js"></script>
 </body>
 </html>
