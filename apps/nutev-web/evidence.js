@@ -3,16 +3,16 @@ const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;'
 const fmt=value=>new Intl.NumberFormat('pt-BR').format(Number(value||0));
 const labels={nutrition_assessment:'Avaliação nutricional',dietary_counseling:'Aconselhamento alimentar',nutrition_prescription:'Prescrição nutricional',monitoring_follow_up:'Monitoramento / seguimento',food_skills_competencies:'Competências e habilidades alimentares',food_literacy:'Food / nutrition literacy',social_context:'Contexto social da alimentação',food_based_guidance:'Orientação baseada em alimentos',nutrition_care_process:'Nutrition Care Process',lifestyle_medicine:'Medicina do Estilo de Vida',implementation_practice:'Implementação na prática'};
 const classLabels={food_based_dietary_guideline:'FBDG',clinical_practice_guideline:'Diretriz clínica',consensus_statement:'Consenso',position_statement:'Position statement',framework_model:'Framework/modelo',competency_curriculum:'Competências/currículo',implementation_evaluation:'Implementação',primary_randomized:'Randomizado',primary_observational:'Observacional',primary_qualitative:'Qualitativo',evidence_synthesis:'Síntese de evidência',review:'Revisão',guidance:'Guidance',unclassified:'Não classificado'};
-const initialParams=new URLSearchParams(location.search);
+const params=new URLSearchParams(location.search);
 let articles=[];
-let selected=initialParams.get('domain')||'';
-let selectedClass=initialParams.get('document_class')||'';
-let selectedRoute=['B-NORM','C-STRUCT'].includes(initialParams.get('route'))?initialParams.get('route'):'';
+let selected=params.get('domain')||'';
+let selectedClass=params.get('document_class')||'';
+let selectedRoute=['B-NORM','C-STRUCT'].includes(params.get('route'))?params.get('route'):'';
 
 function effectiveClass(row){return row.review_profile?.primary_document_class||row.document_class||'unclassified'}
 function routeMatch(row){return !selectedRoute||(row.routes||[]).includes(selectedRoute)}
 function contextRows(){return articles.filter(row=>(!selectedClass||effectiveClass(row)===selectedClass)&&routeMatch(row))}
-function syncDomainUrl(){const params=new URLSearchParams();if(selected)params.set('domain',selected);if(selectedClass)params.set('document_class',selectedClass);if(selectedRoute)params.set('route',selectedRoute);history.replaceState(null,'',`${location.pathname}${params.toString()?`?${params}`:''}`)}
+function syncDomainUrl(){for(const key of [...params.keys()])params.delete(key);if(selected)params.set('domain',selected);if(selectedClass)params.set('document_class',selectedClass);if(selectedRoute)params.set('route',selectedRoute);history.replaceState(null,'',`${location.pathname}${params.toString()?`?${params}`:''}`)}
 function corpusHref(){const next=new URLSearchParams();if(selectedClass)next.set('document_class',selectedClass);return `/articles.html${next.toString()?`?${next}`:''}`}
 
 async function load(){
