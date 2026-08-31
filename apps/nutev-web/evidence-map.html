@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Evidence Map — NutEV</title>
+  <meta name="description" content="Mapa auditável do Tier A por domínio operacional, tipo documental, rota e tempo.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./evidence-map.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
+        <a class="nav-item active" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div>
+        <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Célula vazia significa “nenhum documento mapeado pelo perfil atual”, não ausência de evidência.</div>
+    </aside>
+
+    <main class="main evidence-map-main">
+      <header class="topbar dashboard-topbar">
+        <div><h1>Evidence Map</h1><p>Article 1 · mapa estrutural do Tier A</p></div>
+        <div class="dashboard-actions"><a class="ghost action-link" href="/evidence.html">Evidence Explorer</a><span class="status-pill" id="mapHealth">carregando…</span></div>
+      </header>
+
+      <section class="card project-hero evidence-map-hero">
+        <div><div class="project-eyebrow">DOMAIN × DOCUMENT SHAPE · RANK-BLIND</div><h2>Onde o corpus está concentrado — e onde ainda não há documentos mapeados</h2><p class="project-question">O mapa cruza domínios operacionais com a forma documental detectada. Contagem documental não representa força, certeza ou qualidade da evidência.</p></div>
+      </section>
+
+      <div id="mapState" class="loading dashboard-state">Carregando resumos verificados…</div>
+
+      <section id="mapContent" class="hidden">
+        <section class="card map-controls">
+          <div class="map-view-tabs" id="mapViewTabs" role="tablist" aria-label="Visão do mapa">
+            <button type="button" data-view="matrix" class="active">Matrix</button>
+            <button type="button" data-view="route">Route</button>
+            <button type="button" data-view="timeline">Timeline</button>
+          </div>
+          <div class="map-control-grid">
+            <label>Domínio<select id="mapDomainFilter"><option value="">Todos</option></select></label>
+            <label>Tipo documental<select id="mapClassFilter"><option value="">Todos</option></select></label>
+            <label>Rota<select id="mapRouteFilter"><option value="">Todas</option><option value="B-NORM">B-NORM</option><option value="C-STRUCT">C-STRUCT</option><option value="OVERLAP">Overlap</option><option value="UNROUTED">Não roteados</option></select></label>
+            <button id="clearMapFilters" class="ghost" type="button">Limpar filtros</button>
+          </div>
+          <div id="mapFilterSummary" class="map-filter-summary"></div>
+        </section>
+
+        <section id="matrixView" class="card map-panel">
+          <div class="panel-head"><div><h2>Domain × document type</h2><p>Clique em uma célula para abrir o recorte correspondente no Evidence Explorer.</p></div></div>
+          <div class="map-scroll"><table class="evidence-matrix" id="evidenceMatrix"><caption class="sr-only">Contagem de documentos por domínio operacional e tipo documental</caption></table></div>
+          <div class="map-legend"><span>Menor concentração</span><span class="heat-swatch s1"></span><span class="heat-swatch s2"></span><span class="heat-swatch s3"></span><span class="heat-swatch s4"></span><span>Maior concentração</span></div>
+        </section>
+
+        <section id="routeView" class="card map-panel hidden">
+          <div class="panel-head"><div><h2>Domain × route</h2><p>B-NORM, C-STRUCT e overlap descrevem navegação. Não equivalem a inclusão científica.</p></div></div>
+          <div id="routeMatrix" class="route-matrix"></div>
+        </section>
+
+        <section id="timelineView" class="card map-panel hidden">
+          <div class="panel-head"><div><h2>Publications over time</h2><p>Distribuição temporal do recorte atual. Não implica tendência causal nem aumento de certeza.</p></div></div>
+          <div id="mapTimeline" class="map-timeline"></div>
+          <div id="mapTimelineAxis" class="timeline-axis"></div>
+        </section>
+
+        <section class="card map-panel">
+          <div class="panel-head"><div><h2>Selected documents</h2><p id="selectedDocumentsMeta">Selecione uma célula ou use os filtros.</p></div><a id="selectedDocumentsOpen" class="panel-link" href="/evidence.html">Abrir no Evidence Explorer →</a></div>
+          <div id="selectedDocuments" class="selected-documents"></div>
+        </section>
+
+        <section class="card map-boundary"><strong>Scientific interpretation boundary</strong><p>“No documents mapped” significa apenas que o perfil determinístico atual não associou documentos àquela combinação. Não equivale a ausência de literatura, ausência de efeito, gap de evidência ou recomendação.</p></section>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./evidence-map.js"></script>
+</body>
+</html>
