@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">
+  <title>Review Control Center — NutEV</title>
+  <meta name="description" content="Centro de controle da revisão humana do NutEV, com separação entre leitura de calibração e screening formal.">
+  <link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./dashboard.css"><link rel="stylesheet" href="./review-control.css">
+</head>
+<body><div class="app-shell">
+  <aside class="sidebar"><div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div><nav>
+    <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+    <div class="nav-group-label">Evidence</div><a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
+    <div class="nav-group-label">Review</div><a class="nav-item active" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+    <div class="nav-group-label">Strategy</div><a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+  </nav><div class="sidebar-note">O Article 1 ainda está em corpus de discovery/calibração. Esta tela não converte roteamento em screening formal.</div></aside>
+  <main class="main dashboard-main review-control-main">
+    <header class="topbar"><div><h1>Review Control Center</h1><p>Governança da leitura humana e prontidão para screening científico.</p></div><span id="reviewHealth" class="status-pill">carregando…</span></header>
+    <section class="card project-hero"><div><div class="project-eyebrow">HUMAN REVIEW · FAIL-CLOSED</div><h2>Calibration now. Formal screening only after the formal gate.</h2><p class="project-question">O NutEV mantém separadas a leitura humana do corpus operacional e as decisões científicas finais que podem gerar eventos de screening/PRISMA.</p></div></section>
+    <div id="reviewState" class="loading dashboard-state">Carregando estado canônico…</div>
+    <section id="reviewContent" class="hidden">
+      <div id="reviewKpis" class="kpi-grid"></div>
+      <div class="review-control-grid">
+        <section class="card dashboard-card"><div class="panel-head"><div><h2>Current reading workspace</h2><p>Filas rank-blind disponíveis para calibração, exploração e taxonomia.</p></div><a href="/review-routes.html" class="panel-link">Abrir rotas →</a></div><div id="calibrationStatus"></div></section>
+        <section class="card dashboard-card"><div class="panel-head"><div><h2>Formal screening readiness</h2><p>Todos os requisitos precisam estar satisfeitos antes de habilitar decisões de artigo.</p></div></div><div id="screeningGates" class="review-gates"></div></section>
+        <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Canonical screening contract</h2><p>O fluxo atual importa somente decisões finais já resolvidas após revisão/adjudicação externa.</p></div></div><div class="contract-flow"><span>ReviewerDossier</span><b>→</b><span>human review</span><b>→</b><span>agreement / adjudication</span><b>→</b><span>final ScreeningDecision</span><b>→</b><span>scientific events</span></div><div class="locked-action"><strong id="formalReviewLabel">Formal article screening locked</strong><p id="formalReviewReason"></p><button type="button" disabled>Start formal screening</button></div></section>
+        <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>What is intentionally not available</h2><p>Evita que uma interface bonita ultrapasse o contrato metodológico.</p></div></div><div class="boundary-grid"><div><strong>Reviewer-level votes</strong><span>Não implementados para screening de artigos.</span></div><div><strong>Conflict/adjudication UI</strong><span>Não implementada para artigos.</span></div><div><strong>Automatic inclusion</strong><span>Proibida.</span></div><div><strong>PRISMA from route counts</strong><span>Proibido.</span></div></div></section>
+      </div>
+    </section>
+  </main>
+</div><script type="module" src="./review-control.js"></script></body></html>
