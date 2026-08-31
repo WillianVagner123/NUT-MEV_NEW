@@ -23,9 +23,9 @@ def test_articles_is_first_class_navigation_and_detail_panel() -> None:
 def test_articles_frontend_uses_paged_api_not_jsonl_corpus() -> None:
     app = (WEB / "articles.js").read_text(encoding="utf-8")
     css = (WEB / "articles.css").read_text(encoding="utf-8")
-    assert "params.set('limit','50')" in app
+    assert "params.set('limit', '50')" in app
     assert "fetch(`/api/articles?" in app
-    assert "fetch(`/api/articles/${encodeURIComponent(documentId)}`" in app
+    assert "fetchJson(`/api/articles/${encodeURIComponent(documentId)}`)" in app
     assert "next_cursor" in app
     assert "result_bundles" in app
     assert "evidence_excerpts" in app

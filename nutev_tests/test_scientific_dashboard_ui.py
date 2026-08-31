@@ -31,9 +31,12 @@ def test_dashboard_has_no_production_count_literals() -> None:
         assert forbidden not in script
 
     assert "/api/articles/status" in script
-    assert "/agent-context/article1/SEARCH_STATE.json" in script
-    assert "/agent-context/article1/ARTICLE_SUMMARIES.jsonl" in script
+    assert "/api/dashboard/overview" in script
+    assert "/api/timeline" in script
     assert "/api/radar" in script
+
+    # Aggregation is server-side: the dashboard must not download the context bundle itself.
+    assert "ARTICLE_SUMMARIES.jsonl" not in script
 
 
 def test_evidence_and_review_pages_use_rank_blind_agent_context() -> None:
