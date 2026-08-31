@@ -45,7 +45,8 @@ def test_evidence_and_review_pages_use_rank_blind_agent_context() -> None:
         assert "reference_rank" not in script
         assert "reference_score" not in script
         assert "machine_relevance_score" not in script
-        assert "full_text" not in script.casefold() or "full_text_status" not in script
+        assert "verbatim_excerpt" not in script
+        assert "/api/articles/" not in script
 
 
 def test_visible_guardrails_preserve_scientific_meaning() -> None:
@@ -55,7 +56,7 @@ def test_visible_guardrails_preserve_scientific_meaning() -> None:
 
     assert "Discovery ≠ busca formal" in home
     assert "rota ≠ inclusão" in home
-    assert "não produzem inclusão" in review
+    assert "Não produzem inclusão" in review
     assert "Não equivalem a decisão de elegibilidade" in evidence
 
 
