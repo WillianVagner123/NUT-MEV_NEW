@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Review Routes — NutEV</title>
+  <meta name="description" content="Filas de leitura B-NORM e C-STRUCT do Article 1, rank-blind e sem decisões de elegibilidade.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./articles.css">
+  <link rel="stylesheet" href="./review-routes.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div>
+        <a class="nav-item active" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">B-NORM e C-STRUCT são filas de leitura. Não produzem inclusão, exclusão, RoB, certeza, recomendação ou PRISMA.</div>
+    </aside>
+    <main class="main dashboard-main">
+      <header class="topbar"><div><h1>Review Routes</h1><p>Leia o núcleo normativo e estrutural sem expor Bank rank ou transformar roteamento em screening.</p></div><span class="status-pill" id="routeHealth">carregando…</span></header>
+      <section class="card project-hero"><div><div class="project-eyebrow">ARTICLE 1 · RANK-BLIND HUMAN READING</div><h2>B-NORM × C-STRUCT</h2><p class="project-question">B-NORM concentra documentos normativos; C-STRUCT concentra estruturas de cuidado, competências, literacy, implementação e combinações operacionais. Overlap é permitido.</p></div></section>
+      <div id="routeState" class="loading dashboard-state">Carregando filas verificadas…</div>
+      <section id="routeContent" class="hidden">
+        <div id="routeKpis" class="kpi-grid"></div>
+        <section class="card dashboard-card">
+          <div id="routeTabs" class="route-tabs"><button class="route-tab active" type="button" data-route="B-NORM">B-NORM</button><button class="route-tab" type="button" data-route="C-STRUCT">C-STRUCT</button></div>
+          <div class="panel-head"><div><h2 id="activeRouteTitle">B-NORM</h2><p id="activeRouteMeta"></p></div><a class="panel-link" href="/articles.html">Abrir Corpus →</a></div>
+          <div id="routeClassMix" class="route-info"></div>
+          <div id="routeList" class="route-list"></div>
+          <p id="routeGuardrail" class="small-state"></p>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./review-routes.js"></script>
+</body>
+</html>
