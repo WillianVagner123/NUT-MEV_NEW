@@ -63,6 +63,30 @@ The initial overview includes:
 
 Charts use semantic HTML/CSS and provide numeric labels. No chart is allowed to imply evidence quality from volume.
 
+## Interactive exploration and URL state
+
+The dashboard has a second, read-only analytical layer over the verified Tier A agent context. It can filter the current view by:
+
+- B-NORM/C-STRUCT route;
+- document class;
+- operational domain;
+- source provider;
+- publication year;
+- full-text retrieval status.
+
+These filters affect only the local Tier A visualization and are persisted in the dashboard URL so the analytical view can be refreshed or shared. They do not write to the Workbench and do not create scientific decisions.
+
+Drill-down behavior is explicit and limited to target pages that can represent the requested state safely:
+
+- document class and compatible provider/full-text filters -> Corpus Explorer;
+- operational domain -> Evidence Explorer;
+- B-NORM/C-STRUCT -> Review Routes;
+- publication year -> local dashboard filter only until the server-side Corpus API exposes a canonical year filter.
+
+The Corpus Explorer hydrates its existing server-side controls from supported URL parameters before its first API request. Evidence Explorer and Review Routes also hydrate and preserve their selected `domain` or `route` in the URL.
+
+A click on a chart remains navigation/filtering only. Counts never become evidence-strength, eligibility or inclusion signals.
+
 ## Scientific guardrails
 
 The UI must preserve these boundaries:
