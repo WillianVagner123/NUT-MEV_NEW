@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./articles.css">
+  <link rel="stylesheet" href="./intelligence.css">
 </head>
 <body>
   <div class="app-shell">
@@ -20,15 +21,21 @@
         <div class="nav-group-label">Evidence</div>
         <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
         <a class="nav-item active" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
+        <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
         <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div>
+        <a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a>
+        <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
         <div class="nav-group-label">Strategy</div>
         <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
         <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <a class="nav-item" href="/regional-routes.html"><span class="nav-icon">◐</span><span>Regional routes</span></a>
         <div class="nav-group-label">Validation</div>
         <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
         <div class="nav-group-label">System</div>
         <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
-        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon">◇</span><span>AI Context</span></a>
+        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
       <div class="sidebar-note">O Corpus Explorer carrega páginas filtradas. Tiers, perfis, trechos e rotas são auxiliares operacionais, não conclusões científicas aceitas.</div>
     </aside>
@@ -104,8 +111,39 @@
             <option value="not_attempted">Ainda não buscado</option>
           </select>
         </label>
+        <label>Rota
+          <select id="routeFilter">
+            <option value="all">Todas</option>
+            <option value="B-NORM">B-NORM</option>
+            <option value="C-STRUCT">C-STRUCT</option>
+            <option value="overlap">Overlap</option>
+            <option value="unrouted">Não roteados</option>
+          </select>
+        </label>
+        <label>Domínio operacional
+          <select id="domainFilter"><option value="">Todos</option></select>
+        </label>
+        <label>Status de revisão humana
+          <select id="reviewStatusFilter">
+            <option value="">Todos</option>
+            <option value="NOT_STARTED">Não revisado</option>
+            <option value="IN_REVIEW">Em revisão</option>
+            <option value="REVIEWED">Revisado</option>
+            <option value="CONFLICT">Conflito</option>
+            <option value="ADJUDICATION_REQUIRED">Adjudicação pendente</option>
+            <option value="RESOLVED">Resolvido</option>
+          </select>
+        </label>
+        <label>Ano de
+          <input id="yearFrom" type="number" min="1900" max="2100" inputmode="numeric" placeholder="1990">
+        </label>
+        <label>Ano até
+          <input id="yearTo" type="number" min="1900" max="2100" inputmode="numeric" placeholder="2026">
+        </label>
         <button id="clearFilters" class="ghost" type="button">Limpar</button>
       </section>
+      <div id="activeFilters" class="active-filters"></div>
+      <div id="contextNote" class="state-note hidden"></div>
 
       <section class="articles-summary">
         <div><strong id="articleCount">—</strong><span> artigos no filtro atual</span></div>
