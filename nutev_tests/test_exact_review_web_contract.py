@@ -6,13 +6,13 @@ WEB = ROOT / "apps" / "nutev-web"
 
 
 def test_exact_strategy_ui_is_first_class() -> None:
-    index = (WEB / "index.html").read_text(encoding="utf-8")
+    search = (WEB / "search.html").read_text(encoding="utf-8")
     app = (WEB / "app.js").read_text(encoding="utf-8")
-    assert 'value="exact"' in index
-    assert 'id="strategyId"' in index
-    assert 'id="strategyVersion"' in index
-    assert 'id="runClassSelect"' in index
-    assert 'id="exactQueryBuilder"' in index
+    assert 'value="exact"' in search
+    assert 'id="strategyId"' in search
+    assert 'id="strategyVersion"' in search
+    assert 'id="runClassSelect"' in search
+    assert 'id="exactQueryBuilder"' in search
     assert "strategy?.mode==='exact'" in app
     assert "provider_queries" in app
     assert "Somente bases selecionadas" in app
@@ -47,8 +47,8 @@ def test_pubmed_review_runs_preserve_search_details_and_fail_audit_closed() -> N
 
 
 def test_exact_strategy_styles_are_loaded() -> None:
-    index = (WEB / "index.html").read_text(encoding="utf-8")
+    search = (WEB / "search.html").read_text(encoding="utf-8")
     css = (WEB / "exact-strategy.css").read_text(encoding="utf-8")
-    assert "exact-strategy.css" in index
+    assert "exact-strategy.css" in search
     assert ".exact-query-card" in css
     assert ".exact-meta-grid" in css
