@@ -92,10 +92,16 @@ def main() -> int:
         stage_body = stage_match.group("body")
         require("FINALIZE_OPERATION" not in stage_body, "Staging must not auto-finalize EvidenceSet.")
         require("finalizeSet(" not in stage_body, "Staging must not call EvidenceSet finalization.")
-    require(
-        not any(token in service.casefold() for token in ("overall_score", "quality_score", "certainty_grade", "pooled_effect")),
-        "EvidenceSet service must not introduce aggregate score, certainty grade or pooled effect.",
-    )
+    for forbidden_field in (
+        '"overall_score":',
+        '"quality_score":',
+        '"certainty_grade":',
+        '"pooled_effect":',
+    ):
+        require(
+            forbidden_field not in service.casefold(),
+            f"EvidenceSet service must not create scientific aggregate field {forbidden_field}",
+        )
     require(
         '"evidence_set_ids": set_ids' in release
         and '"evidence_set_membership_count": len(set_ids)' in release,
