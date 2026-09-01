@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>EvidenceSet Construction — NutEV</title>
+  <meta name="description" content="Construção humana de EvidenceSets a partir de claims aceitos e avaliados, sem inferência automática de consenso ou certainty.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./evidence-sets.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
+        <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a><a class="nav-item" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
+        <div class="nav-group-label">Scientific claims</div><a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a><a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a><a class="nav-item active" href="/evidence-sets.html"><span class="nav-icon">▦</span><span>EvidenceSet Construction</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">EvidenceSet = membership humana de claims aceitos e avaliados. Membership não significa agreement, contradiction, certainty, síntese canônica, meta-analysis ou recomendação.</div>
+    </aside>
+
+    <main class="main dashboard-main set-main">
+      <header class="topbar dashboard-topbar"><div><h1>EvidenceSet Construction</h1><p>Evaluated claims · human membership · no automatic clustering</p></div><div class="dashboard-actions"><a href="/claim-appraisal.html" class="ghost" style="text-decoration:none">ClaimEvaluation</a><button id="refreshSets" class="ghost" type="button">Atualizar</button><span id="setsHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">HUMAN CURATION · MEMBERSHIP ≠ CONSENSUS · NO AUTOMATIC CERTAINTY</div><h2>Agrupar claims avaliados sem transformar agrupamento em conclusão científica</h2><p class="project-question">A Fase 18 permite construir conjuntos rastreáveis de EvidenceClaims já aceitos e com ClaimEvaluation finalizada. Nenhum claim é pré-selecionado. O curador escolhe a membership, declara a lente/foco e justifica cada inclusão antes da finalização.</p></div></section>
+
+      <div id="setsState" class="loading dashboard-state">Conectando ao coordenador local…</div>
+
+      <section id="setsContent" class="hidden">
+        <div id="setsKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Stage EvidenceSet draft</h2><p>O draft registra uma proposta de membership. Não cria EvidenceSet canônico.</p></div></div>
+            <label class="set-field"><span>Name</span><input id="setName" maxlength="180" placeholder="Ex.: Food literacy intervention outcomes"></label>
+            <label class="set-field"><span>Lens</span><input id="setLens" maxlength="160" placeholder="Ex.: food_literacy"></label>
+            <label class="set-field"><span>Focus statement</span><textarea id="setFocus" rows="3" maxlength="1200" placeholder="Qual pergunta/foco científico este conjunto organiza?"></textarea></label>
+            <div class="set-scope-grid">
+              <label class="set-field"><span>Domain (optional)</span><input id="scopeDomain" maxlength="500"></label>
+              <label class="set-field"><span>Outcome (optional)</span><input id="scopeOutcome" maxlength="500"></label>
+              <label class="set-field"><span>Population (optional)</span><input id="scopePopulation" maxlength="500"></label>
+              <label class="set-field"><span>Context (optional)</span><input id="scopeContext" maxlength="500"></label>
+            </div>
+            <label class="set-field"><span>Staged by</span><input id="setStagedBy" maxlength="120" placeholder="Nome de quem iniciou o draft"></label>
+            <button id="stageSet" type="button" disabled>Stage EvidenceSet draft</button>
+            <div id="stageSetState" class="small-state">Selecione ao menos um claim avaliado.</div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Construction contract</h2><p>O set organiza membership; ele não resolve o significado científico entre os membros.</p></div></div>
+            <div class="set-semantics">
+              <article><strong>HUMAN SELECTION</strong><p>Claims nunca são selecionados por similaridade, ranking, LLM, cluster ou relação pairwise.</p></article>
+              <article><strong>EVALUATED CLAIMS ONLY</strong><p>Cada membro precisa ter EvidenceClaim aceito, EvidenceRecord válido e ClaimEvaluation finalizada.</p></article>
+              <article><strong>OVERLAP ALLOWED</strong><p>Um claim pode pertencer a mais de um EvidenceSet quando o curador justificar lentes diferentes.</p></article>
+              <article><strong>NO SYNTHESIS YET</strong><p>Um set com um ou vários claims não cria agreement, contradiction, pooled effect, certainty ou recommendation.</p></article>
+            </div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Eligible evaluated claims</h2><p>Nenhum claim vem marcado por padrão. Membership atual é mostrada apenas como contexto.</p></div></div>
+            <div id="eligibleClaims" class="eligible-claims"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>EvidenceSet drafts</h2><p>Para finalizar, justifique cada membership individualmente e confirme as fronteiras científicas.</p></div></div>
+            <div id="setDrafts" class="set-drafts"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Finalized EvidenceSets</h2><p>Registros canônicos de membership/proveniência — não de consenso ou certeza.</p></div></div>
+            <div id="finalizedSets" class="finalized-sets"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 set-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>EvidenceSet membership != agreement · EvidenceSet membership != contradiction · EvidenceSet != certainty/GRADE · EvidenceSet != formal Risk of Bias · EvidenceSet != pooled effect · EvidenceSet != meta-analysis · EvidenceSet != recommendation · EvidenceSet != PRISMA · canonical EvidenceSet record != canonical scientific synthesis.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./evidence-sets.js"></script>
+</body>
+</html>
