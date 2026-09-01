@@ -32,6 +32,8 @@ def run_audit() -> dict[str, Any]:
     quality = _text(WEB / "quality.js")
     intelligence = _text(WEB / "intelligence.js")
     intelligence_html = _text(WEB / "intelligence.html")
+    synthesis_review = _text(WEB / "synthesis-review.js")
+    synthesis_review_html = _text(WEB / "synthesis-review.html")
     master = _json(MASTER)
     draft = _json(QUERY_DRAFT)
 
@@ -42,6 +44,10 @@ def run_audit() -> dict[str, Any]:
         "presentation.js": presentation,
         "quality.js": quality,
         "intelligence.js": intelligence,
+    }
+    all_scientific_frontend = {
+        **read_only_scripts,
+        "synthesis-review.js": synthesis_review,
     }
 
     checks: list[dict[str, Any]] = []
@@ -144,9 +150,70 @@ def run_audit() -> dict[str, Any]:
         and "/api/articles/${encodeURIComponent(documentId)}" in intelligence,
         "Finding inspection must stay lazy instead of shipping the whole Workbench detail corpus.",
     )
-    combined_frontend = "\n".join(read_only_scripts.values())
     check(
-        "No production corpus totals are hardcoded in analytical JS",
+        "Human Synthesis Review stays a noncanonical local draft",
+        "NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1" in synthesis_review
+        and "canonical:false" in synthesis_review
+        and "localStorage.setItem" in synthesis_review
+        and "LOCAL DRAFT · NOT CANONICAL" in synthesis_review_html,
+        "Browser persistence may preserve a draft, but must never present it as canonical scientific state.",
+    )
+    check(
+        "Human Synthesis Review cannot auto-adjudicate relations",
+        "automatic_convergence_divergence:false" in synthesis_review
+        and "human_entered:true" in synthesis_review
+        and all(
+            relation in synthesis_review
+            for relation in (
+                "CONVERGENT",
+                "DIVERGENT",
+                "COMPLEMENTARY",
+                "NOT_COMPARABLE",
+                "UNCLEAR",
+            )
+        ),
+        "Pairwise convergence/divergence labels must originate from explicit human input.",
+    )
+    check(
+        "Human Synthesis Review requires reviewer and rationale",
+        "Informe o nome do revisor antes de salvar." in synthesis_review
+        and "justificativa com pelo menos 20 caracteres" in synthesis_review,
+        "Anonymous or rationale-free pairwise judgments must fail closed.",
+    )
+    check(
+        "Human Synthesis Review uses bounded source-linked details",
+        "DETAIL_BATCH_LIMIT=18" in synthesis_review
+        and "DETAIL_CONCURRENCY=4" in synthesis_review
+        and "/api/articles/${encodeURIComponent(documentId)}" in synthesis_review
+        and "source_sentence_sha256" in synthesis_review,
+        "Human review must use a bounded source-linked packet rather than full-corpus detail loading.",
+    )
+    check(
+        "Human Synthesis Review cannot POST scientific decisions or call external LLMs",
+        "method:'POST'" not in synthesis_review.replace(" ", "")
+        and 'method:"POST"' not in synthesis_review.replace(" ", "")
+        and "api.openai.com" not in synthesis_review
+        and "api.anthropic.com" not in synthesis_review,
+        "Draft decisions remain browser-local/export-only in this phase.",
+    )
+    check(
+        "Human Synthesis export explicitly refuses downstream scientific state changes",
+        all(
+            token in synthesis_review
+            for token in (
+                "accepted_evidence_claims_created:false",
+                "screening_decisions_created:false",
+                "risk_of_bias_assessed:false",
+                "certainty_assessed:false",
+                "prisma_event_emitted:false",
+                "formal_search_state_changed:false",
+            )
+        ),
+        "Exporting a human comparison draft must not silently create claims, screening, RoB, certainty or PRISMA state.",
+    )
+    combined_frontend = "\n".join(all_scientific_frontend.values())
+    check(
+        "No production corpus totals are hardcoded in scientific JS",
         "33067" not in combined_frontend and "33839" not in combined_frontend,
         "Production totals must come from runtime data.",
     )
