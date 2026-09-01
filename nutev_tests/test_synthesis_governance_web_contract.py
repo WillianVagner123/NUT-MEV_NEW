@@ -71,3 +71,12 @@ def test_registry_listing_does_not_send_full_brief_bodies() -> None:
     assert "_artifact_path" not in status_function
     assert '"reviewed_decisions"' not in status_function
     assert '"artifact"' not in status_function
+
+
+def test_dashboard_links_governance_registry_and_keeps_boundary_explicit() -> None:
+    dashboard = read("index.html")
+
+    assert 'href="/synthesis-governance.html"' in dashboard
+    assert "Synthesis Registry" in dashboard
+    assert "Governance Registry" in dashboard
+    assert "governance approval ≠ scientific validation" in dashboard
