@@ -57,11 +57,39 @@ The labels are intentionally pairwise and local to the reviewed findings:
 - `NOT_COMPARABLE` is not an exclusion decision;
 - `UNCLEAR` is a valid review outcome and is not silently resolved by machine inference.
 
+## Context fingerprint
+
+A stable `search_id` and Agent Context schema version do not by themselves prove that the current Workbench is the same materialization that was reviewed.
+
+The review workspace therefore derives a deterministic context source object from safe `SEARCH_STATE.json` fields:
+
+```text
+search_id
+context_version
+question
+workbench database SHA-256
+Article 1 route manifest SHA-256
+review-profile version
+agent article-summary count
+```
+
+The SHA-256 of this object is the `context_fingerprint`.
+
+This is a context-binding mechanism, not a scientific-validation score.
+
 ## Local draft persistence
 
-Draft decisions are stored in browser `localStorage` under a key scoped to the Article 1 `search_id` and Agent Context version.
+Draft decisions are stored in browser `localStorage` under a key scoped to:
 
-This persistence exists only to let the reviewer continue the current browser session/workflow. It is not a canonical scientific registry, server write or repository mutation.
+- Article 1 `search_id`;
+- Agent Context version;
+- the first 16 characters of the current `context_fingerprint`.
+
+A Workbench/route/profile rebuild that changes the fingerprint therefore does not silently reopen decisions saved against a previous materialization.
+
+The stored draft also carries its full `context_fingerprint`, and `loadDraft()` accepts it only when the value exactly matches the current context fingerprint.
+
+This persistence exists only to let the reviewer continue the current browser workflow. It is not a canonical scientific registry, server write or repository mutation.
 
 Changing or clearing browser storage can remove the local draft. Therefore a review that needs to circulate must be exported.
 
@@ -76,6 +104,8 @@ NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1
 The export contains:
 
 - search/context identity;
+- `context_source`;
+- `context_fingerprint`;
 - scientific question;
 - reviewer identity;
 - pairwise decisions;
@@ -85,7 +115,9 @@ The export contains:
 - source snapshots for both findings, including document id, bundle id, source-sentence SHA-256 when available, result text and structured quantitative fields;
 - explicit scientific guardrails.
 
-A deterministic SHA-256 is computed over the scientific content before `generated_at` is added. The digest is stored as `content_sha256` and included in the filename.
+Immediately before export, the workspace recomputes the context fingerprint from the live `SEARCH_STATE.json`. If it differs from the fingerprint captured when the workspace loaded, the export fails closed.
+
+A deterministic SHA-256 is then computed over the scientific content before `generated_at` is added. The digest is stored as `content_sha256` and included in the filename.
 
 The export remains:
 
@@ -93,7 +125,24 @@ The export remains:
 canonical: false
 ```
 
-Exporting the file does not make the judgments canonical. A later governance layer may validate/import reviewed artifacts into a canonical synthesis registry; this phase does not do that.
+Exporting the file does not make the judgments canonical. The downstream Human Synthesis Brief can verify the artifact and present it, but it also remains noncanonical.
+
+## What the hashes do not establish
+
+`context_fingerprint` verifies that the review is bound to the expected materialized context fields.
+
+`content_sha256` verifies consistency of the exported scientific content against the digest stored in the file.
+
+Neither hash proves:
+
+- reviewer authorship;
+- authenticity of reviewer identity;
+- scientific correctness;
+- completeness of the review;
+- evidence quality;
+- certainty.
+
+There is no cryptographic reviewer-signature layer in this phase.
 
 ## Guardrails
 
@@ -102,6 +151,8 @@ The Human Synthesis Review layer must not:
 - infer pairwise relation automatically;
 - save a judgment without reviewer identity;
 - save a judgment without reviewer rationale;
+- reuse a stale local draft after the context fingerprint changes;
+- export after the live context fingerprint changes;
 - treat convergence as certainty;
 - treat divergence as proven contradiction;
 - treat non-comparability as exclusion;

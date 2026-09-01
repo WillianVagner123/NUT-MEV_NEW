@@ -1,7 +1,7 @@
 const REVIEW_VERSION='NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1';
 const DETAIL_BATCH_LIMIT=18;
 const DETAIL_CONCURRENCY=4;
-const state={articles:[],search:null,domain:'',findings:[],anchorId:'',draft:null,detailCache:new Map(),loadingToken:0};
+const state={articles:[],search:null,contextFingerprint:'',domain:'',findings:[],anchorId:'',draft:null,detailCache:new Map(),loadingToken:0};
 const $=selector=>document.querySelector(selector);
 const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const fmt=value=>new Intl.NumberFormat('pt-BR').format(Number(value||0));
@@ -17,14 +17,18 @@ function documentClass(row){return row.review_profile?.primary_document_class||r
 function routes(row){return row.routes||[]}
 function availableDomains(){return DOMAIN_ORDER.filter(domain=>state.articles.some(row=>domains(row).includes(domain)&&Number(row.result_bundle_count||0)>0))}
 function domainRows(domain){return state.articles.filter(row=>domains(row).includes(domain)&&Number(row.result_bundle_count||0)>0)}
-function storageKey(){return `nutev:synthesis-review:${state.search?.search_id||'unknown'}:${state.search?.context_version||'unknown'}`}
+function storageKey(){return `nutev:synthesis-review:${state.search?.search_id||'unknown'}:${state.search?.context_version||'unknown'}:${state.contextFingerprint.slice(0,16)||'context-pending'}`}
 function decisionId(anchorId,candidateId){return [anchorId,candidateId].sort().join('::')}
 
 async function fetchJson(url){const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error(`${url}: HTTP ${response.status}`);return response.json()}
 async function fetchJsonl(url){const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error(`${url}: HTTP ${response.status}`);const text=await response.text();return text.split(/\r?\n/).filter(Boolean).map(JSON.parse)}
 
-function blankDraft(){return {version:REVIEW_VERSION,canonical:false,search_id:state.search?.search_id||null,context_version:state.search?.context_version||null,reviewer:'',decisions:{}}}
-function loadDraft(){try{const raw=localStorage.getItem(storageKey());const parsed=raw?JSON.parse(raw):null;state.draft=parsed?.version===REVIEW_VERSION&&parsed?.canonical===false?parsed:blankDraft()}catch{state.draft=blankDraft()}}
+function stableValue(value){if(Array.isArray(value))return value.map(stableValue);if(value&&typeof value==='object'){const out={};for(const key of Object.keys(value).sort())out[key]=stableValue(value[key]);return out}return value}
+async function sha256(value){const bytes=new TextEncoder().encode(JSON.stringify(stableValue(value)));const digest=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('')}
+function contextFingerprintSource(search){const runtime=search?.runtime||{};return {search_id:search?.search_id||null,context_version:search?.context_version||null,question:search?.question||null,workbench_database_sha256:runtime.workbench?.database_sha256||null,route_manifest_sha256:runtime.article1_routes?.manifest_sha256||null,review_profile_version:runtime.review_profiles?.profile_version||null,agent_article_summaries:runtime.agent_article_summaries??null}}
+
+function blankDraft(){return {version:REVIEW_VERSION,canonical:false,search_id:state.search?.search_id||null,context_version:state.search?.context_version||null,context_fingerprint:state.contextFingerprint||null,reviewer:'',decisions:{}}}
+function loadDraft(){try{const raw=localStorage.getItem(storageKey());const parsed=raw?JSON.parse(raw):null;state.draft=parsed?.version===REVIEW_VERSION&&parsed?.canonical===false&&parsed?.context_fingerprint===state.contextFingerprint?parsed:blankDraft()}catch{state.draft=blankDraft()}}
 function saveDraft(){localStorage.setItem(storageKey(),JSON.stringify(state.draft))}
 
 async function detailFor(documentId){
@@ -73,23 +77,29 @@ async function loadDomain(domain){
   const details=await mapLimited(rows,DETAIL_CONCURRENCY,async row=>findingFromDetail(row,await detailFor(row.document_id)));if(token!==state.loadingToken)return;state.findings=details.filter(Boolean);state.anchorId=state.findings[0]?.document_id||'';renderAnchorOptions();renderAnchor();renderQueue();renderLedger();const params=new URLSearchParams(location.search);if(domain)params.set('domain',domain);history.replaceState(null,'',`${location.pathname}${params.toString()?`?${params}`:''}`)
 }
 
-function stableValue(value){if(Array.isArray(value))return value.map(stableValue);if(value&&typeof value==='object'){const out={};for(const key of Object.keys(value).sort())out[key]=stableValue(value[key]);return out}return value}
-async function sha256(value){const bytes=new TextEncoder().encode(JSON.stringify(stableValue(value)));const digest=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('')}
 async function exportDraft(){
   const reviewer=(state.draft.reviewer||'').trim();if(!reviewer){$('#reviewHealth').textContent='informe o revisor';$('#reviewHealth').className='status-pill bad';$('#reviewerName').focus();return}const decisions=reviewedDecisions();if(!decisions.length){$('#reviewHealth').textContent='nenhuma decisão';$('#reviewHealth').className='status-pill bad';return}
-  const scientificContent={export_type:REVIEW_VERSION,canonical:false,search_id:state.search?.search_id||null,context_version:state.search?.context_version||null,question:state.search?.question||null,reviewer,decisions:decisions.sort((a,b)=>String(a.decision_id).localeCompare(String(b.decision_id))),guardrails:{human_entered_relations:true,automatic_convergence_divergence:false,accepted_evidence_claims_created:false,screening_decisions_created:false,risk_of_bias_assessed:false,certainty_assessed:false,prisma_event_emitted:false,formal_search_state_changed:false}};
-  const contentSha256=await sha256(scientificContent);const payload={...scientificContent,content_sha256:contentSha256,generated_at:new Date().toISOString(),artifact_semantics:'Portable human synthesis-review draft. Export does not make the draft canonical.'};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download=`nutev-human-synthesis-review-${contentSha256.slice(0,12)}.json`;document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);$('#reviewHealth').textContent='rascunho exportado';$('#reviewHealth').className='status-pill ok'
+  const contextSource=contextFingerprintSource(state.search);const contextFingerprint=await sha256(contextSource);if(contextFingerprint!==state.contextFingerprint){$('#reviewHealth').textContent='contexto mudou';$('#reviewHealth').className='status-pill bad';return}
+  const scientificContent={export_type:REVIEW_VERSION,canonical:false,search_id:state.search?.search_id||null,context_version:state.search?.context_version||null,context_fingerprint:contextFingerprint,context_source:contextSource,question:state.search?.question||null,reviewer,decisions:decisions.sort((a,b)=>String(a.decision_id).localeCompare(String(b.decision_id))),guardrails:{human_entered_relations:true,automatic_convergence_divergence:false,accepted_evidence_claims_created:false,screening_decisions_created:false,risk_of_bias_assessed:false,certainty_assessed:false,prisma_event_emitted:false,formal_search_state_changed:false}};
+  const contentSha256=await sha256(scientificContent);const payload={...scientificContent,content_sha256:contentSha256,generated_at:new Date().toISOString(),artifact_semantics:'Portable human synthesis-review draft bound to a verified context fingerprint. Export does not make the draft canonical.'};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download=`nutev-human-synthesis-review-${contentSha256.slice(0,12)}.json`;document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);$('#reviewHealth').textContent='rascunho exportado';$('#reviewHealth').className='status-pill ok'
 }
 
 function clearDraft(){if(!window.confirm('Limpar todas as decisões locais deste contexto? O arquivo exportado, se existir, não será afetado.'))return;localStorage.removeItem(storageKey());state.draft=blankDraft();$('#reviewerName').value='';renderQueue();renderLedger();$('#reviewHealth').textContent='rascunho limpo';$('#reviewHealth').className='status-pill'}
 
 function bindEvents(){
-  $('#reviewDomain').addEventListener('change',event=>loadDomain(event.target.value));$('#anchorFinding').addEventListener('change',event=>{state.anchorId=event.target.value;renderAnchor();renderQueue()});$('#reviewerName').addEventListener('input',event=>{state.draft.reviewer=event.target.value;saveDraft()});$('#adjudicationQueue').addEventListener('click',event=>{const button=event.target.closest('[data-save-comparison]');if(button)saveComparison(button.closest('[data-candidate-id]'))});$('#exportReview').addEventListener('click',exportDraft);$('#clearReview').addEventListener('click',clearDraft)
+  $('#reviewDomain').addEventListener('change',event=>loadDomain(event.target.value));
+  $('#anchorFinding').addEventListener('change',event=>{state.anchorId=event.target.value;renderAnchor();renderQueue()});
+  $('#reviewerName').addEventListener('input',event=>{state.draft.reviewer=event.target.value;saveDraft()});
+  $('#adjudicationQueue').addEventListener('click',event=>{const button=event.target.closest('[data-save-comparison]');if(button)saveComparison(button.closest('[data-candidate-id]'))});
+  $('#exportReview').addEventListener('click',exportDraft);
+  $('#clearReview').addEventListener('click',clearDraft);
 }
 
 async function init(){
-  try{const [articles,search]=await Promise.all([fetchJsonl('/agent-context/article1/ARTICLE_SUMMARIES.jsonl'),fetchJson('/agent-context/article1/SEARCH_STATE.json')]);state.articles=articles;state.search=search;loadDraft();$('#reviewerName').value=state.draft.reviewer||'';$('#reviewQuestion').textContent=search.question||'Article 1 — contexto científico do NutEV';renderDomainOptions();bindEvents();$('#reviewState').className='hidden';$('#reviewContent').classList.remove('hidden');$('#reviewHealth').textContent='rascunho local';$('#reviewHealth').className='status-pill ok';const requested=new URLSearchParams(location.search).get('domain');const domainsList=availableDomains();const domain=domainsList.includes(requested)?requested:domainsList[0]||'';if(domain)await loadDomain(domain);else{$('#comparisonState').textContent='Nenhum domínio com result bundles materializados.';renderLedger()}}
-  catch(error){$('#reviewState').className='error dashboard-state';$('#reviewState').innerHTML=`<strong>Synthesis Review indisponível.</strong><div>${esc(error.message)}</div>`;$('#reviewHealth').textContent='contexto indisponível';$('#reviewHealth').className='status-pill bad'}
+  try{
+    const [articles,search]=await Promise.all([fetchJsonl('/agent-context/article1/ARTICLE_SUMMARIES.jsonl'),fetchJson('/agent-context/article1/SEARCH_STATE.json')]);
+    state.articles=articles;state.search=search;state.contextFingerprint=await sha256(contextFingerprintSource(search));loadDraft();$('#reviewerName').value=state.draft.reviewer||'';$('#reviewQuestion').textContent=search.question||'Article 1 — contexto científico do NutEV';renderDomainOptions();bindEvents();$('#reviewState').className='hidden';$('#reviewContent').classList.remove('hidden');$('#reviewHealth').textContent='rascunho local';$('#reviewHealth').className='status-pill ok';const requested=new URLSearchParams(location.search).get('domain');const domainsList=availableDomains();const domain=domainsList.includes(requested)?requested:domainsList[0]||'';if(domain)await loadDomain(domain);else{$('#comparisonState').textContent='Nenhum domínio com result bundles materializados.';renderLedger()}
+  }catch(error){$('#reviewState').className='error dashboard-state';$('#reviewState').innerHTML=`<strong>Synthesis Review indisponível.</strong><div>${esc(error.message)}</div>`;$('#reviewHealth').textContent='contexto indisponível';$('#reviewHealth').className='status-pill bad'}
 }
 
 init();

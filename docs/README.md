@@ -13,7 +13,8 @@ Esta pasta contém a documentação operacional, técnica, de auditoria, taxonom
 7. [`QUALITY_OBSERVATORY.md`](QUALITY_OBSERVATORY.md) — saúde operacional do Scientific Workspace v2 e death test adversarial, sem confundir qualidade do sistema com qualidade da evidência.
 8. [`SCIENTIFIC_INTELLIGENCE.md`](SCIENTIFIC_INTELLIGENCE.md) — síntese estrutural por domínio, achados candidatos lazy, recorrência de outcomes e filas humanas de convergência/divergência sem decisão científica automática.
 9. [`HUMAN_SYNTHESIS_REVIEW.md`](HUMAN_SYNTHESIS_REVIEW.md) — adjudicação humana pairwise de comparabilidade e relação entre achados, com rascunho local, justificativa obrigatória, proveniência e export SHA-256 não canônico.
-10. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
+10. [`HUMAN_SYNTHESIS_BRIEF.md`](HUMAN_SYNTHESIS_BRIEF.md) — verificação fail-closed de content SHA/context fingerprint e apresentação executiva dos julgamentos humanos, sem transformar integridade em autenticidade ou validade científica.
+11. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
 ## Release, DOI e proveniência
 
@@ -74,7 +75,7 @@ O ranking exporta `reference_rank` global e também classificação/rank taxonô
 
 ## Fronteira de interpretação
 
-O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural e registro de rascunhos de julgamento humano para apoiar revisão científica.
+O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano e apresentação executiva desses julgamentos com verificação de integridade/contexto.
 
 Ele não substitui:
 
@@ -82,6 +83,7 @@ Ele não substitui:
 - avaliação metodológica;
 - avaliação de risco de viés;
 - síntese formal de evidências;
+- autenticação da identidade de revisores;
 - decisão clínica;
 - julgamento humano sobre a pertinência de uma referência.
 

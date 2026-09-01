@@ -105,6 +105,7 @@ jobs:
         run: |
           node --check apps/nutev-web/intelligence.js
           node --check apps/nutev-web/synthesis-review.js
+          node --check apps/nutev-web/synthesis-brief.js
       - name: Install ruff
         run: python -m pip install ruff
       - name: Ruff blocking errors
