@@ -36,6 +36,12 @@ from search_adapter import (
     load_search_run,
     search_evidence,
 )
+from synthesis_governance import (
+    SynthesisGovernanceError,
+    decide_entry,
+    registry_status,
+    stage_brief,
+)
 from validation_adjudication import (
     adjudication_payload,
     finalize_adjudication,
@@ -54,6 +60,7 @@ from validation_server import (
 )
 
 MAX_BODY_BYTES = 256 * 1024
+MAX_GOVERNANCE_BODY_BYTES = 2 * 1024 * 1024
 MAX_SEARCH_JOBS = 100
 _SEARCH_JOBS: dict[str, dict[str, object]] = {}
 _SEARCH_JOBS_LOCK = threading.Lock()
@@ -122,10 +129,11 @@ def _query_strings(query_plan: dict[str, object]) -> dict[str, str]:
         return {}
     output: dict[str, str] = {}
     for provider, value in raw.items():
-        if isinstance(value, dict):
-            query = str(value.get("query") or "").strip()
-        else:
-            query = str(value or "").strip()
+        query = (
+            str(value.get("query") or "").strip()
+            if isinstance(value, dict)
+            else str(value or "").strip()
+        )
         if query:
             output[str(provider)] = query
     return output
@@ -270,13 +278,13 @@ class NutEVHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def _read_json(self) -> dict[str, object]:
+    def _read_json(self, *, max_bytes: int = MAX_BODY_BYTES) -> dict[str, object]:
         raw_length = self.headers.get("Content-Length", "0")
         try:
             length = int(raw_length)
         except ValueError as exc:
             raise ValueError("Content-Length inválido") from exc
-        if length <= 0 or length > MAX_BODY_BYTES:
+        if length <= 0 or length > max_bytes:
             raise ValueError("Payload inválido ou grande demais")
         raw = self.rfile.read(length)
         try:
@@ -299,7 +307,10 @@ class NutEVHandler(SimpleHTTPRequestHandler):
         self._json(
             {
                 "error": "coordinator_local_only",
-                "message": "A coordenação, adjudicação, gold, métricas e lock de decisão só podem ser executados no navegador local do servidor.",
+                "message": (
+                    "Coordenação científica, governance, adjudicação, gold, métricas e lock "
+                    "de decisão só podem ser executados no navegador local do servidor."
+                ),
             },
             HTTPStatus.FORBIDDEN,
         )
@@ -329,8 +340,20 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "canonical_gold_validation": True,
                     "validation_metrics_gate": True,
                     "validation_decision_lock": True,
+                    "synthesis_governance_registry": True,
                 }
             )
+            return
+        if path == "/api/synthesis/governance":
+            if not self._require_loopback():
+                return
+            try:
+                self._json(registry_status())
+            except Exception as exc:
+                self._json(
+                    {"error": "synthesis_governance_status_failed", "message": f"{type(exc).__name__}: {exc}"},
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                )
             return
         if path == "/api/validation/readiness":
             self._json(get_validation_readiness())
@@ -404,11 +427,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 self._json(load_radar_state())
             except RadarDataError as exc:
                 self._json(
-                    {
-                        "status": "invalid",
-                        "error": "radar_data_invalid",
-                        "message": str(exc),
-                    },
+                    {"status": "invalid", "error": "radar_data_invalid", "message": str(exc)},
                     HTTPStatus.CONFLICT,
                 )
             return
@@ -417,11 +436,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 self._json(workbench_status())
             except ArticleWorkbenchDataError as exc:
                 self._json(
-                    {
-                        "status": "invalid",
-                        "error": "article_workbench_invalid",
-                        "message": str(exc),
-                    },
+                    {"status": "invalid", "error": "article_workbench_invalid", "message": str(exc)},
                     HTTPStatus.CONFLICT,
                 )
             return
@@ -445,17 +460,9 @@ class NutEVHandler(SimpleHTTPRequestHandler):
             except FileNotFoundError:
                 self._json(workbench_status())
             except ArticleWorkbenchDataError as exc:
-                status = (
-                    HTTPStatus.BAD_REQUEST
-                    if "cursor" in str(exc).casefold()
-                    else HTTPStatus.CONFLICT
-                )
+                status = HTTPStatus.BAD_REQUEST if "cursor" in str(exc).casefold() else HTTPStatus.CONFLICT
                 self._json(
-                    {
-                        "status": "invalid",
-                        "error": "article_workbench_query_invalid",
-                        "message": str(exc),
-                    },
+                    {"status": "invalid", "error": "article_workbench_query_invalid", "message": str(exc)},
                     status,
                 )
             return
@@ -472,11 +479,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 self._json(workbench_status())
             except ArticleWorkbenchDataError as exc:
                 self._json(
-                    {
-                        "status": "invalid",
-                        "error": "article_workbench_invalid",
-                        "message": str(exc),
-                    },
+                    {"status": "invalid", "error": "article_workbench_invalid", "message": str(exc)},
                     HTTPStatus.CONFLICT,
                 )
             return
@@ -513,12 +516,26 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 query = str(payload.get("query") or "").strip()
                 if not query:
                     raise ValueError("A pergunta de busca não pode ficar vazia.")
-                self._json(
-                    compile_query_plan(query, providers, payload.get("strategy")),
-                    HTTPStatus.OK,
-                )
+                self._json(compile_query_plan(query, providers, payload.get("strategy")), HTTPStatus.OK)
             except ValueError as exc:
                 self._json({"error": "invalid_query_strategy", "message": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        if path in {"/api/synthesis/governance/stage", "/api/synthesis/governance/decide"}:
+            if not self._require_loopback():
+                return
+            try:
+                payload = self._read_json(max_bytes=MAX_GOVERNANCE_BODY_BYTES)
+                result = stage_brief(payload) if path.endswith("/stage") else decide_entry(payload)
+                self._json(result, HTTPStatus.CREATED if path.endswith("/stage") else HTTPStatus.OK)
+            except (ValueError, SynthesisGovernanceError) as exc:
+                self._json({"error": "synthesis_governance_blocked", "message": str(exc)}, HTTPStatus.CONFLICT)
+            except FileNotFoundError as exc:
+                self._json({"error": "synthesis_governance_context_missing", "message": str(exc)}, HTTPStatus.NOT_FOUND)
+            except Exception as exc:
+                self._json(
+                    {"error": "synthesis_governance_failed", "message": f"{type(exc).__name__}: {exc}"},
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                )
             return
         if path == "/api/validation/round/prepare":
             if not self._require_loopback():
