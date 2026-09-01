@@ -190,14 +190,14 @@ def prepare_governed_release(
         from governed_publication_manifest import prepare_publication_manifest
 
         return prepare_publication_manifest(payload, output_root=output_root)
-    if operation in {CLAIM_STAGE_OPERATION, CLAIM_DECIDE_OPERATION}:
-        from evidence_claim_review import decide_claim_candidate, stage_claim_candidates
+    if operation == CLAIM_STAGE_OPERATION:
+        from evidence_claim_review import stage_claim_candidates
 
-        return (
-            stage_claim_candidates(payload, output_root=output_root)
-            if operation == CLAIM_STAGE_OPERATION
-            else decide_claim_candidate(payload, output_root=output_root)
-        )
+        return stage_claim_candidates(payload, output_root=output_root)
+    if operation == CLAIM_DECIDE_OPERATION:
+        from evidence_claim_review_gate import decide_claim_candidate
+
+        return decide_claim_candidate(payload, output_root=output_root)
 
     package = build_governed_release(
         str(payload.get("artifact_id") or ""),
