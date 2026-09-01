@@ -10,7 +10,8 @@ Esta pasta contém a documentação operacional, técnica, de auditoria, taxonom
 4. [`AUDITABILITY_AND_GUARDRAILS.md`](AUDITABILITY_AND_GUARDRAILS.md) — integridade, rastreabilidade, hashes, quarentena e comportamento fail-closed.
 5. [`SEARCH_PROVIDERS.md`](SEARCH_PROVIDERS.md) — providers, limites, credenciais, estados `failed`/`unavailable` e comportamento de cobertura.
 6. [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — limitações conhecidas e interpretação responsável dos outputs.
-7. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
+7. [`QUALITY_OBSERVATORY.md`](QUALITY_OBSERVATORY.md) — saúde operacional do Scientific Workspace v2 e death test adversarial, sem confundir qualidade do sistema com qualidade da evidência.
+8. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
 ## Release, DOI e proveniência
 
