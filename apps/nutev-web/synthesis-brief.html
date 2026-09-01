@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Human Synthesis Brief — NutEV</title>
+  <meta name="description" content="Brief executivo derivado de revisão humana NutEV com verificação local de SHA-256 e contexto, sem inferir certeza ou consenso.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./synthesis-brief.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item active" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a><a class="nav-item" href="/ask.html"><span class="nav-icon">?</span><span>Ask NutEV</span></a>
+        <div class="nav-group-label">Review</div><a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div><a class="nav-item" href="/strategy.html"><span class="nav-icon">⌘</span><span>Strategy Lab</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">O Brief verifica integridade e contexto de um rascunho humano exportado. Verificação de SHA ≠ validação científica; brief ≠ canonical synthesis.</div>
+    </aside>
+
+    <main class="main dashboard-main synthesis-brief-main">
+      <header class="topbar dashboard-topbar"><div><h1>Human Synthesis Brief</h1><p>Integrity-verified review artifact · executive presentation view</p></div><div class="dashboard-actions"><label class="ghost file-action">Importar revisão<input id="reviewFile" type="file" accept="application/json,.json"></label><button id="exportBrief" class="ghost" type="button" disabled>Exportar brief</button><button id="printBrief" class="ghost" type="button" disabled>Print / PDF</button><span class="status-pill" id="briefHealth">aguardando revisão</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">INTEGRITY VERIFIED · HUMAN REVIEW SOURCE · NOT CERTAINTY</div><h2>Executive view for article and scientific presentation</h2><p id="briefQuestion" class="project-question">Carregando contexto atual…</p></div></section>
+
+      <section class="card verification-card">
+        <div class="panel-head"><div><h2>Review artifact verification</h2><p>O arquivo é processado somente no navegador. O brief é liberado apenas quando tipo, SHA-256 e search/context version são compatíveis com o contexto atual.</p></div></div>
+        <div id="verificationGrid" class="verification-grid"></div>
+        <div id="verificationState" class="small-state">Selecione um `NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1` exportado pela Human Synthesis Review.</div>
+      </section>
+
+      <section id="briefContent" class="hidden">
+        <div id="briefKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-12 brief-summary-card"><div class="panel-head"><div><h2>Human-reviewed relationship landscape</h2><p>Resumo descritivo de julgamentos pairwise. Contagem não mede força, certeza, tamanho de efeito ou independência estatística.</p></div></div><div id="relationshipLandscape" class="relationship-landscape"></div></section>
+
+          <section class="card dashboard-card span-5"><div class="panel-head"><div><h2>Domains represented</h2><p>Distribuição das decisões humanas importadas por domínio.</p></div></div><div id="domainReviewCoverage" class="brief-list"></div></section>
+          <section class="card dashboard-card span-7"><div class="panel-head"><div><h2>Comparability profile</h2><p>Como o revisor classificou população, construct/intervenção, outcome e timeframe nos pares revisados.</p></div></div><div id="comparabilityProfile" class="comparability-profile"></div></section>
+
+          <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Reviewed relationships</h2><p>Relações e justificativas humanas com links documentais e snapshots source-linked preservados pelo artefato.</p></div></div><div id="reviewedRelationships" class="reviewed-relationships"></div></section>
+
+          <section class="card dashboard-card span-12 brief-boundary"><div class="panel-head"><div><h2>Presentation boundary</h2><p>Integrity verified ≠ scientifically validated · relationship count ≠ evidence strength · convergent pair ≠ certainty · divergent pair ≠ proven contradiction · imported draft ≠ canonical synthesis · this brief ≠ PRISMA.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./synthesis-brief.js"></script>
+</body>
+</html>
