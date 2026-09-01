@@ -18,9 +18,15 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - O Scientific Workspace death test agora também falha se a synthesis layer reintroduzir ranking, mutações, consenso por recorrência, evidence gap automático ou carregamento detalhado não limitado.
 - Adicionado `/synthesis-review.html` como **Human Synthesis Review**, com adjudicação pairwise explícita de comparabilidade em população, construct/intervenção, outcome e timeframe, seguida de relação humana `CONVERGENT`, `DIVERGENT`, `COMPLEMENTARY`, `NOT_COMPARABLE` ou `UNCLEAR`.
 - Julgamentos humanos exigem identificação do revisor e justificativa mínima antes de serem salvos; nenhuma relação é preselecionada ou inferida automaticamente pelo frontend.
-- O estado da Human Synthesis Review é um rascunho `canonical:false` armazenado somente no navegador, escopado por search/context version, sem POST científico ao servidor e sem mutar PRESS, GF-10, freeze, screening, RoB, certainty ou PRISMA.
-- A exportação `NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1` inclui snapshots source-linked dos achados, decisões humanas e SHA-256 determinístico do conteúdo científico, permanecendo explicitamente não canônica.
-- O death test adversarial passou a bloquear adjudicação automática, revisão anônima/sem justificativa, POST/LLM externo, detalhes não limitados e qualquer export que silenciosamente crie claims, screening, RoB, certainty ou PRISMA.
+- O estado da Human Synthesis Review é um rascunho `canonical:false` armazenado somente no navegador, sem POST científico ao servidor e sem mutar PRESS, GF-10, freeze, screening, RoB, certainty ou PRISMA.
+- A Human Synthesis Review agora deriva `context_fingerprint` determinístico de `search_id`, `context_version`, pergunta, SHA-256 do Workbench, SHA-256 do manifest de rotas, versão de review profile e contagem de Article Summaries; o armazenamento local também é escopado por esse fingerprint para não reutilizar silenciosamente decisões após rebuild do contexto.
+- A exportação `NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1` inclui `context_source`, `context_fingerprint`, snapshots source-linked dos achados, decisões humanas e SHA-256 determinístico do conteúdo científico, permanecendo explicitamente não canônica.
+- O death test adversarial passou a bloquear adjudicação automática, revisão anônima/sem justificativa, POST/LLM externo, detalhes não limitados, ausência de context fingerprint e qualquer export que silenciosamente crie claims, screening, RoB, certainty ou PRISMA.
+- Adicionado `/synthesis-brief.html` como **Human Synthesis Brief**, que importa a revisão humana somente no navegador e libera apresentação/export apenas após validar tipo do artefato, semântica humana, content SHA-256 e correspondência do context fingerprint com o Article 1 atual.
+- O Brief rejeita decisões duplicadas, pares inválidos, snapshots sem bundle/result text e artefatos cujos guardrails não confirmem explicitamente que relações foram human-entered e que nenhum EvidenceClaim, screening, RoB, certainty, PRISMA ou formal-search state foi criado.
+- `NUTEV_HUMAN_SYNTHESIS_BRIEF_V1` permanece `canonical:false`, preserva os julgamentos source-linked, produz SHA-256 próprio e oferece Print/PDF para apresentação executiva sem converter contagens de relações em evidence strength, meta-analysis ou certainty.
+- A documentação/UI agora explicita que SHA-256 verifica consistência/integridade de conteúdo, mas **não prova autoria, autenticidade da identidade do revisor nem validade científica**.
+- A CI passou a executar `node --check` também em `synthesis-brief.js`, e a suíte/death test cobrem a cadeia `Scientific Intelligence -> Human Synthesis Review -> Human Synthesis Brief`.
 
 ### Documentação e governança
 
@@ -34,6 +40,7 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Documentado o contrato do Quality Observatory e do Scientific Workspace death test em `docs/QUALITY_OBSERVATORY.md`.
 - Documentado o contrato da Scientific Intelligence / Synthesis Layer em `docs/SCIENTIFIC_INTELLIGENCE.md`.
 - Documentado o fluxo de adjudicação humana e export não canônico em `docs/HUMAN_SYNTHESIS_REVIEW.md`.
+- Documentado o contrato de verificação, context fingerprint, fronteira criptográfica e export executivo em `docs/HUMAN_SYNTHESIS_BRIEF.md`.
 
 ### Correções pós-v1.0.0 já presentes na main
 
