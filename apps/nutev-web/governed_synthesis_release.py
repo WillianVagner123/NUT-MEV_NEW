@@ -272,6 +272,24 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
     publication = publication_status(output_root=output_root)
     claims = claim_review_status(output_root=output_root)
     evaluations = claim_evaluation_status(output_root=output_root)
+
+    finalized_by_claim = {
+        str(item.get("claim_id") or ""): item
+        for item in evaluations["finalized_evaluations"]
+        if item.get("claim_id")
+    }
+    accepted_claims = []
+    for item in claims["accepted_claims"]:
+        claim_id = str(item.get("claim_id") or "")
+        finalized = finalized_by_claim.get(claim_id)
+        accepted_claims.append(
+            {
+                **item,
+                "claim_evaluation_finalized": finalized is not None,
+                "claim_evaluation_id": finalized.get("evaluation_id") if finalized else None,
+            }
+        )
+
     return {
         "status": "READY",
         "release_type": RELEASE_TYPE,
@@ -287,7 +305,7 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
         "evidence_claim_candidates": claims["candidates"],
         "evidence_claim_candidate_list_truncated": claims["candidate_list_truncated"],
         "accepted_evidence_claim_count": claims["accepted_claim_count"],
-        "accepted_evidence_claims": claims["accepted_claims"],
+        "accepted_evidence_claims": accepted_claims,
         "accepted_evidence_claim_list_truncated": claims["accepted_claim_list_truncated"],
         "claim_evaluation_method": evaluations["appraisal_method"],
         "claim_evaluation_candidate_type": evaluations["evaluation_candidate_type"],
