@@ -50,6 +50,16 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - `NUTEV_GOVERNED_PUBLICATION_MANIFEST_V1` permanece `canonical:false` e explicita que não cria EvidenceClaims aceitos, RoB, certainty, meta-analysis, PRISMA, formal-search mutation, recomendação clínica ou identidade autenticada.
 - Publication manifests são persistidos em `project_output_reference/scientific/publication_manifests/` com manifest integral e record metadata-only; preparação repetida é idempotente pelo manifest content hash.
 - Adicionado `tools/audit_governed_publication_manifest.py`; o CI passa a executar um quarto death test e `node --check` para `synthesis-publication.js`, protegendo a cadeia `Review -> Brief -> Governance -> Release -> Publication Manifest` contra stale publication, claim promotion e perda de provenance.
+- Adicionado `/evidence-claims.html` como **EvidenceClaim Review & Promotion**, a primeira superfície autorizada a criar um `EvidenceClaim` canônico, exclusivamente após revisão humana claim-by-claim de uma citation atômica.
+- Pairwise synthesis statements (`CONVERGENT`, `DIVERGENT`, etc.) permanecem contexto de síntese e são explicitamente `directly_promotable_to_evidence_claim:false`; cada claim candidate deriva de uma única citation/source snapshot ligada a um único `EvidenceRecord`.
+- `ACCEPT` exige reviewer, rationale, statement escrito pelo humano, confirmação de source attribution e confirmação da fronteira científica; o claim statement inicia vazio e o `result_text` não é copiado automaticamente para o campo canônico.
+- Antes de aceitar, o sistema exige que `evidence:{document_id}` exista realmente em `project_output_reference/scientific/evidence_records.jsonl` e que seu `document_id` corresponda à citation; um id apenas derivado não satisfaz o gate.
+- O gate referencial de `ACCEPT` ocorre antes da persistência do review através do coordenador local-only, impedindo que uma tentativa bloqueada por EvidenceRecord ausente deixe um artefato de aceitação ambíguo.
+- `REVISE` é não final; `REJECT` é final sem claim; somente `ACCEPT` cria `NUTEV_CANONICAL_EVIDENCE_CLAIM_RECORD_V1` com `claim_semantics: SOURCE_REPORTED_PROPOSITION` e provenance até manifest/citation/bundle/source sentence.
+- O accepted claim é canônico apenas como registro da proposição source-level aceita: mantém `screening_eligibility_verified:false`, `claim_evaluation_created:false`, `risk_of_bias_assessed:false`, `certainty_assessed:false`, `evidence_set_created:false`, `clinical_recommendation_created:false`, `meta_analysis_performed:false` e `prisma_event_emitted:false`.
+- A decisão de claim revalida novamente Publication Manifest -> Governed Release -> governance/Brief/context no momento da decisão; contexto stale bloqueia ACCEPT/REJECT/REVISE em vez de grandfathering silencioso.
+- A Fase 16 reutiliza os endpoints loopback-only `GET /api/synthesis/releases` e `POST /api/synthesis/releases/prepare`, com operações explícitas `STAGE_EVIDENCE_CLAIM_REVIEW` e `DECIDE_EVIDENCE_CLAIM`; nenhuma nova rota remota de escrita foi criada.
+- Adicionados `nutev_tests/test_evidence_claim_review.py`, `nutev_tests/test_evidence_claim_review_web_contract.py` e `tools/audit_evidence_claim_review.py`; o CI passa a executar um quinto death test e `node --check` para `evidence-claims.js`.
 
 ### Documentação e governança
 
@@ -67,6 +77,7 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Documentado o registry servidor-local, estados de governance, idempotência, revalidação no momento da decisão e fronteira `governance approval != scientific canonization` em `docs/SYNTHESIS_GOVERNANCE_REGISTRY.md`.
 - Documentado o pacote de disseminação governada, persistência/idempotência, revalidação pós-approval e fronteira `governed release != scientific validation` em `docs/GOVERNED_SYNTHESIS_RELEASE.md`.
 - Documentado o publication manifest, citation bundle, statement candidates, reutilização do coordenador local-only e fronteira `publication preparation != EvidenceClaim acceptance` em `docs/GOVERNED_PUBLICATION_MANIFEST.md`.
+- Documentado o gate humano de EvidenceClaim, atomicidade por EvidenceRecord, integridade referencial e fronteira `claim acceptance != validity/certainty/inclusion` em `docs/EVIDENCE_CLAIM_REVIEW.md`.
 
 ### Correções pós-v1.0.0 já presentes na main
 

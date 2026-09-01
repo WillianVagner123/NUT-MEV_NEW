@@ -18,15 +18,16 @@
         <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
         <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
         <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a><a class="nav-item active" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
+        <div class="nav-group-label">Scientific claims</div><a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a>
         <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
       <div class="sidebar-note">Publication Manifest prepara rastreabilidade para escrita. Statement candidate ≠ EvidenceClaim aceito · citation ≠ validade · relation ≠ certainty · manifest ≠ canonical synthesis.</div>
     </aside>
 
     <main class="main dashboard-main publication-main">
-      <header class="topbar dashboard-topbar"><div><h1>Governed Publication Manifest</h1><p>Release revalidation · citation bundle · publication statement candidates</p></div><div class="dashboard-actions"><a href="/synthesis-release.html" class="ghost" style="text-decoration:none">Governed Release</a><button id="refreshPublication" class="ghost" type="button">Atualizar</button><span id="publicationHealth" class="status-pill">verificando…</span></div></header>
+      <header class="topbar dashboard-topbar"><div><h1>Governed Publication Manifest</h1><p>Release revalidation · citation bundle · publication statement candidates</p></div><div class="dashboard-actions"><a href="/synthesis-release.html" class="ghost" style="text-decoration:none">Governed Release</a><a href="/evidence-claims.html" class="ghost" style="text-decoration:none">EvidenceClaim Review</a><button id="refreshPublication" class="ghost" type="button">Atualizar</button><span id="publicationHealth" class="status-pill">verificando…</span></div></header>
 
-      <section class="card project-hero"><div><div class="project-eyebrow">PUBLICATION PREPARATION · NOT CLAIM ACCEPTANCE</div><h2>Preparar escrita rastreável sem automatizar conclusão científica</h2><p class="project-question">O manifest só pode ser criado a partir de um Governed Release persistido e novamente revalidado contra o contexto atual. Cada statement candidate descreve um julgamento humano registrado e aponta para citations source-linked; nenhum statement é promovido automaticamente a EvidenceClaim.</p></div></section>
+      <section class="card project-hero"><div><div class="project-eyebrow">PUBLICATION PREPARATION · NOT CLAIM ACCEPTANCE</div><h2>Preparar escrita rastreável sem automatizar conclusão científica</h2><p class="project-question">O manifest só pode ser criado a partir de um Governed Release persistido e novamente revalidado contra o contexto atual. Cada statement candidate descreve um julgamento humano registrado e aponta para citations source-linked; nenhum statement é promovido automaticamente a EvidenceClaim. A etapa seguinte revisa cada citation individualmente, porque um EvidenceClaim pertence a um único EvidenceRecord.</p></div></section>
 
       <div id="publicationState" class="loading dashboard-state">Conectando aos ledgers locais…</div>
 
@@ -45,8 +46,8 @@
           <section class="card dashboard-card span-7">
             <div class="panel-head"><div><h2>Publication contract</h2><p>O sistema pode descrever julgamentos humanos; ele não pode converter esses julgamentos em verdade científica automaticamente.</p></div></div>
             <div class="publication-semantics">
-              <article><strong>PUBLICATION_STATEMENT_CANDIDATE</strong><p>Frase auditável sobre uma relação humana registrada. Exige edição/autoria humana antes de publicação.</p></article>
-              <article><strong>CITATION BUNDLE</strong><p>Snapshots source-linked com document id, bundle id, result text e identificadores disponíveis. Citation não valida o estudo.</p></article>
+              <article><strong>PUBLICATION_STATEMENT_CANDIDATE</strong><p>Frase auditável sobre uma relação humana registrada. Continua contexto de síntese e não é diretamente promovível para EvidenceClaim atômico.</p></article>
+              <article><strong>CITATION BUNDLE</strong><p>Snapshots source-linked com document id, bundle id, result text e identificadores disponíveis. São as unidades que podem entrar em revisão claim-by-claim; citation não valida o estudo.</p></article>
               <article><strong>FAIL-CLOSED CONTEXT</strong><p>Se o contexto atual não reproduzir o Governed Release, o manifest não é criado.</p></article>
             </div>
           </section>
@@ -65,7 +66,7 @@
             <div id="publicationRecords" class="publication-records"></div>
           </section>
 
-          <section class="card dashboard-card span-12 publication-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>Governed Release != scientific validity · Publication Statement Candidate != accepted EvidenceClaim · citation != study endorsement · CONVERGENT != certainty · DIVERGENT != proven contradiction · manifest != recommendation · manifest != meta-analysis · manifest != PRISMA · no canonical scientific synthesis is created.</p></div></div></section>
+          <section class="card dashboard-card span-12 publication-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>Governed Release != scientific validity · Publication Statement Candidate != accepted EvidenceClaim · pairwise synthesis statement != atomic claim · citation != study endorsement · CONVERGENT != certainty · DIVERGENT != proven contradiction · manifest != recommendation · manifest != meta-analysis · manifest != PRISMA · no canonical scientific synthesis is created.</p></div></div></section>
         </div>
       </section>
     </main>
