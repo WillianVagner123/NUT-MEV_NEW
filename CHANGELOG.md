@@ -4,6 +4,14 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 
 ## [Unreleased]
 
+### Scientific Workspace v2
+
+- Adicionado `/quality.html` como **Quality Observatory** somente-leitura para saúde operacional, proveniência, retrieval, completude de metadados, mapeamento, providers e estado dos gates, sem representar esses sinais como qualidade metodológica da evidência.
+- Corrigida a interpretação do gate PRESS no dashboard: `NOT_YET_RECORDED_AS_PASS` não pode mais ser aceito por correspondência de substring; somente o valor canônico exato `PASS` aprova a apresentação do gate.
+- Adicionado `tools/audit_scientific_workspace_v2.py`, death test adversarial executável para detectar regressões de semântica científica, mutações indevidas, promoção prematura de C4, vazamento de ranking no snapshot, falsa semântica PRISMA e totais de produção hardcoded.
+- O job de CI `audit guardrail contract` passou a executar explicitamente o death test, além do contrato fail-closed de ranking.
+- Adicionados testes específicos para Quality Observatory e para a regressão do parser de PRESS.
+
 ### Documentação e governança
 
 - README principal reescrito a partir do comportamento real da `main`.
@@ -13,6 +21,7 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Documentação de providers alinhada aos perfis `operational` e `deep`.
 - Templates de issue/PR e políticas do repositório alinhados ao escopo atual do Reference Engine.
 - Documentação de segurança corrigida para refletir `project_output_reference` e o fato de que `.env` não é carregado automaticamente.
+- Documentado o contrato do Quality Observatory e do Scientific Workspace death test em `docs/QUALITY_OBSERVATORY.md`.
 
 ### Correções pós-v1.0.0 já presentes na main
 
