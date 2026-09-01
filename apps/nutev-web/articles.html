@@ -9,128 +9,41 @@
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./articles.css">
+  <link rel="stylesheet" href="./article-dossier.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
       <nav>
-        <div class="nav-group-label">Overview</div>
-        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
-        <div class="nav-group-label">Evidence</div>
-        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
-        <a class="nav-item active" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
-        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
-        <div class="nav-group-label">Strategy</div>
-        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
-        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
-        <div class="nav-group-label">Validation</div>
-        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
-        <div class="nav-group-label">System</div>
-        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
-        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon">◇</span><span>AI Context</span></a>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a><a class="nav-item active" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a><a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div><a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div><a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div><a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
       <div class="sidebar-note">O Corpus Explorer carrega páginas filtradas. Tiers, perfis, trechos e rotas são auxiliares operacionais, não conclusões científicas aceitas.</div>
     </aside>
-
     <main class="main articles-main">
-      <header class="topbar">
-        <div>
-          <h1>Corpus Explorer</h1>
-          <p>Explore o banco em escala, filtre o corpus e abra o dossiê sem carregar todos os registros no navegador.</p>
-        </div>
-        <span class="status-pill" id="articleHealth">verificando banco…</span>
-      </header>
-
+      <header class="topbar"><div><h1>Corpus Explorer</h1><p>Explore o banco em escala, filtre o corpus e abra o Scientific Dossier sem carregar todos os registros no navegador.</p></div><span class="status-pill" id="articleHealth">verificando banco…</span></header>
       <section class="article-toolbar card">
-        <label class="article-search">Buscar no banco
-          <input id="articleQuery" type="search" autocomplete="off" placeholder="Título, DOI, PMID, autor, revista, população, outcome…">
-        </label>
-        <label>Prioridade operacional
-          <select id="tierFilter">
-            <option value="">Todos os tiers</option>
-            <option value="A">Tier A · aprofundar primeiro</option>
-            <option value="B">Tier B · alta prioridade</option>
-            <option value="C">Tier C · contexto relevante</option>
-            <option value="D">Tier D · cauda do corpus</option>
-          </select>
-        </label>
-        <label>Ordenar por
-          <select id="sortFilter">
-            <option value="relevance">Prioridade NutEV</option>
-            <option value="newest">Mais recentes</option>
-            <option value="oldest">Mais antigos</option>
-          </select>
-        </label>
-        <label>Fonte
-          <select id="providerFilter">
-            <option value="">Todas</option>
-            <option value="pubmed">PubMed</option>
-            <option value="europepmc">Europe PMC</option>
-            <option value="openalex">OpenAlex</option>
-            <option value="crossref">Crossref</option>
-            <option value="doaj">DOAJ</option>
-            <option value="semantic_scholar">Semantic Scholar</option>
-            <option value="lilacs_bvs_native">LILACS/BVS</option>
-            <option value="scielo_native">SciELO</option>
-          </select>
-        </label>
-        <label>Tipo documental
-          <select id="classFilter">
-            <option value="">Todos</option>
-            <option value="food_based_dietary_guideline">Guia alimentar / FBDG</option>
-            <option value="clinical_practice_guideline">Diretriz clínica</option>
-            <option value="consensus_statement">Consenso</option>
-            <option value="position_statement">Position / scientific statement</option>
-            <option value="framework_model">Framework / modelo operacional</option>
-            <option value="competency_curriculum">Competências / currículo</option>
-            <option value="evidence_synthesis">Síntese de evidência</option>
-            <option value="implementation_evaluation">Implementação / viabilidade</option>
-            <option value="primary_randomized">Ensaio randomizado</option>
-            <option value="primary_observational">Observacional</option>
-            <option value="primary_qualitative">Qualitativo</option>
-            <option value="review">Revisão</option>
-            <option value="guidance">Diretriz / guidance genérica</option>
-            <option value="unclassified">Não classificado</option>
-          </select>
-        </label>
-        <label>Texto completo
-          <select id="fullTextFilter">
-            <option value="">Todos</option>
-            <option value="retrieved">Disponível</option>
-            <option value="partial">Parcial</option>
-            <option value="unavailable">Indisponível</option>
-            <option value="not_retrieved">Não recuperado</option>
-            <option value="not_attempted">Ainda não buscado</option>
-          </select>
-        </label>
+        <label class="article-search">Buscar no banco<input id="articleQuery" type="search" autocomplete="off" placeholder="Título, DOI, PMID, autor, revista, população, outcome…"></label>
+        <label>Prioridade operacional<select id="tierFilter"><option value="">Todos os tiers</option><option value="A">Tier A · aprofundar primeiro</option><option value="B">Tier B · alta prioridade</option><option value="C">Tier C · contexto relevante</option><option value="D">Tier D · cauda do corpus</option></select></label>
+        <label>Ordenar por<select id="sortFilter"><option value="relevance">Prioridade NutEV</option><option value="newest">Mais recentes</option><option value="oldest">Mais antigos</option></select></label>
+        <label>Fonte<select id="providerFilter"><option value="">Todas</option><option value="pubmed">PubMed</option><option value="europepmc">Europe PMC</option><option value="openalex">OpenAlex</option><option value="crossref">Crossref</option><option value="doaj">DOAJ</option><option value="semantic_scholar">Semantic Scholar</option><option value="lilacs_bvs_native">LILACS/BVS</option><option value="scielo_native">SciELO</option></select></label>
+        <label>Tipo documental<select id="classFilter"><option value="">Todos</option><option value="food_based_dietary_guideline">Guia alimentar / FBDG</option><option value="clinical_practice_guideline">Diretriz clínica</option><option value="consensus_statement">Consenso</option><option value="position_statement">Position / scientific statement</option><option value="framework_model">Framework / modelo operacional</option><option value="competency_curriculum">Competências / currículo</option><option value="evidence_synthesis">Síntese de evidência</option><option value="implementation_evaluation">Implementação / viabilidade</option><option value="primary_randomized">Ensaio randomizado</option><option value="primary_observational">Observacional</option><option value="primary_qualitative">Qualitativo</option><option value="review">Revisão</option><option value="guidance">Diretriz / guidance genérica</option><option value="unclassified">Não classificado</option></select></label>
+        <label>Texto completo<select id="fullTextFilter"><option value="">Todos</option><option value="retrieved">Disponível</option><option value="partial">Parcial</option><option value="unavailable">Indisponível</option><option value="not_retrieved">Não recuperado</option><option value="not_attempted">Ainda não buscado</option></select></label>
         <button id="clearFilters" class="ghost" type="button">Limpar</button>
       </section>
-
-      <section class="articles-summary">
-        <div><strong id="articleCount">—</strong><span> artigos no filtro atual</span></div>
-        <div class="scale-note">50 por página · filtro/ordenação no servidor · dossiê sob demanda</div>
-      </section>
-
+      <section class="articles-summary"><div><strong id="articleCount">—</strong><span> artigos no filtro atual</span></div><div class="scale-note">50 por página · filtro/ordenação no servidor · dossiê sob demanda</div></section>
       <div id="workbenchState" class="workbench-state">Carregando índice…</div>
-
-      <section id="workbenchContent" class="workbench-layout hidden">
-        <div class="article-list-shell card">
-          <div id="articleList" class="article-list"></div>
-          <div class="load-more-row"><button id="loadMore" class="ghost hidden" type="button">Carregar mais 50</button></div>
-        </div>
-        <aside class="article-detail card" id="articleDetail">
-          <div class="detail-placeholder"><div class="placeholder-mark">▤</div><strong>Selecione um artigo</strong><p>O dossiê abre aqui sem tirar você da lista.</p></div>
-        </aside>
-      </section>
-
-      <section class="card workbench-guardrail">
-        <strong>Scientific interpretation boundary</strong>
-        <p>Tier A/B/C/D, rank, score, classe documental e aderência são auxiliares de leitura/processamento. Não equivalem a inclusão, qualidade metodológica, risco de viés, certeza, causalidade ou recomendação. Resultados, perfis e trechos continuam candidatos rastreáveis.</p>
-      </section>
+      <section id="workbenchContent" class="workbench-layout hidden"><div class="article-list-shell card"><div id="articleList" class="article-list"></div><div class="load-more-row"><button id="loadMore" class="ghost hidden" type="button">Carregar mais 50</button></div></div><aside class="article-detail card" id="articleDetail"><div class="detail-placeholder"><div class="placeholder-mark">▤</div><strong>Selecione um artigo</strong><p>O Scientific Dossier abre aqui sem tirar você da lista.</p></div></aside></section>
+      <section class="card workbench-guardrail"><strong>Scientific interpretation boundary</strong><p>Tier A/B/C/D, rank, score, classe documental e aderência são auxiliares de leitura/processamento. Não equivalem a inclusão, exclusão, qualidade metodológica, risco de viés, certeza, causalidade ou recomendação. Result bundles e excerpts são candidatos rastreáveis e não equivalem a EvidenceClaim aceito.</p></section>
     </main>
   </div>
   <script src="./corpus-url-state.js"></script>
   <script type="module" src="./articles.js"></script>
+  <script type="module" src="./article-dossier.js"></script>
 </body>
 </html>
