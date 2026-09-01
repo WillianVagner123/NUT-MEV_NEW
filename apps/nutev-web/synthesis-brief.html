@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>Human Synthesis Brief — NutEV</title>
-  <meta name="description" content="Brief executivo derivado de revisão humana NutEV com verificação local de SHA-256 e contexto, sem inferir certeza ou consenso.">
+  <meta name="description" content="Brief executivo derivado de revisão humana NutEV com verificação local de SHA-256 e contexto, sem inferir certeza, autoria ou consenso.">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./synthesis-brief.css">
@@ -21,7 +21,7 @@
         <div class="nav-group-label">Strategy</div><a class="nav-item" href="/strategy.html"><span class="nav-icon">⌘</span><span>Strategy Lab</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
         <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
-      <div class="sidebar-note">O Brief verifica integridade e contexto de um rascunho humano exportado. Verificação de SHA ≠ validação científica; brief ≠ canonical synthesis.</div>
+      <div class="sidebar-note">O Brief verifica consistência e integridade de um rascunho humano exportado. SHA-256 não prova autoria/autenticidade, não valida cientificamente o julgamento e não cria canonical synthesis.</div>
     </aside>
 
     <main class="main dashboard-main synthesis-brief-main">
@@ -30,9 +30,9 @@
       <section class="card project-hero"><div><div class="project-eyebrow">INTEGRITY VERIFIED · HUMAN REVIEW SOURCE · NOT CERTAINTY</div><h2>Executive view for article and scientific presentation</h2><p id="briefQuestion" class="project-question">Carregando contexto atual…</p></div></section>
 
       <section class="card verification-card">
-        <div class="panel-head"><div><h2>Review artifact verification</h2><p>O arquivo é processado somente no navegador. O brief é liberado apenas quando tipo, SHA-256 e search/context version são compatíveis com o contexto atual.</p></div></div>
+        <div class="panel-head"><div><h2>Review artifact verification</h2><p>O arquivo é processado somente no navegador. O brief é liberado apenas quando tipo, content SHA-256, context fingerprint e search/context state são compatíveis com o contexto atual. O hash detecta alteração do conteúdo; não autentica a identidade do revisor.</p></div></div>
         <div id="verificationGrid" class="verification-grid"></div>
-        <div id="verificationState" class="small-state">Selecione um `NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1` exportado pela Human Synthesis Review.</div>
+        <div id="verificationState" class="small-state">Selecione um `NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1` exportado pela Human Synthesis Review deste contexto.</div>
       </section>
 
       <section id="briefContent" class="hidden">
@@ -43,9 +43,9 @@
           <section class="card dashboard-card span-5"><div class="panel-head"><div><h2>Domains represented</h2><p>Distribuição das decisões humanas importadas por domínio.</p></div></div><div id="domainReviewCoverage" class="brief-list"></div></section>
           <section class="card dashboard-card span-7"><div class="panel-head"><div><h2>Comparability profile</h2><p>Como o revisor classificou população, construct/intervenção, outcome e timeframe nos pares revisados.</p></div></div><div id="comparabilityProfile" class="comparability-profile"></div></section>
 
-          <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Reviewed relationships</h2><p>Relações e justificativas humanas com links documentais e snapshots source-linked preservados pelo artefato.</p></div></div><div id="reviewedRelationships" class="reviewed-relationships"></div></section>
+          <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Reviewed relationships</h2><p>Relações e justificativas humanas com snapshots source-linked, bundle IDs e proveniência preservados pelo artefato importado.</p></div></div><div id="reviewedRelationships" class="reviewed-relationships"></div></section>
 
-          <section class="card dashboard-card span-12 brief-boundary"><div class="panel-head"><div><h2>Presentation boundary</h2><p>Integrity verified ≠ scientifically validated · relationship count ≠ evidence strength · convergent pair ≠ certainty · divergent pair ≠ proven contradiction · imported draft ≠ canonical synthesis · this brief ≠ PRISMA.</p></div></div></section>
+          <section class="card dashboard-card span-12 brief-boundary"><div class="panel-head"><div><h2>Presentation boundary</h2><p>Integrity verified ≠ scientifically validated · SHA-256 ≠ authorship/authenticity · relationship count ≠ evidence strength · convergent pair ≠ certainty · divergent pair ≠ proven contradiction · imported draft ≠ canonical synthesis · this brief ≠ PRISMA.</p></div></div></section>
         </div>
       </section>
     </main>
