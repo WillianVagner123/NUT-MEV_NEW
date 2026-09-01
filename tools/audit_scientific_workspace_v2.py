@@ -34,6 +34,8 @@ def run_audit() -> dict[str, Any]:
     intelligence_html = _text(WEB / "intelligence.html")
     synthesis_review = _text(WEB / "synthesis-review.js")
     synthesis_review_html = _text(WEB / "synthesis-review.html")
+    synthesis_brief = _text(WEB / "synthesis-brief.js")
+    synthesis_brief_html = _text(WEB / "synthesis-brief.html")
     master = _json(MASTER)
     draft = _json(QUERY_DRAFT)
 
@@ -44,6 +46,7 @@ def run_audit() -> dict[str, Any]:
         "presentation.js": presentation,
         "quality.js": quality,
         "intelligence.js": intelligence,
+        "synthesis-brief.js": synthesis_brief,
     }
     all_scientific_frontend = {
         **read_only_scripts,
@@ -90,7 +93,7 @@ def run_audit() -> dict[str, Any]:
             and 'method:"POST"' not in source.replace(" ", "")
             for source in read_only_scripts.values()
         ),
-        "Dashboard, Ask, Strategy, Presentation, Quality and Intelligence are read-only surfaces.",
+        "Dashboard, Ask, Strategy, Presentation, Quality, Intelligence and Brief are read-only server surfaces.",
     )
     check(
         "Ask NutEV has no direct external LLM endpoint",
@@ -189,6 +192,16 @@ def run_audit() -> dict[str, Any]:
         "Human review must use a bounded source-linked packet rather than full-corpus detail loading.",
     )
     check(
+        "Human Synthesis Review is bound to a strong context fingerprint",
+        "contextFingerprintSource" in synthesis_review
+        and "workbench_database_sha256" in synthesis_review
+        and "route_manifest_sha256" in synthesis_review
+        and "parsed?.context_fingerprint===state.contextFingerprint" in synthesis_review
+        and "context_fingerprint:contextFingerprint" in synthesis_review
+        and "context_source:contextSource" in synthesis_review,
+        "Saved/exported human judgments must not silently survive a Workbench/context rebuild.",
+    )
+    check(
         "Human Synthesis Review cannot POST scientific decisions or call external LLMs",
         "method:'POST'" not in synthesis_review.replace(" ", "")
         and 'method:"POST"' not in synthesis_review.replace(" ", "")
@@ -210,6 +223,74 @@ def run_audit() -> dict[str, Any]:
             )
         ),
         "Exporting a human comparison draft must not silently create claims, screening, RoB, certainty or PRISMA state.",
+    )
+    check(
+        "Human Synthesis Brief is noncanonical and fail-closed",
+        "NUTEV_HUMAN_SYNTHESIS_BRIEF_V1" in synthesis_brief
+        and "canonical:false" in synthesis_brief
+        and "if(!allOk){resetBrief" in synthesis_brief
+        and "INTEGRITY VERIFIED · HUMAN REVIEW SOURCE · NOT CERTAINTY" in synthesis_brief_html,
+        "The executive brief may render only after verification and must remain noncanonical.",
+    )
+    check(
+        "Human Synthesis Brief verifies content hash and current context fingerprint",
+        "content_sha256" in synthesis_brief
+        and "contextFingerprintSource" in synthesis_brief
+        and "reviewContextSourceOk" in synthesis_brief
+        and "contextFingerprintOk" in synthesis_brief
+        and "review?.context_fingerprint===state.currentContextFingerprint" in synthesis_brief
+        and "crypto.subtle.digest('SHA-256'" in synthesis_brief,
+        "A review file from another content/context state must remain blocked.",
+    )
+    check(
+        "Human Synthesis Brief validates source human semantics",
+        "validateReviewGuardrails" in synthesis_brief
+        and "validateDecisions" in synthesis_brief
+        and "human_entered_relations===true" in synthesis_brief,
+        "A structurally arbitrary JSON file must not be accepted as a NutEV human-review artifact.",
+    )
+    check(
+        "Human Synthesis Brief does not overclaim SHA-256",
+        "integrity_verification_does_not_prove_authorship_or_authenticity:true" in synthesis_brief
+        and "SHA-256 ≠ authorship/authenticity" in synthesis_brief_html,
+        "Hash verification establishes content consistency, not reviewer identity, authorship or scientific validity.",
+    )
+    check(
+        "Human Synthesis Brief does not convert counts into evidence strength or certainty",
+        "relationship_counts_are_not_evidence_strength:true" in synthesis_brief
+        and "convergent_is_not_certainty:true" in synthesis_brief
+        and "divergent_is_not_proven_contradiction:true" in synthesis_brief
+        and "brief_is_not_meta_analysis:true" in synthesis_brief
+        and "brief_is_not_prisma:true" in synthesis_brief,
+        "The brief is a descriptive presentation of human judgments, not meta-analysis or certainty assessment.",
+    )
+    check(
+        "Human Synthesis Brief cannot create scientific state",
+        all(
+            token in synthesis_brief
+            for token in (
+                "accepted_evidence_claims_created:false",
+                "risk_of_bias_assessed:false",
+                "certainty_assessed:false",
+                "formal_search_state_changed:false",
+            )
+        ),
+        "Brief export must not create EvidenceClaims, RoB, certainty or formal-search state.",
+    )
+    check(
+        "Human Synthesis Brief stays rank-blind and offline from external LLMs",
+        all(
+            term not in synthesis_brief
+            for term in (
+                "reference_rank",
+                "reference_score",
+                "machine_relevance_score",
+                "machine_relevance_band",
+                "api.openai.com",
+                "api.anthropic.com",
+            )
+        ),
+        "Executive presentation must not reintroduce ranking semantics or external model calls.",
     )
     combined_frontend = "\n".join(all_scientific_frontend.values())
     check(
