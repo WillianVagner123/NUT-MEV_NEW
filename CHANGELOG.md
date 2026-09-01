@@ -16,6 +16,11 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Recorrência de outcome é apresentada apenas como rótulo estruturado repetido no lote carregado; convergência/divergência permanece fila de comparação para revisão humana, sem classificação automática de agreement, contradiction ou certainty.
 - Sinais de baixa representação são explicitamente tratados como `corpus coverage signals`, nunca como `evidence gap` automático.
 - O Scientific Workspace death test agora também falha se a synthesis layer reintroduzir ranking, mutações, consenso por recorrência, evidence gap automático ou carregamento detalhado não limitado.
+- Adicionado `/synthesis-review.html` como **Human Synthesis Review**, com adjudicação pairwise explícita de comparabilidade em população, construct/intervenção, outcome e timeframe, seguida de relação humana `CONVERGENT`, `DIVERGENT`, `COMPLEMENTARY`, `NOT_COMPARABLE` ou `UNCLEAR`.
+- Julgamentos humanos exigem identificação do revisor e justificativa mínima antes de serem salvos; nenhuma relação é preselecionada ou inferida automaticamente pelo frontend.
+- O estado da Human Synthesis Review é um rascunho `canonical:false` armazenado somente no navegador, escopado por search/context version, sem POST científico ao servidor e sem mutar PRESS, GF-10, freeze, screening, RoB, certainty ou PRISMA.
+- A exportação `NUTEV_HUMAN_SYNTHESIS_REVIEW_DRAFT_V1` inclui snapshots source-linked dos achados, decisões humanas e SHA-256 determinístico do conteúdo científico, permanecendo explicitamente não canônica.
+- O death test adversarial passou a bloquear adjudicação automática, revisão anônima/sem justificativa, POST/LLM externo, detalhes não limitados e qualquer export que silenciosamente crie claims, screening, RoB, certainty ou PRISMA.
 
 ### Documentação e governança
 
@@ -28,6 +33,7 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Documentação de segurança corrigida para refletir `project_output_reference` e o fato de que `.env` não é carregado automaticamente.
 - Documentado o contrato do Quality Observatory e do Scientific Workspace death test em `docs/QUALITY_OBSERVATORY.md`.
 - Documentado o contrato da Scientific Intelligence / Synthesis Layer em `docs/SCIENTIFIC_INTELLIGENCE.md`.
+- Documentado o fluxo de adjudicação humana e export não canônico em `docs/HUMAN_SYNTHESIS_REVIEW.md`.
 
 ### Correções pós-v1.0.0 já presentes na main
 
