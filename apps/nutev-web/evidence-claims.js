@@ -25,6 +25,7 @@ async function postJson(payload){
 function publicationRecords(){return Array.isArray(state?.publication_records)?state.publication_records:[];}
 function candidates(){return Array.isArray(state?.evidence_claim_candidates)?state.evidence_claim_candidates:[];}
 function acceptedClaims(){return Array.isArray(state?.accepted_evidence_claims)?state.accepted_evidence_claims:[];}
+function finalizedEvaluations(){return Array.isArray(state?.finalized_claim_evaluations)?state.finalized_claim_evaluations:[];}
 
 function renderKpis(){
   const counts=state?.evidence_claim_candidate_counts||{};
@@ -107,14 +108,24 @@ function renderCandidates(){
   $('claimCandidates').innerHTML=rows.length?rows.map(candidateCard).join(''):'<div class="small-empty">Nenhum claim candidate para este filtro.</div>';
 }
 
+function evaluationStatus(claim){
+  if(claim.claim_evaluation_finalized)return {finalized:true,id:claim.claim_evaluation_id||null};
+  const found=finalizedEvaluations().find(item=>item.claim_id===claim.claim_id);
+  return {finalized:Boolean(found),id:found?.evaluation_id||null};
+}
+
 function renderAcceptedClaims(){
   const claims=acceptedClaims();
-  $('acceptedClaims').innerHTML=claims.length?claims.map(claim=>`<article class="accepted-claim">
-    <div><span>Statement</span><strong class="statement">${esc(claim.statement)}</strong></div>
-    <div><span>Claim id</span><strong>${esc(claim.claim_id)}</strong></div>
-    <div><span>EvidenceRecord</span><strong>${esc(claim.evidence_record_id)}</strong></div>
-    <div><span>Evaluation</span><strong>${claim.claim_evaluation_created?'created':'NOT CREATED'}</strong></div>
-  </article>`).join(''):'<div class="small-empty">Nenhum EvidenceClaim canônico aceito ainda.</div>';
+  $('acceptedClaims').innerHTML=claims.length?claims.map(claim=>{
+    const evaluation=evaluationStatus(claim);
+    const evaluationText=evaluation.finalized?`FINALIZED · ${evaluation.id||'id unavailable'}`:'NOT FINALIZED';
+    return `<article class="accepted-claim">
+      <div><span>Statement</span><strong class="statement">${esc(claim.statement)}</strong></div>
+      <div><span>Claim id</span><strong>${esc(claim.claim_id)}</strong></div>
+      <div><span>EvidenceRecord</span><strong>${esc(claim.evidence_record_id)}</strong></div>
+      <div><span>Downstream ClaimEvaluation</span><strong>${esc(evaluationText)}</strong></div>
+    </article>`;
+  }).join(''):'<div class="small-empty">Nenhum EvidenceClaim canônico aceito ainda.</div>';
 }
 
 function render(){renderKpis();renderManifestSelect();renderCandidates();renderAcceptedClaims();}

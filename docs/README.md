@@ -18,7 +18,8 @@ Esta pasta contém a documentação operacional, técnica, de auditoria, taxonom
 12. [`GOVERNED_SYNTHESIS_RELEASE.md`](GOVERNED_SYNTHESIS_RELEASE.md) — pacote de disseminação auditável derivado exclusivamente de entradas `APPROVED_FOR_GOVERNED_USE`, com nova revalidação de fonte/contexto, hash próprio e fronteira explícita entre disseminação governada e inferência científica.
 13. [`GOVERNED_PUBLICATION_MANIFEST.md`](GOVERNED_PUBLICATION_MANIFEST.md) — publication manifest com citation bundle source-linked e `PUBLICATION_STATEMENT_CANDIDATE`, revalidando o Governed Release e impedindo promoção automática para EvidenceClaim aceito.
 14. [`EVIDENCE_CLAIM_REVIEW.md`](EVIDENCE_CLAIM_REVIEW.md) — revisão humana claim-by-claim de citations atômicas, com EvidenceRecord referential-integrity gate e promoção explícita para EvidenceClaim source-level canônico somente após `ACCEPT`.
-15. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
+15. [`CLAIM_EVALUATION_APPRAISAL.md`](CLAIM_EVALUATION_APPRAISAL.md) — appraisal humano claim-level em seis dimensões explícitas, sem score automático, RoB formal, GRADE/certainty, EvidenceSet ou recomendação automática.
+16. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
 ## Release, DOI e proveniência
 
@@ -79,18 +80,20 @@ O ranking exporta `reference_rank` global e também classificação/rank taxonô
 
 ## Fronteira de interpretação
 
-O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano, apresentação executiva desses julgamentos, registry de governance local, preparação auditável de pacotes de disseminação governada, publication manifests com citations source-linked e uma camada explícita de revisão humana para aceitar proposições source-level como `EvidenceClaim`.
+O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano, apresentação executiva desses julgamentos, registry de governance local, preparação auditável de pacotes de disseminação governada, publication manifests com citations source-linked, uma camada explícita de revisão humana para aceitar proposições source-level como `EvidenceClaim` e uma camada posterior de `ClaimEvaluation` humana.
 
 A aceitação de um EvidenceClaim na Fase 16 é estreita: significa que um revisor humano aceitou uma **proposição reportada pela fonte**, vinculada a um `EvidenceRecord` materializado e revalidado. Ela não converte a proposição em verdade científica, não inclui o artigo em uma revisão e não avalia a qualidade da evidência.
+
+A ClaimEvaluation da Fase 17 também é estreita: registra julgamentos humanos separados sobre design appropriateness, internal validity appraisal, directness, precision, applicability e reporting completeness para **um claim**. O método `NUTEV_GENERIC_CLAIM_APPRAISAL_V1` não é RoB 2, ROBINS-I, GRADE nem outro instrumento validado, e não calcula score ou certainty automática.
 
 Ele não substitui:
 
 - triagem científica;
-- avaliação metodológica;
-- avaliação de risco de viés;
+- avaliação metodológica formal por instrumento apropriado;
+- avaliação formal de risco de viés;
 - avaliação de certainty;
 - síntese formal de evidências;
-- autenticação da identidade de revisores, responsáveis de governance, preparadores de release ou responsáveis de publicação;
+- autenticação da identidade de revisores, assessores, responsáveis de governance, preparadores de release ou responsáveis de publicação;
 - decisão clínica;
 - julgamento humano sobre a pertinência de uma referência.
 
@@ -101,6 +104,8 @@ Ele não substitui:
 `NUTEV_GOVERNED_PUBLICATION_MANIFEST_V1` também permanece `canonical:false`. Seus `PUBLICATION_STATEMENT_CANDIDATE` descrevem julgamentos humanos registrados e exigem autoria/edição humana; não são EvidenceClaims aceitos, recomendações, certainty, RoB, meta-analysis ou PRISMA.
 
 `NUTEV_CANONICAL_EVIDENCE_CLAIM_RECORD_V1` é canônico apenas como registro NutEV de uma proposição source-level explicitamente aceita por revisão humana. Um claim aceito continua com `screening_eligibility_verified:false`, `claim_evaluation_created:false`, `risk_of_bias_assessed:false`, `certainty_assessed:false`, `evidence_set_created:false` e `clinical_recommendation_created:false`.
+
+`NUTEV_CANONICAL_CLAIM_EVALUATION_RECORD_V1` é canônico apenas como registro autoritativo do appraisal humano daquele claim. Ele mantém `formal_risk_of_bias_assessed:false`, `risk_of_bias_assessed:false`, `study_validity_determined:false`, `certainty_assessed:false`, `overall_certainty_grade_created:false`, `numeric_appraisal_score_created:false`, `evidence_set_created:false` e `clinical_recommendation_created:false`.
 
 A deduplicação atual é orientada por DOI, PMID, URL e, como fallback, título normalizado. Ela não garante unicidade semântica entre publicações relacionadas.
 
