@@ -34,7 +34,7 @@ POST /api/synthesis/governance/decide
 
 All three routes call the same `_require_loopback()` coordinator guard used by sensitive validation controls.
 
-A remote browser may load the static governance page, but coordinator API calls return `403`. Therefore public deployment does not expose registry state or mutation controls remotely.
+A remote browser may load the static governance page, but coordinator API calls return `403`. Therefore public deployment does not expose registry state or mutation controls remotely. The static page is intentionally non-authoritative unless it can reach the loopback-only coordinator.
 
 The default API JSON-body limit remains 256 KiB. Only the governance stage/decision endpoints accept up to 2 MiB because a source-linked Brief can exceed the generic request size.
 
@@ -159,7 +159,7 @@ canonical_scientific_synthesis_created: false
 reviewer_identity_cryptographically_authenticated: false
 ```
 
-The registry entry itself is canonical only as an **authoritative governance record** (`canonical_registry_record:true`). This is deliberately distinct from canonical scientific synthesis.
+The registry entry itself is canonical only as an **authoritative governance record** (`canonical_registry_record:true`). This is deliberately distinct from canonical scientific synthesis. Governance authority answers “what controlled-use decision was recorded for this artifact?”; it does not answer “what does the evidence prove?”.
 
 ## What REJECTED means
 
