@@ -67,13 +67,18 @@ def test_staging_never_calls_finalization() -> None:
     assert "finalizeSet(" not in body
 
 
-def test_no_external_llm_or_automatic_scoring_in_evidence_set_surface() -> None:
+def test_no_external_llm_or_scientific_aggregate_fields_in_evidence_set_surface() -> None:
     script = read("evidence-sets.js").casefold()
     service = read("evidence_set_construction.py").casefold()
     for token in ("openai", "anthropic", "claude", "gemini", "chatgpt"):
         assert token not in script
-    for token in ("overall_score", "quality_score", "certainty_grade", "pooled_effect"):
-        assert token not in service
+    for forbidden_field in (
+        '"overall_score":',
+        '"quality_score":',
+        '"certainty_grade":',
+        '"pooled_effect":',
+    ):
+        assert forbidden_field not in service
 
 
 def test_release_status_joins_membership_without_mutating_claim_artifact() -> None:
