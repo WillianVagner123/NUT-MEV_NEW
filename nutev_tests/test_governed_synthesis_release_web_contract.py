@@ -69,3 +69,14 @@ def test_release_ledger_is_metadata_only() -> None:
     assert '"records": records' in status_body
     assert '"reviewed_decisions"' not in status_body
     assert '"package":' not in status_body
+
+
+def test_release_is_linked_from_dashboard_and_registry() -> None:
+    dashboard = read("index.html")
+    registry = read("synthesis-governance.html")
+    release = read("synthesis-release.html")
+
+    assert 'href="/synthesis-release.html"' in dashboard
+    assert "Governed Release" in dashboard
+    assert 'href="/synthesis-release.html"' in registry
+    assert 'href="/synthesis-governance.html"' in release
