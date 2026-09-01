@@ -225,7 +225,7 @@ def test_decision_fails_closed_when_context_changes_after_staging(tmp_path: Path
     development_id = _finalized_development(tmp_path)
     staged = stage_recommendation_adoption(_stage_payload(development_id), output_root=tmp_path)
     adoption_id = str(staged["cases"][0]["adoption_id"])
-    _write_search_state(tmp_path, database_sha="a" * 64)
+    _write_search_state(tmp_path, database_sha="f" * 64)
 
     with pytest.raises(SynthesisGovernanceError, match="contexto|Context fingerprint|restage"):
         decide_recommendation_adoption(
