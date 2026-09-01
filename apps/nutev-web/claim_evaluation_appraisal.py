@@ -197,9 +197,7 @@ def _load_accepted_claim(
     return record, dict(claim), candidate, evidence_record
 
 
-def _build_evaluation_candidate(
-    claim_id: str, *, staged_by: str, output_root: Path
-) -> dict[str, Any]:
+def _build_evaluation_candidate(claim_id: str, *, output_root: Path) -> dict[str, Any]:
     record, claim, source_candidate, evidence_record = _load_accepted_claim(
         claim_id, output_root=output_root
     )
@@ -253,15 +251,17 @@ def _build_evaluation_candidate(
         "dimension_definitions": DIMENSIONS,
         "judgment_scale": sorted(JUDGMENTS),
         "assessment_basis_options": sorted(ASSESSMENT_BASES),
-        "staged_by": staged_by,
         "guardrails": {
             "human_appraisal_required": True,
             "numeric_appraisal_score_created": False,
             "automatic_dimension_aggregation_performed": False,
             "formal_external_instrument_applied": False,
             "formal_risk_of_bias_assessed": False,
+            "risk_of_bias_assessed": False,
+            "study_validity_determined": False,
             "certainty_assessed": False,
             "overall_certainty_grade_created": False,
+            "appraisal_dimensions_are_not_certainty": True,
             "evidence_set_created": False,
             "canonical_scientific_synthesis_created": False,
             "clinical_recommendation_created": False,
@@ -295,9 +295,7 @@ def stage_claim_evaluation(
     if not staged_by:
         raise SynthesisGovernanceError("Identifique quem iniciou o ClaimEvaluation")
 
-    candidate = _build_evaluation_candidate(
-        claim_id, staged_by=staged_by, output_root=output_root
-    )
+    candidate = _build_evaluation_candidate(claim_id, output_root=output_root)
     candidate_id = str(candidate.get("candidate_id") or "")
     root = _evaluation_root(output_root)
     candidate_path = _candidate_path(root, candidate_id)
@@ -349,10 +347,7 @@ def _load_evaluation_candidate(
 
 def _revalidate_evaluation_candidate(candidate: Mapping[str, Any], *, output_root: Path) -> None:
     claim_id = str(candidate.get("claim_id") or "").strip()
-    staged_by = str(candidate.get("staged_by") or "").strip()
-    rebuilt = _build_evaluation_candidate(
-        claim_id, staged_by=staged_by, output_root=output_root
-    )
+    rebuilt = _build_evaluation_candidate(claim_id, output_root=output_root)
     if rebuilt.get("content_sha256") != candidate.get("content_sha256"):
         raise SynthesisGovernanceError(
             "ClaimEvaluation candidate não corresponde mais ao EvidenceClaim/source atual; restage necessário"
@@ -472,8 +467,11 @@ def finalize_claim_evaluation(
             "guardrails": {
                 "claim_evaluation_created": True,
                 "formal_risk_of_bias_assessed": False,
+                "risk_of_bias_assessed": False,
+                "study_validity_determined": False,
                 "certainty_assessed": False,
                 "overall_certainty_grade_created": False,
+                "appraisal_dimensions_are_not_certainty": True,
                 "numeric_appraisal_score_created": False,
                 "automatic_dimension_aggregation_performed": False,
                 "formal_external_instrument_applied": False,
@@ -607,7 +605,8 @@ def claim_evaluation_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[
         "finalized_evaluation_list_truncated": len(finalized) > STATUS_LIMIT,
         "scientific_boundary": (
             "ClaimEvaluation records explicit human appraisal dimensions for one accepted EvidenceClaim. "
-            "The generic appraisal is not a validated risk-of-bias instrument, does not calculate a score, "
-            "does not create certainty/GRADE, EvidenceSet synthesis, recommendation, or PRISMA state."
+            "The generic appraisal is not a validated risk-of-bias instrument, does not determine study "
+            "validity, does not calculate a score, and does not create certainty/GRADE, EvidenceSet "
+            "synthesis, recommendation, or PRISMA state."
         ),
     }
