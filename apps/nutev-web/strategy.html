@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Strategy Lab — NutEV</title>
+  <meta name="description" content="Visualização auditável do draft pré-PRESS, rotas, delta tests e readiness da busca formal do Article 1.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./strategy.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a><a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a><a class="nav-item" href="/ask.html"><span class="nav-icon">?</span><span>Ask NutEV</span></a><a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div><a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div><a class="nav-item active" href="/strategy.html"><span class="nav-icon">⌘</span><span>Strategy Lab</span></a><a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div><a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Strategy Lab é leitura e comparação do estado canônico. Não aprova query, não autoriza GF-10 e não executa busca formal.</div>
+    </aside>
+
+    <main class="main dashboard-main strategy-main">
+      <header class="topbar dashboard-topbar"><div><h1>Strategy Lab</h1><p>Article 1 · query architecture, PRESS candidates and formal-search readiness.</p></div><span class="status-pill" id="strategyHealth">carregando draft…</span></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">ARTICLE 1 · PRE-PRESS QUERY ARCHITECTURE</div><h2 id="draftVersion">Query draft</h2><p id="strategyQuestion" class="project-question">Carregando pergunta científica…</p></div><div id="draftStatus" class="hero-statuses"></div></section>
+      <div id="strategyState" class="loading dashboard-state">Carregando fontes canônicas…</div>
+
+      <section id="strategyContent" class="hidden">
+        <div id="strategyReadiness" class="kpi-grid strategy-kpis"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Route architecture</h2><p>B-NORM permanece normativa; C-STRUCT é uma união deduplicada de subrotas. C4 continua candidata PRESS, não aprovada.</p></div><a class="panel-link" href="/press-review.html">Abrir PRESS →</a></div>
+            <div id="routeCards" class="strategy-route-grid"></div>
+          </section>
+
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>B-NORM vocabulary decision</h2><p>Manter baseline, testar variantes sem promoção automática.</p></div></div>
+            <div id="bNormDecision"></div>
+          </section>
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>C-STRUCT vocabulary decision</h2><p>Separar estrutura de ruído de doença, população e desenho.</p></div></div>
+            <div id="cStructDecision"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>PRESS delta-test plan</h2><p>Itens que precisam de avaliação antes do freeze.</p></div><a class="panel-link" href="/review-qa.html">Abrir QA →</a></div>
+            <div id="deltaTests" class="delta-test-grid"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Known provider drafts</h2><p>Strings candidatas registradas; ainda não FORMAL.</p></div></div>
+            <div id="providerDrafts" class="provider-drafts"></div>
+          </section>
+
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>Version state</h2><p>Nenhum histórico fictício é criado.</p></div></div>
+            <div id="versionState" class="strategy-note"></div>
+          </section>
+          <section class="card dashboard-card span-6">
+            <div class="panel-head"><div><h2>Freeze rule</h2><p>A regra canônica permanece fail-closed.</p></div></div>
+            <div id="freezeRule" class="strategy-note"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Scientific boundary</h2><p>Discovery corpus does not validate the formal search · frequency does not imply term inclusion · disease/study-design terms are not promoted from frequency · this page emits no eligibility or PRISMA event.</p></div></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./strategy.js"></script>
+</body>
+</html>
