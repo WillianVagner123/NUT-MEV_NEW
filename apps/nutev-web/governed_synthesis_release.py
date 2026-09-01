@@ -23,6 +23,8 @@ from synthesis_governance import (
 RELEASE_TYPE = "NUTEV_GOVERNED_SYNTHESIS_RELEASE_V1"
 RELEASE_RECORD_TYPE = "NUTEV_GOVERNED_SYNTHESIS_RELEASE_RECORD_V1"
 PUBLICATION_OPERATION = "PREPARE_PUBLICATION_MANIFEST"
+CLAIM_STAGE_OPERATION = "STAGE_EVIDENCE_CLAIM_REVIEW"
+CLAIM_DECIDE_OPERATION = "DECIDE_EVIDENCE_CLAIM"
 _RELEASE_LOCK = threading.RLock()
 
 
@@ -183,10 +185,19 @@ def build_governed_release(
 def prepare_governed_release(
     payload: Mapping[str, Any], *, output_root: Path = DEFAULT_OUTPUT_ROOT
 ) -> dict[str, Any]:
-    if str(payload.get("operation") or "").strip() == PUBLICATION_OPERATION:
+    operation = str(payload.get("operation") or "").strip()
+    if operation == PUBLICATION_OPERATION:
         from governed_publication_manifest import prepare_publication_manifest
 
         return prepare_publication_manifest(payload, output_root=output_root)
+    if operation in {CLAIM_STAGE_OPERATION, CLAIM_DECIDE_OPERATION}:
+        from evidence_claim_review import decide_claim_candidate, stage_claim_candidates
+
+        return (
+            stage_claim_candidates(payload, output_root=output_root)
+            if operation == CLAIM_STAGE_OPERATION
+            else decide_claim_candidate(payload, output_root=output_root)
+        )
 
     package = build_governed_release(
         str(payload.get("artifact_id") or ""),
@@ -244,9 +255,11 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
                     continue
     records.sort(key=lambda item: str(item.get("generated_at") or ""), reverse=True)
 
+    from evidence_claim_review import claim_review_status
     from governed_publication_manifest import publication_status
 
     publication = publication_status(output_root=output_root)
+    claims = claim_review_status(output_root=output_root)
     return {
         "status": "READY",
         "release_type": RELEASE_TYPE,
@@ -255,9 +268,19 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
         "publication_manifest_type": publication["manifest_type"],
         "publication_count": publication["count"],
         "publication_records": publication["records"],
+        "evidence_claim_candidate_type": claims["candidate_type"],
+        "evidence_claim_record_type": claims["canonical_claim_record_type"],
+        "evidence_claim_candidate_count": claims["candidate_count"],
+        "evidence_claim_candidate_counts": claims["candidate_counts"],
+        "evidence_claim_candidates": claims["candidates"],
+        "evidence_claim_candidate_list_truncated": claims["candidate_list_truncated"],
+        "accepted_evidence_claim_count": claims["accepted_claim_count"],
+        "accepted_evidence_claims": claims["accepted_claims"],
+        "accepted_evidence_claim_list_truncated": claims["accepted_claim_list_truncated"],
         "scientific_boundary": (
-            "Release records and publication-manifest records describe governed preparation only. "
-            "They do not create certainty, RoB, meta-analysis, PRISMA, accepted EvidenceClaims, "
-            "recommendations, or canonical synthesis."
+            "Release and publication records remain governed preparation artifacts. Canonical source-level "
+            "EvidenceClaims can only be created downstream by explicit human ACCEPT after source revalidation "
+            "and EvidenceRecord resolution. Claim acceptance is not screening inclusion, RoB, certainty, "
+            "EvidenceSet synthesis, recommendation, meta-analysis, PRISMA, or canonical scientific synthesis."
         ),
     }
