@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>RecommendationCandidate HumanValidation — NutEV</title>
+  <meta name="description" content="Validação humana explícita de RecommendationCandidates com ACCEPT, REJECT ou REVISE sem promoção automática para guideline, certainty ou clinical recommendation.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./recommendation-human-validation.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
+        <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a><a class="nav-item" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
+        <div class="nav-group-label">Scientific claims</div><a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a><a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a><a class="nav-item" href="/evidence-sets.html"><span class="nav-icon">▦</span><span>EvidenceSet Construction</span></a><a class="nav-item" href="/recommendation-candidates.html"><span class="nav-icon">→</span><span>RecommendationCandidate</span></a><a class="nav-item active" href="/recommendation-human-validation.html"><span class="nav-icon">✓</span><span>HumanValidation</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">HumanValidation registra uma decisão humana sobre um RecommendationCandidate. ACCEPT = aceito para o escopo declarado; não significa guideline, certainty/GRADE, formal RoB ou clinical recommendation.</div>
+    </aside>
+
+    <main class="main dashboard-main validation-main">
+      <header class="topbar dashboard-topbar"><div><h1>RecommendationCandidate HumanValidation</h1><p>PENDING → ACCEPT / REJECT / REVISE · explicit human decision</p></div><div class="dashboard-actions"><a href="/recommendation-candidates.html" class="ghost" style="text-decoration:none">RecommendationCandidates</a><button id="refreshValidation" class="ghost" type="button">Atualizar</button><span id="validationHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">HUMAN DECISION · NO AUTO-ACCEPT · ACCEPT ≠ CLINICAL RECOMMENDATION</div><h2>Validar o candidato sem transformar validação humana em certeza científica</h2><p class="project-question">A Fase 20 abre um caso PENDING para cada RecommendationCandidate finalizado e permite uma decisão humana explícita: ACCEPT, REJECT ou REVISE. A decisão fica em um artefato separado; o candidate upstream permanece imutável e com readiness=not_evaluated.</p></div></section>
+
+      <div id="validationState" class="loading dashboard-state">Conectando ao coordenador local…</div>
+
+      <section id="validationContent" class="hidden">
+        <div id="validationKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Finalized RecommendationCandidates</h2><p>Abra manualmente a HumanValidation. Nenhum candidate é aceito, rejeitado ou enviado para revisão automaticamente.</p></div></div>
+            <div id="validationCandidates" class="validation-candidates"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Pending HumanValidation cases</h2><p>Nenhuma decisão vem selecionada por padrão. REVISE exige instruções e nunca edita o candidate automaticamente.</p></div></div>
+            <div id="pendingValidations" class="pending-validations"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Canonical HumanValidation records</h2><p>Registro autoritativo da decisão humana — não recomendação autoritativa nem certainty.</p></div></div>
+            <div id="finalizedValidations" class="finalized-validations"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 validation-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>HumanValidation ACCEPT != clinical recommendation · ACCEPT != guideline recommendation · ACCEPT != certainty/GRADE · HumanValidation != formal Risk of Bias · decision does not change RecommendationCandidate readiness · REVISE does not mutate the candidate · HumanValidation != canonical scientific synthesis · HumanValidation != meta-analysis · HumanValidation != PRISMA.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./recommendation-human-validation.js"></script>
+</body>
+</html>
