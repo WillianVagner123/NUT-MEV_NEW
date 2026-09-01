@@ -16,19 +16,19 @@
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
       <nav>
         <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
-        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a><a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item active" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/ask.html"><span class="nav-icon">?</span><span>Ask NutEV</span></a><a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a><a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item active" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a><a class="nav-item" href="/ask.html"><span class="nav-icon">?</span><span>Ask NutEV</span></a><a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
         <div class="nav-group-label">Review</div><a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
         <div class="nav-group-label">Strategy</div><a class="nav-item" href="/strategy.html"><span class="nav-icon">⌘</span><span>Strategy Lab</span></a><a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
         <div class="nav-group-label">Validation</div><a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
         <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
-      <div class="sidebar-note">Esta tela registra julgamento humano em rascunho local. Nenhuma decisão aqui altera screening, PRESS, GF-10, RoB, certainty ou PRISMA.</div>
+      <div class="sidebar-note">Esta tela registra julgamento humano em rascunho local vinculado ao fingerprint do contexto atual. Nenhuma decisão aqui altera screening, PRESS, GF-10, RoB, certainty ou PRISMA.</div>
     </aside>
 
     <main class="main dashboard-main synthesis-review-main">
       <header class="topbar dashboard-topbar">
         <div><h1>Human Synthesis Review</h1><p>Comparability · convergence/divergence · reviewer rationale</p></div>
-        <div class="dashboard-actions"><button id="exportReview" class="ghost" type="button">Exportar revisão</button><button id="clearReview" class="ghost" type="button">Limpar rascunho</button><span class="status-pill" id="reviewHealth">verificando…</span></div>
+        <div class="dashboard-actions"><a href="/synthesis-brief.html" class="ghost" style="text-decoration:none">Abrir Brief</a><button id="exportReview" class="ghost" type="button">Exportar revisão</button><button id="clearReview" class="ghost" type="button">Limpar rascunho</button><span class="status-pill" id="reviewHealth">verificando…</span></div>
       </header>
 
       <section class="card project-hero"><div><div class="project-eyebrow">HUMAN JUDGMENT · LOCAL DRAFT · NOT CANONICAL</div><h2>Transformar comparação visual em julgamento rastreável</h2><p id="reviewQuestion" class="project-question">Carregando contexto científico…</p></div></section>
@@ -55,12 +55,12 @@
           </section>
 
           <section class="card dashboard-card span-12">
-            <div class="panel-head"><div><h2>Review ledger</h2><p>Decisões humanas salvas localmente neste navegador. O ledger é rascunho e precisa ser exportado para circular como artefato.</p></div></div>
+            <div class="panel-head"><div><h2>Review ledger</h2><p>Decisões humanas salvas localmente neste navegador. O ledger é rascunho, fica vinculado ao context fingerprint atual e precisa ser exportado para circular como artefato.</p></div></div>
             <div id="reviewLedger" class="review-ledger"></div>
           </section>
 
           <section class="card dashboard-card span-12 synthesis-boundary">
-            <div class="panel-head"><div><h2>Interpretation boundary</h2><p>Human relation label ≠ meta-analysis · convergent ≠ certainty · divergent ≠ contradiction proven · not comparable ≠ exclusion · draft ≠ canonical synthesis · this page ≠ PRISMA.</p></div></div>
+            <div class="panel-head"><div><h2>Interpretation boundary</h2><p>Human relation label ≠ meta-analysis · convergent ≠ certainty · divergent ≠ contradiction proven · not comparable ≠ exclusion · draft ≠ canonical synthesis · context fingerprint ≠ scientific validation · this page ≠ PRISMA.</p></div></div>
           </section>
         </div>
       </section>
