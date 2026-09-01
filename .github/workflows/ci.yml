@@ -101,6 +101,8 @@ jobs:
           python-version: "3.12"
       - name: Compile Python source and tools
         run: python -m compileall -q src tools nutev_tests
+      - name: Check Scientific Intelligence JavaScript syntax
+        run: node --check apps/nutev-web/intelligence.js
       - name: Install ruff
         run: python -m pip install ruff
       - name: Ruff blocking errors
