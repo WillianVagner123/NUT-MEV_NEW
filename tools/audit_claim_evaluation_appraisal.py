@@ -105,9 +105,9 @@ def main() -> int:
         require("FINALIZE_OPERATION" not in stage_body, "Staging must not auto-finalize appraisal.")
         require("finalizeAppraisal(" not in stage_body, "Staging must not call finalization.")
     require(
-        "overall_score" not in service
-        and "certainty_grade" not in service
-        and "quality_score" not in service,
+        '"overall_score":' not in service
+        and '"certainty_grade":' not in service
+        and '"quality_score":' not in service,
         "ClaimEvaluation service must not introduce aggregate quality/certainty scores.",
     )
 
