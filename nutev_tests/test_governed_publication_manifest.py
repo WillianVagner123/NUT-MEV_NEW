@@ -15,6 +15,7 @@ if str(WEB) not in sys.path:
 from governed_publication_manifest import (  # noqa: E402
     MANIFEST_TYPE,
     STATEMENT_TYPE,
+    _citation_entry,
     build_publication_manifest,
     prepare_publication_manifest,
     publication_status,
@@ -249,18 +250,21 @@ def test_manifest_rejects_tampered_release_package(tmp_path: Path) -> None:
         )
 
 
-def test_manifest_requires_complete_source_linked_snapshots(tmp_path: Path) -> None:
-    _write_search_state(tmp_path)
-    brief = _brief(tmp_path)
-    brief["reviewed_decisions"][0]["anchor"]["bundle_id"] = ""
-    content = {
-        key: brief[key]
-        for key in brief
-        if key not in {"content_sha256", "generated_at", "artifact_semantics"}
+def test_manifest_requires_complete_source_linked_snapshots() -> None:
+    snapshot = {
+        "document_id": "doi:10.1/a",
+        "title": "Study A",
+        "bundle_id": "",
+        "result_text": "Outcome improved in the intervention group.",
     }
-    brief["content_sha256"] = _digest(content)
-    with pytest.raises(SynthesisGovernanceError, match="result-bundle id"):
-        stage_brief({"actor": "Registry Operator", "artifact": brief}, output_root=tmp_path)
+
+    with pytest.raises(SynthesisGovernanceError, match="Publication citation incompleta"):
+        _citation_entry(
+            snapshot,
+            decision_id="doi:10.1/a::pmid:123456",
+            role="anchor",
+            citation_id="CIT-0001-A",
+        )
 
 
 def test_manifest_requires_publication_owner_and_specific_use(tmp_path: Path) -> None:
