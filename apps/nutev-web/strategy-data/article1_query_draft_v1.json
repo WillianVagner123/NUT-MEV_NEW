@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "draft_type": "NUTEV_ARTICLE1_QUERY_DRAFT_FOR_PRESS",
+  "draft_version": "article1-query-draft-v1",
+  "status": "DRAFT_FOR_PRESS",
+  "formal_gate": {
+    "gate_id": "GF-10",
+    "authorized": false,
+    "guardrail": "This draft must not be executed or reported as a formal systematic-review search until PRESS review, provider-specific syntax review, versioning, and explicit freeze authorization are complete."
+  },
+  "source": {
+    "search_id": "web_20260830T182743+0000_91bde5be",
+    "vocabulary_audit_version": "nutev_article1_vocabulary_audit_v1",
+    "production_vocabulary_audit_sha256": "62c8e76ca02ba8a4a725867e0ae853db6981794e5ef981983a2d316ef99e179f",
+    "topic_registry": "config/nutev/topic_profiles/article1_prefreeze_v1.json",
+    "topic_registry_status": "PREFREEZE"
+  },
+  "question": "Quais parâmetros nutricionais, competências alimentares e contextos sociais da alimentação são atualmente recomendados, estruturados e utilizados por diretrizes e modelos operacionais para orientar avaliação, aconselhamento, prescrição e monitoramento alimentar aplicáveis à Medicina do Estilo de Vida?",
+  "vocabulary_decisions": {
+    "B-NORM": {
+      "decision": "KEEP_BASELINE_ARCHITECTURE",
+      "reason": "The surfaced high-frequency phrases are either already captured by the normative family, field/context labels, organizations, diseases, populations, or geography. None justifies an automatic new mandatory concept.",
+      "keep": ["nutrition", "diet*", "food-based", "dietary pattern*", "guideline*", "guidance", "recommendation*", "consensus", "position statement*", "scientific statement*", "professional statement*", "standard*"],
+      "test_in_press_not_auto_add": [
+        {"term": "food based", "reason": "Orthographic variant of food-based; test whether provider tokenization makes it incrementally useful."},
+        {"term": "healthy eating", "reason": "Conceptually relevant nutrition anchor, but broad and not required by the title-frequency audit."}
+      ],
+      "do_not_add_from_audit": ["clinical practice", "lifestyle medicine", "american college", "type diabetes", "liver disease", "MASLD terminology", "environmental sustainability", "overweight and obese", "South Africa / South African", "organization names", "disease-specific phrases"],
+      "notes": [
+        "clinical practice is already captured when attached to guideline* and does not add a new normative concept.",
+        "lifestyle medicine must not be a mandatory B-NORM filter because the question allows guidance broadly applicable to Lifestyle Medicine even when not branded as Lifestyle Medicine."
+      ]
+    },
+    "C-STRUCT": {
+      "decision": "SPLIT_INTO_SUBROUTES",
+      "reason": "The title audit is dominated by dietary-content, disease, population, and study-design phrases. A single giant structural OR would import discovery-corpus noise. The route is therefore decomposed into care-process, competency/literacy, implementation, and a PRESS-only social-context candidate.",
+      "do_not_add_from_audit": ["dietary patterns", "dietary pattern", "dietary guidelines", "food-based dietary guidelines", "systematic review", "systematic review and meta-analysis", "review and meta-analysis", "randomized controlled", "controlled trial", "controlled trials", "type diabetes", "diabetes mellitus", "metabolic syndrome", "fatty liver disease", "non-alcoholic fatty liver disease", "cardiovascular disease", "overweight and obesity", "children and adolescents", "Mediterranean diet", "physical activity", "risk factors", "organization names"],
+      "press_review_candidates": [
+        {"term": "nutrition interventions", "reason": "Potential operational language but too broad to add without incremental retrieval review."},
+        {"term": "healthy eating", "reason": "Potential anchor/context term, not a structural concept by itself."},
+        {"term": "diet quality", "reason": "Potential outcome/parameter language, but not a structural concept by itself."}
+      ]
+    }
+  },
+  "routes": {
+    "B-NORM": {
+      "status": "CANDIDATE_FOR_PRESS",
+      "logic": "nutrition_anchor AND normative_marker",
+      "blocks": {
+        "nutrition_anchor": ["nutrition", "diet*", "food-based", "dietary pattern*"],
+        "normative_marker": ["guideline*", "guidance", "recommendation*", "consensus", "position statement*", "scientific statement*", "professional statement*", "standard*"]
+      },
+      "known_provider_drafts": {
+        "scopus": "TITLE-ABS-KEY ((nutrition OR diet* OR \"food-based\" OR \"dietary pattern*\") AND (guideline* OR guidance OR recommendation* OR consensus OR \"position statement*\" OR \"scientific statement*\" OR \"professional statement*\" OR standard*))",
+        "web_of_science": "TS=((nutrition OR diet* OR \"food-based\" OR \"dietary pattern*\") AND (guideline* OR guidance OR recommendation* OR consensus OR \"position statement*\" OR \"scientific statement*\" OR \"professional statement*\" OR standard*))"
+      }
+    },
+    "C-STRUCT": {
+      "status": "CANDIDATE_FOR_PRESS",
+      "aggregation": "UNION_AND_DEDUPLICATE_SUBROUTES",
+      "subroutes": {
+        "C1-CARE-PROCESS": {
+          "logic": "professional_nutrition_anchor AND care_structure",
+          "anchor": ["nutrition*", "dietetic*", "dietitian*", "nutritionist*", "lifestyle medicine"],
+          "terms": ["nutrition care process", "nutrition care model*", "nutrition care framework*", "nutrition care pathway*", "nutrition pathway*", "medical nutrition therapy", "diet prescription*", "dietary prescription*", "nutrition prescription*", "food prescription*", "nutrition counseling", "nutrition counselling", "dietetic care", "dietitian-led", "scope of practice", "clinical decision framework*", "model of care"],
+          "press_only_terms": ["meal plan*"]
+        },
+        "C2-COMPETENCY-LITERACY": {
+          "logic": "nutrition_food_professional_anchor AND competency_or_literacy",
+          "anchor": ["nutrition*", "dietitian*", "nutritionist*", "dietetic*", "food", "lifestyle medicine"],
+          "terms": ["food literacy", "nutrition literacy", "culinary literacy", "food skill*", "cooking skill*", "meal planning skill*", "food competenc*", "culinary competenc*", "culinary medicine", "food agency", "food resource management", "meal preparation skill*", "shopping skill*", "nutrition competenc*", "dietitian competenc*", "nutritionist competenc*", "clinical nutrition skill*", "competency framework*", "nutrition counseling skill*", "nutrition counselling skill*", "dietetic competenc*"]
+        },
+        "C3-IMPLEMENTATION": {
+          "logic": "nutrition_practice_anchor AND implementation_structure",
+          "anchor": ["nutrition*", "diet*", "dietary", "nutrition care", "lifestyle medicine"],
+          "terms": ["implementation framework*", "implementation strateg*", "implementation guide*", "implementation toolkit*", "implementation plan*", "implementation model*", "implementation project*", "dissemination framework*", "dissemination strateg*", "guideline implementation", "practice implementation", "quality improvement framework*", "quality improvement strateg*", "monitoring framework*", "monitoring system*", "implementation monitoring", "implementation evaluation"]
+        },
+        "C4-SOCIAL-CONTEXT": {
+          "status": "PRESS_ONLY_CANDIDATE_NOT_APPROVED",
+          "logic": "food_nutrition_anchor AND social_eating_context AND operational_marker",
+          "anchor": ["nutrition*", "diet*", "food", "eating"],
+          "social_context_terms": ["social context*", "social determinant*", "social environment*", "food environment*", "social support", "commensality", "family meal*", "shared meal*"],
+          "operational_marker": ["framework*", "model*", "guideline*", "assessment", "counseling", "counselling", "care process"],
+          "reason": "The research question explicitly includes social eating contexts, but the pre-freeze registry lacks an explicit social-context retrieval subroute. This candidate must be independently stress-tested for noise before adoption."
+        }
+      }
+    }
+  },
+  "generic_stage_terms": {
+    "do_not_use_as_standalone_retrieval_terms": ["dietary assessment", "nutrition assessment", "dietary counseling", "nutrition counseling", "nutrition prescription", "monitoring", "follow-up"],
+    "reason": "These are important extraction/screening concepts but are too generic as standalone retrieval terms. They may be used only inside a constrained structural subroute or as post-retrieval coding dimensions."
+  },
+  "press_plan": {
+    "required_before_freeze": true,
+    "review_items": ["research-question translation", "Boolean and block logic", "database field syntax and truncation", "controlled vocabulary and free-text balance", "spelling and phrase variants", "limits/filters", "known-item and sentinel recovery", "incremental yield for PRESS-only terms", "manual relevance sample of incremental records", "cross-database translation fidelity"],
+    "delta_tests": ["B-NORM baseline vs + food based orthographic variant", "B-NORM baseline vs + healthy eating", "C1 with vs without meal plan*", "C3 implementation route standalone yield and precision sample", "C4 social-context route incremental yield and precision sample"],
+    "freeze_rule": "No provider-specific string becomes FORMAL until the PRESS review record is PASS and GF-10 is explicitly authorized."
+  },
+  "guardrails": {
+    "discovery_corpus_does_not_validate_formal_search": true,
+    "frequency_does_not_imply_term_inclusion": true,
+    "disease_terms_not_promoted_from_frequency": true,
+    "study_design_terms_not_promoted_from_frequency": true,
+    "no_eligibility_decision": true,
+    "no_prisma_event": true,
+    "external_llm_calls": 0
+  }
+}
