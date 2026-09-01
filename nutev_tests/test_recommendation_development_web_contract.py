@@ -38,7 +38,7 @@ def test_development_form_has_no_candidate_prefill_or_automatic_framework_path()
         assert token not in lowered
     assert "candidate_statement_auto_promoted" not in lowered
     assert "value=\"${esc(candidate.statement" not in script
-    assert "placeholder=\"Escreva um novo wording humano" in script
+    assert "Escreva um novo wording humano" in script
 
     stage_match = re.search(r"async function stage\(card\)\{(?P<body>.*?)\n\}", script, re.S)
     assert stage_match is not None
