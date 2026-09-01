@@ -82,7 +82,10 @@ jobs:
             docker tag "$OLD_IMAGE_ID" nutev:rollback
           fi
 
-          docker build -f deploy/hetzner/Dockerfile -t "$IMAGE" .
+          docker build \
+            --build-arg NUTEV_BUILD_COMMIT="$TARGET_SHA" \
+            -f deploy/hetzner/Dockerfile \
+            -t "$IMAGE" .
 
           docker rm -f nutev-preflight >/dev/null 2>&1 || true
           docker run -d \

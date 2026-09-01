@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Article 1 Presentation — NutEV</title>
+  <meta name="description" content="Presentation View v2 do NutEV: pergunta, corpus, evidence landscape, rotas e prontidão da busca formal.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./presentation.css">
+</head>
+<body class="presentation-body">
+  <header class="presentation-toolbar" aria-label="Controles da apresentação">
+    <a href="/" class="presentation-back">← Dashboard</a>
+    <div class="presentation-progress"><span id="slidePosition">1 / 5</span><div><i id="slideProgress"></i></div></div>
+    <div class="presentation-actions">
+      <button id="prevSlide" class="ghost" type="button">Anterior</button>
+      <button id="nextSlide" type="button">Próximo</button>
+      <button id="fullscreen" class="ghost" type="button">Fullscreen</button>
+      <button id="downloadSnapshot" class="ghost" type="button">Snapshot JSON</button>
+      <button id="printPresentation" class="ghost" type="button">Exportar / PDF</button>
+    </div>
+  </header>
+
+  <main id="presentationDeck" class="presentation-deck" aria-live="polite">
+    <section class="presentation-slide active" data-slide="0">
+      <div class="slide-eyebrow">NUTEV EVIDENCE ENGINE · ARTICLE 1</div>
+      <h1 id="presentationQuestion">Carregando pergunta científica…</h1>
+      <p class="slide-lead">Uma visão auditável do processamento da evidência, sem confundir descoberta, roteamento ou recuperação técnica com inclusão científica.</p>
+      <div id="questionStatuses" class="presentation-status-grid"></div>
+      <div class="slide-callout"><strong>Scientific boundary</strong><span>Discovery ≠ formal systematic search · Route ≠ inclusion · Snapshot ≠ PRISMA.</span></div>
+      <footer class="snapshot-footer"></footer>
+    </section>
+
+    <section class="presentation-slide" data-slide="1">
+      <div class="slide-eyebrow">02 · CORPUS</div>
+      <h2>Do banco ao conjunto aprofundado</h2>
+      <p class="slide-lead">O dashboard mostra volume e processamento. Contagem documental não representa força da evidência.</p>
+      <div id="corpusKpis" class="presentation-kpis"></div>
+      <div class="presentation-two-col">
+        <div class="presentation-panel"><h3>Full-text coverage</h3><div id="presentationFulltext"></div></div>
+        <div class="presentation-panel"><h3>Document types</h3><div id="presentationClasses"></div></div>
+      </div>
+      <footer class="snapshot-footer"></footer>
+    </section>
+
+    <section class="presentation-slide" data-slide="2">
+      <div class="slide-eyebrow">03 · EVIDENCE LANDSCAPE</div>
+      <h2>Onde o corpus está mapeado</h2>
+      <p class="slide-lead">Domínios operacionais servem para navegação e síntese futura. Um domínio com poucos documentos não é automaticamente um evidence gap.</p>
+      <div id="presentationDomains" class="domain-presentation"></div>
+      <div class="slide-link-row"><a href="/evidence-map.html">Abrir Evidence Map interativo →</a></div>
+      <footer class="snapshot-footer"></footer>
+    </section>
+
+    <section class="presentation-slide" data-slide="3">
+      <div class="slide-eyebrow">04 · ARTICLE 1 ROUTES</div>
+      <h2>B-NORM × C-STRUCT</h2>
+      <p class="slide-lead">Duas filas complementares para leitura científica. Overlap é esperado e não representa duplicação metodológica.</p>
+      <div id="presentationRoutes" class="route-presentation"></div>
+      <div class="slide-callout"><strong>Route membership</strong><span>É navegação operacional. Não significa inclusão/exclusão, qualidade, certeza ou recomendação.</span></div>
+      <footer class="snapshot-footer"></footer>
+    </section>
+
+    <section class="presentation-slide" data-slide="4">
+      <div class="slide-eyebrow">05 · FORMAL SEARCH READINESS</div>
+      <h2>O que está fechado e o que ainda bloqueia a busca formal</h2>
+      <p class="slide-lead">A apresentação reflete o Search Master. Nenhum botão desta tela autoriza PRESS, GF-10, freeze ou PRISMA.</p>
+      <div id="presentationReadiness" class="readiness-presentation"></div>
+      <div id="presentationNextAction" class="presentation-next-action"></div>
+      <div class="slide-link-row"><a href="/strategy.html">Strategy Lab →</a><a href="/press-review.html">PRESS Workspace →</a></div>
+      <footer class="snapshot-footer"></footer>
+    </section>
+  </main>
+
+  <div id="presentationState" class="presentation-loading">Construindo snapshot verificável…</div>
+  <script type="module" src="./presentation.js"></script>
+</body>
+</html>
