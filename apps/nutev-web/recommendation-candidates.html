@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>RecommendationCandidate Drafting — NutEV</title>
+  <meta name="description" content="Autoria humana de RecommendationCandidates ligados a EvidenceSets finalizados, sem readiness, certainty ou recomendação automática.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./recommendation-candidates.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
+        <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a><a class="nav-item" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
+        <div class="nav-group-label">Scientific claims</div><a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a><a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a><a class="nav-item" href="/evidence-sets.html"><span class="nav-icon">▦</span><span>EvidenceSet Construction</span></a><a class="nav-item active" href="/recommendation-candidates.html"><span class="nav-icon">→</span><span>RecommendationCandidate</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">RecommendationCandidate = texto candidato autorado por humano e ligado a EvidenceSets. `readiness=not_evaluated`. Não é recomendação validada, clinical recommendation, certainty, GRADE ou síntese canônica.</div>
+    </aside>
+
+    <main class="main dashboard-main recommendation-main">
+      <header class="topbar dashboard-topbar"><div><h1>RecommendationCandidate Drafting</h1><p>Finalized EvidenceSets · human-authored statement · readiness not_evaluated</p></div><div class="dashboard-actions"><a href="/evidence-sets.html" class="ghost" style="text-decoration:none">EvidenceSets</a><button id="refreshRecommendations" class="ghost" type="button">Atualizar</button><span id="recommendationHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">HUMAN AUTHORSHIP · NO AUTO-READINESS · CANDIDATE ≠ VALIDATED RECOMMENDATION</div><h2>Escrever uma proposta rastreável sem deixar o sistema decidir o que recomendar</h2><p class="project-question">A Fase 19 recebe apenas EvidenceSets finalizados. O autor seleciona manualmente os sets e escreve o statement do zero. O NutEV não converte membership, quantidade de sets, julgamentos de ClaimEvaluation ou relações anteriores em texto, score, readiness, certainty ou recomendação.</p></div></section>
+
+      <div id="recommendationState" class="loading dashboard-state">Conectando ao coordenador local…</div>
+
+      <section id="recommendationContent" class="hidden">
+        <div id="recommendationKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Stage candidate draft</h2><p>O statement começa vazio e precisa ser escrito pelo humano.</p></div></div>
+            <label class="recommendation-field"><span>Candidate statement</span><textarea id="recommendationStatement" rows="4" maxlength="1800" placeholder="Escreva manualmente o texto candidato. Nenhum conteúdo é pré-preenchido pelo NutEV."></textarea></label>
+            <label class="recommendation-field"><span>Scientific rationale</span><textarea id="recommendationRationale" rows="3" maxlength="1800" placeholder="Explique por que os EvidenceSets selecionados são pertinentes para este candidato."></textarea></label>
+            <label class="recommendation-field"><span>Intended audience</span><input id="recommendationAudience" maxlength="300" placeholder="Ex.: profissionais de nutrição e medicina do estilo de vida"></label>
+            <label class="recommendation-field"><span>Intended context</span><input id="recommendationContext" maxlength="500" placeholder="Contexto científico/operacional em que o candidato seria discutido"></label>
+            <label class="recommendation-field"><span>Staged by</span><input id="recommendationStagedBy" maxlength="120" placeholder="Nome de quem iniciou o draft"></label>
+            <label class="recommendation-confirm"><input id="humanAuthorship" type="checkbox"><span>Confirmo que o statement foi escrito por humano e não gerado automaticamente pelo sistema.</span></label>
+            <button id="stageRecommendation" type="button" disabled>Stage RecommendationCandidate</button>
+            <div id="stageRecommendationState" class="small-state">Selecione ao menos um EvidenceSet finalizado.</div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Candidate contract</h2><p>Esta fase cria um candidato; validação é uma etapa posterior e explícita.</p></div></div>
+            <div class="recommendation-semantics">
+              <article><strong>NO TEXT GENERATION</strong><p>O sistema não escreve, completa ou sugere o statement científico do candidato.</p></article>
+              <article><strong>READINESS = NOT_EVALUATED</strong><p>Nenhuma quantidade de EvidenceSets ou julgamentos favoráveis altera readiness automaticamente.</p></article>
+              <article><strong>SETS ≠ CONSENSUS</strong><p>Um ou vários EvidenceSets não significam agreement, strength, certainty ou recomendação.</p></article>
+              <article><strong>HumanValidation NEXT</strong><p>Um candidato finalizado continua aguardando validação humana separada antes de qualquer recomendação aceita.</p></article>
+            </div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Finalized EvidenceSets available</h2><p>Nenhum set vem selecionado por padrão. O número de claims ou appraisals não é usado como score.</p></div></div>
+            <div id="recommendationEvidenceSets" class="recommendation-sets"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>RecommendationCandidate drafts</h2><p>Finalização congela a provenance do candidato; não valida a recomendação.</p></div></div>
+            <div id="recommendationDrafts" class="recommendation-drafts"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Finalized RecommendationCandidates</h2><p>Registros canônicos do candidato humano com `readiness=not_evaluated`.</p></div></div>
+            <div id="finalizedRecommendations" class="finalized-recommendations"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 recommendation-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>RecommendationCandidate != validated recommendation · RecommendationCandidate != clinical recommendation · EvidenceSet count != evidence strength · EvidenceSet membership != consensus · readiness remains not_evaluated · Candidate != certainty/GRADE · Candidate != canonical scientific synthesis · Candidate != meta-analysis · Candidate != PRISMA.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./recommendation-candidates.js"></script>
+</body>
+</html>

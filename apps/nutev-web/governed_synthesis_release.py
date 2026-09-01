@@ -29,6 +29,8 @@ EVALUATION_STAGE_OPERATION = "STAGE_CLAIM_EVALUATION"
 EVALUATION_FINALIZE_OPERATION = "FINALIZE_CLAIM_EVALUATION"
 EVIDENCE_SET_STAGE_OPERATION = "STAGE_EVIDENCE_SET"
 EVIDENCE_SET_FINALIZE_OPERATION = "FINALIZE_EVIDENCE_SET"
+RECOMMENDATION_STAGE_OPERATION = "STAGE_RECOMMENDATION_CANDIDATE"
+RECOMMENDATION_FINALIZE_OPERATION = "FINALIZE_RECOMMENDATION_CANDIDATE"
 _RELEASE_LOCK = threading.RLock()
 
 
@@ -218,6 +220,14 @@ def prepare_governed_release(
         from evidence_set_construction import finalize_evidence_set
 
         return finalize_evidence_set(payload, output_root=output_root)
+    if operation == RECOMMENDATION_STAGE_OPERATION:
+        from recommendation_candidate_drafting import stage_recommendation_candidate
+
+        return stage_recommendation_candidate(payload, output_root=output_root)
+    if operation == RECOMMENDATION_FINALIZE_OPERATION:
+        from recommendation_candidate_drafting import finalize_recommendation_candidate
+
+        return finalize_recommendation_candidate(payload, output_root=output_root)
 
     package = build_governed_release(
         str(payload.get("artifact_id") or ""),
@@ -279,11 +289,13 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
     from evidence_claim_review import claim_review_status
     from evidence_set_construction import evidence_set_status
     from governed_publication_manifest import publication_status
+    from recommendation_candidate_drafting import recommendation_candidate_status
 
     publication = publication_status(output_root=output_root)
     claims = claim_review_status(output_root=output_root)
     evaluations = claim_evaluation_status(output_root=output_root)
     evidence_sets = evidence_set_status(output_root=output_root)
+    recommendations = recommendation_candidate_status(output_root=output_root)
 
     finalized_by_claim = {
         str(item.get("claim_id") or ""): item
@@ -303,6 +315,19 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
                 "claim_evaluation_id": finalized.get("evaluation_id") if finalized else None,
                 "evidence_set_ids": set_ids,
                 "evidence_set_membership_count": len(set_ids),
+            }
+        )
+
+    recommendation_index = recommendations["evidence_set_candidate_index"]
+    finalized_sets = []
+    for item in evidence_sets["finalized_evidence_sets"]:
+        evidence_set_id = str(item.get("evidence_set_id") or "")
+        candidate_ids = list(recommendation_index.get(evidence_set_id) or [])
+        finalized_sets.append(
+            {
+                **item,
+                "recommendation_candidate_ids": candidate_ids,
+                "recommendation_candidate_count": len(candidate_ids),
             }
         )
 
@@ -345,16 +370,38 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
         "evidence_set_drafts": evidence_sets["drafts"],
         "evidence_set_draft_list_truncated": evidence_sets["draft_list_truncated"],
         "finalized_evidence_set_count": evidence_sets["finalized_evidence_set_count"],
-        "finalized_evidence_sets": evidence_sets["finalized_evidence_sets"],
+        "finalized_evidence_sets": finalized_sets,
         "finalized_evidence_set_list_truncated": evidence_sets[
             "finalized_evidence_set_list_truncated"
         ],
         "evidence_set_scope_fields": evidence_sets["scope_fields"],
         "evidence_set_max_members": evidence_sets["max_members"],
+        "recommendation_candidate_draft_type": recommendations["draft_type"],
+        "recommendation_candidate_record_type": recommendations[
+            "canonical_recommendation_candidate_record_type"
+        ],
+        "recommendation_candidate_readiness_default": recommendations["readiness_default"],
+        "recommendation_candidate_draft_count": recommendations["draft_count"],
+        "recommendation_candidate_draft_counts": recommendations["draft_counts"],
+        "recommendation_candidate_drafts": recommendations["drafts"],
+        "recommendation_candidate_draft_list_truncated": recommendations[
+            "draft_list_truncated"
+        ],
+        "finalized_recommendation_candidate_count": recommendations[
+            "finalized_recommendation_candidate_count"
+        ],
+        "finalized_recommendation_candidates": recommendations[
+            "finalized_recommendation_candidates"
+        ],
+        "finalized_recommendation_candidate_list_truncated": recommendations[
+            "finalized_recommendation_candidate_list_truncated"
+        ],
+        "recommendation_candidate_max_evidence_sets": recommendations["max_evidence_sets"],
         "scientific_boundary": (
             "Release/publication remain preparation artifacts; accepted EvidenceClaims are source-level "
             "propositions; ClaimEvaluation records explicit human appraisal dimensions; EvidenceSet records "
-            "human-curated membership only. EvidenceSet membership is not agreement, contradiction, certainty, "
-            "formal risk of bias, canonical scientific synthesis, recommendation, meta-analysis, or PRISMA."
+            "human-curated membership; RecommendationCandidate records human-authored candidate text with "
+            "readiness not_evaluated. Candidate finalization is not recommendation validation, certainty, "
+            "clinical recommendation, canonical scientific synthesis, meta-analysis, or PRISMA."
         ),
     }
