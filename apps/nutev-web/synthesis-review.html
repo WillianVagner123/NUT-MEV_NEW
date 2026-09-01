@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Human Synthesis Review — NutEV</title>
+  <meta name="description" content="Revisão humana rastreável de comparabilidade e convergência/divergência entre achados candidatos do NutEV.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./synthesis-review.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a><a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item active" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/ask.html"><span class="nav-icon">?</span><span>Ask NutEV</span></a><a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div><a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div><a class="nav-item" href="/strategy.html"><span class="nav-icon">⌘</span><span>Strategy Lab</span></a><a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div><a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Esta tela registra julgamento humano em rascunho local. Nenhuma decisão aqui altera screening, PRESS, GF-10, RoB, certainty ou PRISMA.</div>
+    </aside>
+
+    <main class="main dashboard-main synthesis-review-main">
+      <header class="topbar dashboard-topbar">
+        <div><h1>Human Synthesis Review</h1><p>Comparability · convergence/divergence · reviewer rationale</p></div>
+        <div class="dashboard-actions"><button id="exportReview" class="ghost" type="button">Exportar revisão</button><button id="clearReview" class="ghost" type="button">Limpar rascunho</button><span class="status-pill" id="reviewHealth">verificando…</span></div>
+      </header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">HUMAN JUDGMENT · LOCAL DRAFT · NOT CANONICAL</div><h2>Transformar comparação visual em julgamento rastreável</h2><p id="reviewQuestion" class="project-question">Carregando contexto científico…</p></div></section>
+      <div id="reviewState" class="loading dashboard-state">Preparando fila humana de síntese…</div>
+
+      <section id="reviewContent" class="hidden">
+        <div class="review-toolbar card">
+          <label><span>Revisor</span><input id="reviewerName" type="text" maxlength="120" autocomplete="name" placeholder="Nome do revisor"></label>
+          <label><span>Domínio</span><select id="reviewDomain"></select></label>
+          <label><span>Achado âncora</span><select id="anchorFinding"></select></label>
+          <div class="review-toolbar-note"><strong id="reviewProgress">0 / 0</strong><span>comparações revisadas neste domínio</span></div>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Anchor finding</h2><p>Referência fixa para a rodada de comparação atual.</p></div></div>
+            <div id="anchorCard" class="anchor-card"></div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Adjudication queue</h2><p>Classifique comparabilidade antes de registrar convergência/divergência. Relação sem justificativa não é salva.</p></div></div>
+            <div id="comparisonState" class="small-state">Selecione domínio e âncora.</div>
+            <div id="adjudicationQueue" class="adjudication-queue"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Review ledger</h2><p>Decisões humanas salvas localmente neste navegador. O ledger é rascunho e precisa ser exportado para circular como artefato.</p></div></div>
+            <div id="reviewLedger" class="review-ledger"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 synthesis-boundary">
+            <div class="panel-head"><div><h2>Interpretation boundary</h2><p>Human relation label ≠ meta-analysis · convergent ≠ certainty · divergent ≠ contradiction proven · not comparable ≠ exclusion · draft ≠ canonical synthesis · this page ≠ PRISMA.</p></div></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./synthesis-review.js"></script>
+</body>
+</html>
