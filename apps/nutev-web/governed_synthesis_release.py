@@ -35,6 +35,8 @@ VALIDATION_STAGE_OPERATION = "STAGE_RECOMMENDATION_HUMAN_VALIDATION"
 VALIDATION_DECIDE_OPERATION = "DECIDE_RECOMMENDATION_HUMAN_VALIDATION"
 DEVELOPMENT_STAGE_OPERATION = "STAGE_RECOMMENDATION_DEVELOPMENT"
 DEVELOPMENT_FINALIZE_OPERATION = "FINALIZE_RECOMMENDATION_DEVELOPMENT"
+ADOPTION_STAGE_OPERATION = "STAGE_RECOMMENDATION_ADOPTION"
+ADOPTION_DECIDE_OPERATION = "DECIDE_RECOMMENDATION_ADOPTION"
 _RELEASE_LOCK = threading.RLock()
 
 
@@ -248,6 +250,14 @@ def prepare_governed_release(
         from recommendation_development import finalize_recommendation_development
 
         return finalize_recommendation_development(payload, output_root=output_root)
+    if operation == ADOPTION_STAGE_OPERATION:
+        from recommendation_adoption import stage_recommendation_adoption
+
+        return stage_recommendation_adoption(payload, output_root=output_root)
+    if operation == ADOPTION_DECIDE_OPERATION:
+        from recommendation_adoption import decide_recommendation_adoption
+
+        return decide_recommendation_adoption(payload, output_root=output_root)
 
     package = build_governed_release(
         str(payload.get("artifact_id") or ""),
@@ -309,6 +319,7 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
     from evidence_claim_review import claim_review_status
     from evidence_set_construction import evidence_set_status
     from governed_publication_manifest import publication_status
+    from recommendation_adoption import recommendation_adoption_status
     from recommendation_candidate_drafting import recommendation_candidate_status
     from recommendation_development import recommendation_development_status
     from recommendation_human_validation import recommendation_human_validation_status
@@ -320,6 +331,7 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
     recommendations = recommendation_candidate_status(output_root=output_root)
     validations = recommendation_human_validation_status(output_root=output_root)
     developments = recommendation_development_status(output_root=output_root)
+    adoptions = recommendation_adoption_status(output_root=output_root)
 
     finalized_by_claim = {
         str(item.get("claim_id") or ""): item
@@ -383,6 +395,20 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
                 "recommendation_development_status": development.get("status")
                 if development
                 else "NOT_STAGED",
+            }
+        )
+
+    adoption_index = adoptions["development_adoption_index"]
+    finalized_developments = []
+    for item in developments["finalized_developments"]:
+        development_id = str(item.get("development_id") or "")
+        adoption = adoption_index.get(development_id)
+        finalized_developments.append(
+            {
+                **item,
+                "recommendation_adoption_id": adoption.get("adoption_id") if adoption else None,
+                "recommendation_adoption_status": adoption.get("status") if adoption else "NOT_STAGED",
+                "recommendation_adoption_decision": adoption.get("decision") if adoption else None,
             }
         )
 
@@ -486,9 +512,26 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
         "finalized_recommendation_development_count": developments[
             "finalized_development_count"
         ],
-        "finalized_recommendation_developments": developments["finalized_developments"],
+        "finalized_recommendation_developments": finalized_developments,
         "finalized_recommendation_development_list_truncated": developments[
             "finalized_development_list_truncated"
+        ],
+        "recommendation_adoption_case_type": adoptions["adoption_case_type"],
+        "recommendation_adoption_record_type": adoptions[
+            "canonical_recommendation_adoption_record_type"
+        ],
+        "recommendation_adoption_decision_options": adoptions["decision_options"],
+        "recommendation_adoption_strength_default": adoptions[
+            "recommendation_strength_default"
+        ],
+        "recommendation_adoption_counts": adoptions["counts"],
+        "recommendation_adoption_case_count": adoptions["case_count"],
+        "recommendation_adoption_cases": adoptions["cases"],
+        "recommendation_adoption_case_list_truncated": adoptions["case_list_truncated"],
+        "finalized_recommendation_adoption_count": adoptions["finalized_adoption_count"],
+        "finalized_recommendation_adoptions": adoptions["finalized_adoptions"],
+        "finalized_recommendation_adoption_list_truncated": adoptions[
+            "finalized_adoption_list_truncated"
         ],
         "scientific_boundary": (
             "Release/publication remain preparation artifacts; accepted EvidenceClaims are source-level "
@@ -496,8 +539,9 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
             "human-curated membership; RecommendationCandidate records human-authored candidate text with "
             "readiness not_evaluated; HumanValidation records ACCEPT/REJECT/REVISE for the declared review scope. "
             "Recommendation Development requires ACCEPT and records human-entered decision considerations using "
-            "a generic NutEV worksheet. It is not GRADE EtD, does not evaluate recommendation strength, and does "
-            "not create certainty, formal risk of bias, a validated clinical/guideline recommendation, canonical "
-            "scientific synthesis, meta-analysis, or PRISMA state."
+            "a generic NutEV worksheet. Recommendation Adoption adds an explicit human governance decision of "
+            "ADOPT_FOR_DEFINED_SCOPE/REJECT/RETURN_FOR_REVISION. Even adoption is scope-limited, keeps strength "
+            "not_evaluated, does not apply GRADE EtD, and does not create certainty, formal risk of bias, a universal "
+            "clinical/guideline recommendation, canonical scientific synthesis, meta-analysis, or PRISMA state."
         ),
     }
