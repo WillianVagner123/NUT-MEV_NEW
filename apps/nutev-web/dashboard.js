@@ -14,6 +14,7 @@ function countBy(rows,getter){const counts={};for(const row of rows){const key=g
 function sortedEntries(counts,limit=null){const rows=Object.entries(counts||{}).sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0])));return limit?rows.slice(0,limit):rows}
 function statusClass(done,pending=false){return done?'done':pending?'pending':'locked'}
 function statusText(done,pendingText='PENDING'){return done?'COMPLETE':pendingText}
+function pressPassed(formal){return String(formal?.press_status||'').trim().toUpperCase()==='PASS'}
 
 async function load(){
   $('#dashboardState').className='loading dashboard-state';
@@ -62,7 +63,7 @@ function render(){
   const chips=[
     ['Discovery',String(summary.master_status||'').includes('DISCOVERY_CLOSED')],
     ['Tier A deepening',String(deep.status||'').toUpperCase()==='COMPLETE'],
-    ['PRESS',String(formal.press_status||'').toUpperCase().includes('PASS')],
+    ['PRESS',pressPassed(formal)],
     ['GF-10',formal.gf10_authorized===true]
   ];
   $('#heroStatuses').innerHTML=chips.map(([label,done],index)=>`<span class="state-chip ${done?'done':index<2?'pending':'locked'}">${esc(label)} · ${done?'complete':index<2?'partial':'pending'}</span>`).join('');
@@ -102,7 +103,7 @@ function renderPipeline(summary,workbench){
     ['Deepening',String(runtime.deepening?.status||'').toUpperCase()==='COMPLETE','Tier A'],
     ['Profiles',runtime.review_profiles?.present===true,'perfil v2'],
     ['Routes',String(runtime.article1_routes?.status||'').toUpperCase()==='PASS','B-NORM/C-STRUCT'],
-    ['PRESS',String(formal.press_status||'').toUpperCase().includes('PASS'),'revisão da estratégia'],
+    ['PRESS',pressPassed(formal),'revisão da estratégia'],
     ['GF-10',formal.gf10_authorized===true,'gate formal'],
     ['Freeze',formal.query_freeze_complete===true,'query versionada'],
     ['Formal search',formal.formal_provider_search_executed===true,'não inferir'],
@@ -151,7 +152,7 @@ function renderProviders(radar){
   node.innerHTML=providers.length?providers.map(item=>{const stateValue=item.state||'unknown';const details=Object.entries(item.status_counts||{}).map(([key,value])=>`${key} ${value}`).join(' · ')||'sem execução registrada';return `<div class="provider-line"><div><strong>${esc(providerLabels[item.provider]||item.provider)}</strong><small>${esc(details)}</small></div><span class="provider-state ${esc(stateValue)}">${esc(stateValue)}</span></div>`}).join(''):'<div class="small-state">Estado operacional de providers indisponível neste snapshot.</div>';
 }
 function renderReadiness(formal){
-  const rows=[['PRESS',String(formal.press_status||'').toUpperCase().includes('PASS'),'PASS','PENDING'],['GF-10',formal.gf10_authorized===true,'AUTHORIZED','LOCKED'],['Query freeze',formal.query_freeze_complete===true,'COMPLETE','NOT COMPLETE'],['Formal search',formal.formal_provider_search_executed===true,'EXECUTED','NOT EXECUTED']];
+  const rows=[['PRESS',pressPassed(formal),'PASS','PENDING'],['GF-10',formal.gf10_authorized===true,'AUTHORIZED','LOCKED'],['Query freeze',formal.query_freeze_complete===true,'COMPLETE','NOT COMPLETE'],['Formal search',formal.formal_provider_search_executed===true,'EXECUTED','NOT EXECUTED']];
   $('#readinessGrid').innerHTML=rows.map(([label,done,yes,no])=>`<div class="readiness-item"><span>${esc(label)}</span><strong>${esc(done?yes:no)}</strong></div>`).join('');
   $('#nextAction').innerHTML=`<strong>NEXT REQUIRED ACTION</strong><br>${esc(formal.next_gate||'Verificar o master da busca antes de avançar.')}`;
 }
@@ -162,5 +163,5 @@ function renderProvenance(){
 }
 
 $('#refreshDashboard').addEventListener('click',load);
-$('#presentationToggle').addEventListener('click',()=>{document.body.classList.toggle('presentation-mode');$('#presentationToggle').textContent=document.body.classList.contains('presentation-mode')?'Sair da apresentação':'Presentation View'});
+$('#presentationToggle').addEventListener('click',()=>{document.body.classList.toggle('presentation-mode');$('#presentationToggle').textContent=document.body.classList.contains('presentation-mode')?'Sair da apresentação':'Focus view'});
 load();

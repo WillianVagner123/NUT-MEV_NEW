@@ -45,6 +45,8 @@ jobs:
           python -m pip install --no-deps -e .
       - name: Verify fail-closed ranking contract
         run: PYTHONPATH=src python -m pytest -q nutev_tests/test_rank_references.py
+      - name: Run Scientific Workspace v2 death test
+        run: python tools/audit_scientific_workspace_v2.py --compact
 
   windows-smoke:
     name: windows smoke (python 3.12)
