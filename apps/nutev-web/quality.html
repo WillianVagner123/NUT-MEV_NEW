@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Quality Observatory — NutEV</title>
+  <meta name="description" content="Observatório da saúde operacional, integridade e completude técnica do NutEV. Não mede qualidade científica da evidência.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./quality.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a><a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a><a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a><a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a><a class="nav-item" href="/ask.html"><span class="nav-icon">?</span><span>Ask NutEV</span></a><a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div><a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div><a class="nav-item" href="/strategy.html"><span class="nav-icon">⌘</span><span>Strategy Lab</span></a><a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div><a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item active" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Quality Observatory mede saúde do sistema e completude técnica. Não mede qualidade metodológica, RoB ou certeza da evidência.</div>
+    </aside>
+
+    <main class="main dashboard-main quality-main">
+      <header class="topbar dashboard-topbar"><div><h1>Quality Observatory</h1><p>System health · integrity · retrieval · data completeness</p></div><div class="dashboard-actions"><button id="refreshQuality" class="ghost" type="button">Atualizar</button><span class="status-pill" id="qualityHealth">verificando…</span></div></header>
+      <section class="card project-hero"><div><div class="project-eyebrow">SYSTEM QUALITY · NOT EVIDENCE QUALITY</div><h2>Saúde operacional do NutEV</h2><p class="project-question">Falhas de provider, retrieval, classificação, contexto e endpoints ficam visíveis aqui. Nenhum indicador desta página substitui avaliação metodológica científica.</p></div></section>
+      <div id="qualityState" class="loading dashboard-state">Executando verificações somente-leitura…</div>
+
+      <section id="qualityContent" class="hidden">
+        <div id="qualityKpis" class="kpi-grid quality-kpis"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Core services</h2><p>Disponibilidade e consistência das superfícies necessárias ao workspace.</p></div></div><div id="serviceChecks" class="quality-check-list"></div></section>
+          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Context & provenance</h2><p>Idade, build e identidade verificável do contexto.</p></div><a class="panel-link" href="/presentation.html">Snapshot →</a></div><div id="contextChecks" class="quality-check-list"></div></section>
+
+          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Retrieval health</h2><p>Estado técnico de recuperação do Tier A; não é screening.</p></div></div><div id="retrievalHealth"></div></section>
+          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Extraction methods</h2><p>Formatos realmente usados no deepening.</p></div></div><div id="extractionHealth"></div></section>
+
+          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Metadata completeness</h2><p>Campos ausentes e documentos ainda não classificados.</p></div></div><div id="metadataChecks" class="quality-metric-list"></div></section>
+          <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Mapping completeness</h2><p>Roteamento e domínios operacionais; ausência de mapeamento não é exclusão.</p></div></div><div id="mappingChecks" class="quality-metric-list"></div></section>
+
+          <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Provider operations</h2><p>Erro/indisponibilidade do provider é problema operacional — não ausência de literatura.</p></div><a class="panel-link" href="/radar.html">Evidence Radar →</a></div><div id="qualityProviders" class="quality-provider-grid"></div></section>
+
+          <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Adversarial guardrails</h2><p>Checks que protegem a semântica científica da interface.</p></div></div><div id="guardrailChecks" class="quality-check-list"></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./quality.js"></script>
+</body>
+</html>
