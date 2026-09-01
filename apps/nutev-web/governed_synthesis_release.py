@@ -25,6 +25,8 @@ RELEASE_RECORD_TYPE = "NUTEV_GOVERNED_SYNTHESIS_RELEASE_RECORD_V1"
 PUBLICATION_OPERATION = "PREPARE_PUBLICATION_MANIFEST"
 CLAIM_STAGE_OPERATION = "STAGE_EVIDENCE_CLAIM_REVIEW"
 CLAIM_DECIDE_OPERATION = "DECIDE_EVIDENCE_CLAIM"
+EVALUATION_STAGE_OPERATION = "STAGE_CLAIM_EVALUATION"
+EVALUATION_FINALIZE_OPERATION = "FINALIZE_CLAIM_EVALUATION"
 _RELEASE_LOCK = threading.RLock()
 
 
@@ -198,6 +200,14 @@ def prepare_governed_release(
         from evidence_claim_review_gate import decide_claim_candidate
 
         return decide_claim_candidate(payload, output_root=output_root)
+    if operation == EVALUATION_STAGE_OPERATION:
+        from claim_evaluation_appraisal import stage_claim_evaluation
+
+        return stage_claim_evaluation(payload, output_root=output_root)
+    if operation == EVALUATION_FINALIZE_OPERATION:
+        from claim_evaluation_appraisal import finalize_claim_evaluation
+
+        return finalize_claim_evaluation(payload, output_root=output_root)
 
     package = build_governed_release(
         str(payload.get("artifact_id") or ""),
@@ -255,11 +265,13 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
                     continue
     records.sort(key=lambda item: str(item.get("generated_at") or ""), reverse=True)
 
+    from claim_evaluation_appraisal import claim_evaluation_status
     from evidence_claim_review import claim_review_status
     from governed_publication_manifest import publication_status
 
     publication = publication_status(output_root=output_root)
     claims = claim_review_status(output_root=output_root)
+    evaluations = claim_evaluation_status(output_root=output_root)
     return {
         "status": "READY",
         "release_type": RELEASE_TYPE,
@@ -277,10 +289,25 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
         "accepted_evidence_claim_count": claims["accepted_claim_count"],
         "accepted_evidence_claims": claims["accepted_claims"],
         "accepted_evidence_claim_list_truncated": claims["accepted_claim_list_truncated"],
+        "claim_evaluation_method": evaluations["appraisal_method"],
+        "claim_evaluation_candidate_type": evaluations["evaluation_candidate_type"],
+        "claim_evaluation_record_type": evaluations["canonical_evaluation_record_type"],
+        "claim_evaluation_dimensions": evaluations["dimensions"],
+        "claim_evaluation_judgment_scale": evaluations["judgment_scale"],
+        "claim_evaluation_assessment_basis_options": evaluations["assessment_basis_options"],
+        "claim_evaluation_candidate_count": evaluations["candidate_count"],
+        "claim_evaluation_candidate_counts": evaluations["candidate_counts"],
+        "claim_evaluation_candidates": evaluations["candidates"],
+        "claim_evaluation_candidate_list_truncated": evaluations["candidate_list_truncated"],
+        "finalized_claim_evaluation_count": evaluations["finalized_evaluation_count"],
+        "finalized_claim_evaluations": evaluations["finalized_evaluations"],
+        "finalized_claim_evaluation_list_truncated": evaluations[
+            "finalized_evaluation_list_truncated"
+        ],
         "scientific_boundary": (
-            "Release and publication records remain governed preparation artifacts. Canonical source-level "
-            "EvidenceClaims can only be created downstream by explicit human ACCEPT after source revalidation "
-            "and EvidenceRecord resolution. Claim acceptance is not screening inclusion, RoB, certainty, "
-            "EvidenceSet synthesis, recommendation, meta-analysis, PRISMA, or canonical scientific synthesis."
+            "Release/publication remain preparation artifacts; accepted EvidenceClaims are source-level "
+            "propositions; ClaimEvaluation records explicit human appraisal dimensions only. The generic "
+            "appraisal is not formal risk of bias, certainty/GRADE, EvidenceSet synthesis, recommendation, "
+            "meta-analysis, PRISMA, or canonical scientific synthesis."
         ),
     }
