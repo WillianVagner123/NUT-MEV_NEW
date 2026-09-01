@@ -11,7 +11,8 @@ Esta pasta contém a documentação operacional, técnica, de auditoria, taxonom
 5. [`SEARCH_PROVIDERS.md`](SEARCH_PROVIDERS.md) — providers, limites, credenciais, estados `failed`/`unavailable` e comportamento de cobertura.
 6. [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) — limitações conhecidas e interpretação responsável dos outputs.
 7. [`QUALITY_OBSERVATORY.md`](QUALITY_OBSERVATORY.md) — saúde operacional do Scientific Workspace v2 e death test adversarial, sem confundir qualidade do sistema com qualidade da evidência.
-8. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
+8. [`SCIENTIFIC_INTELLIGENCE.md`](SCIENTIFIC_INTELLIGENCE.md) — síntese estrutural por domínio, achados candidatos lazy, recorrência de outcomes e filas humanas de convergência/divergência sem decisão científica automática.
+9. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
 ## Release, DOI e proveniência
 
@@ -72,14 +73,14 @@ O ranking exporta `reference_rank` global e também classificação/rank taxonô
 
 ## Fronteira de interpretação
 
-O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**.
+O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização e síntese estrutural para apoiar revisão humana.
 
 Ele não substitui:
 
 - triagem científica;
 - avaliação metodológica;
 - avaliação de risco de viés;
-- síntese de evidências;
+- síntese formal de evidências;
 - decisão clínica;
 - julgamento humano sobre a pertinência de uma referência.
 

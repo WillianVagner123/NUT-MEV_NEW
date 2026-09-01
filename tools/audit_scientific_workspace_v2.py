@@ -30,6 +30,8 @@ def run_audit() -> dict[str, Any]:
     presentation = _text(WEB / "presentation.js")
     snapshot = _text(WEB / "scientific-snapshot.js")
     quality = _text(WEB / "quality.js")
+    intelligence = _text(WEB / "intelligence.js")
+    intelligence_html = _text(WEB / "intelligence.html")
     master = _json(MASTER)
     draft = _json(QUERY_DRAFT)
 
@@ -39,6 +41,7 @@ def run_audit() -> dict[str, Any]:
         "strategy.js": strategy,
         "presentation.js": presentation,
         "quality.js": quality,
+        "intelligence.js": intelligence,
     }
 
     checks: list[dict[str, Any]] = []
@@ -49,7 +52,9 @@ def run_audit() -> dict[str, Any]:
     formal = master.get("formal_search") or {}
     check(
         "PRESS parser is equality-only",
-        ".includes('PASS')" not in dashboard and '.includes("PASS")' not in dashboard and "pressPassed(formal)" in dashboard,
+        ".includes('PASS')" not in dashboard
+        and '.includes("PASS")' not in dashboard
+        and "pressPassed(formal)" in dashboard,
         "Negated values such as NOT_YET_RECORDED_AS_PASS must never satisfy the gate.",
     )
     check(
@@ -74,8 +79,12 @@ def run_audit() -> dict[str, Any]:
     )
     check(
         "Read-only analytical surfaces contain no POST action",
-        all("method:'POST'" not in source.replace(" ", "") and 'method:"POST"' not in source.replace(" ", "") for source in read_only_scripts.values()),
-        "Dashboard, Ask, Strategy, Presentation and Quality are read-only surfaces.",
+        all(
+            "method:'POST'" not in source.replace(" ", "")
+            and 'method:"POST"' not in source.replace(" ", "")
+            for source in read_only_scripts.values()
+        ),
+        "Dashboard, Ask, Strategy, Presentation, Quality and Intelligence are read-only surfaces.",
     )
     check(
         "Ask NutEV has no direct external LLM endpoint",
@@ -84,12 +93,21 @@ def run_audit() -> dict[str, Any]:
     )
     check(
         "Snapshot excludes operational ranking fields",
-        all(term not in snapshot for term in ("reference_rank", "reference_score", "machine_relevance_score", "machine_relevance_band")),
+        all(
+            term not in snapshot
+            for term in (
+                "reference_rank",
+                "reference_score",
+                "machine_relevance_score",
+                "machine_relevance_band",
+            )
+        ),
         "Presentation snapshot must stay rank-blind.",
     )
     check(
         "Snapshot explicitly refuses PRISMA semantics",
-        "snapshot_is_not_prisma:true" in snapshot and "snapshot_does_not_change_scientific_state:true" in snapshot,
+        "snapshot_is_not_prisma:true" in snapshot
+        and "snapshot_does_not_change_scientific_state:true" in snapshot,
         "A snapshot records state; it does not approve or transform it.",
     )
     check(
@@ -97,6 +115,34 @@ def run_audit() -> dict[str, Any]:
         "System health" in _text(WEB / "quality.html")
         or "SYSTEM QUALITY" in _text(WEB / "quality.html"),
         "The observatory must not be presented as evidence-quality assessment.",
+    )
+    check(
+        "Scientific Intelligence remains rank-blind",
+        all(
+            term not in intelligence
+            for term in (
+                "reference_rank",
+                "reference_score",
+                "machine_relevance_score",
+                "machine_relevance_band",
+            )
+        ),
+        "Synthesis support must not silently reintroduce Bank or machine ranking semantics.",
+    )
+    check(
+        "Scientific Intelligence does not automate convergence or evidence gaps",
+        "convergence_divergence_requires_human_review:true" in intelligence
+        and "recurrence_is_not_consensus:true" in intelligence
+        and "sparse_mapping_is_not_evidence_gap:true" in intelligence
+        and "NOT AUTOMATED CONCLUSION" in intelligence_html,
+        "Recurring labels and sparse mapping are navigation signals, not scientific conclusions.",
+    )
+    check(
+        "Scientific Intelligence uses bounded lazy article detail",
+        "FINDING_BATCH_LIMIT=24" in intelligence
+        and "DETAIL_CONCURRENCY=4" in intelligence
+        and "/api/articles/${encodeURIComponent(documentId)}" in intelligence,
+        "Finding inspection must stay lazy instead of shipping the whole Workbench detail corpus.",
     )
     combined_frontend = "\n".join(read_only_scripts.values())
     check(
@@ -106,7 +152,10 @@ def run_audit() -> dict[str, Any]:
     )
     check(
         "Formal gates are not exposed as frontend mutations",
-        all(token not in combined_frontend for token in ("authorizeGF10", "emitPrisma", "freezeQuery", "approvePress")),
+        all(
+            token not in combined_frontend
+            for token in ("authorizeGF10", "emitPrisma", "freezeQuery", "approvePress")
+        ),
         "Only canonical scientific workflows may change these states.",
     )
 

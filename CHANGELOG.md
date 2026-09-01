@@ -11,6 +11,11 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Adicionado `tools/audit_scientific_workspace_v2.py`, death test adversarial executável para detectar regressões de semântica científica, mutações indevidas, promoção prematura de C4, vazamento de ranking no snapshot, falsa semântica PRISMA e totais de produção hardcoded.
 - O job de CI `audit guardrail contract` passou a executar explicitamente o death test, além do contrato fail-closed de ranking.
 - Adicionados testes específicos para Quality Observatory e para a regressão do parser de PRESS.
+- Adicionado `/intelligence.html` como **Scientific Intelligence / Synthesis Layer** rank-blind, com síntese estrutural por domínio, classes documentais, rotas, cobertura de result bundles e sinais de cobertura do corpus.
+- A inspeção de achados usa carregamento lazy de até 24 dossiês por domínio, com concorrência limitada e sem enviar full text integral ou o corpus detalhado inteiro ao navegador.
+- Recorrência de outcome é apresentada apenas como rótulo estruturado repetido no lote carregado; convergência/divergência permanece fila de comparação para revisão humana, sem classificação automática de agreement, contradiction ou certainty.
+- Sinais de baixa representação são explicitamente tratados como `corpus coverage signals`, nunca como `evidence gap` automático.
+- O Scientific Workspace death test agora também falha se a synthesis layer reintroduzir ranking, mutações, consenso por recorrência, evidence gap automático ou carregamento detalhado não limitado.
 
 ### Documentação e governança
 
@@ -22,6 +27,7 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Templates de issue/PR e políticas do repositório alinhados ao escopo atual do Reference Engine.
 - Documentação de segurança corrigida para refletir `project_output_reference` e o fato de que `.env` não é carregado automaticamente.
 - Documentado o contrato do Quality Observatory e do Scientific Workspace death test em `docs/QUALITY_OBSERVATORY.md`.
+- Documentado o contrato da Scientific Intelligence / Synthesis Layer em `docs/SCIENTIFIC_INTELLIGENCE.md`.
 
 ### Correções pós-v1.0.0 já presentes na main
 
