@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Governed Synthesis Release — NutEV</title>
+  <meta name="description" content="Pacote auditável de disseminação derivado de síntese humana aprovada em governance, sem criar certeza ou síntese científica canônica.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./synthesis-release.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
+        <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item active" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a>
+        <div class="nav-group-label">Review</div><a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Release package é local-only e só nasce de `APPROVED_FOR_GOVERNED_USE`. Package ≠ scientific validation · package ≠ certainty · package ≠ meta-analysis · package ≠ PRISMA.</div>
+    </aside>
+
+    <main class="main dashboard-main release-main">
+      <header class="topbar dashboard-topbar"><div><h1>Governed Synthesis Release</h1><p>Approved registry source · current-context revalidation · auditable dissemination package</p></div><div class="dashboard-actions"><button id="refreshRelease" class="ghost" type="button">Atualizar</button><span id="releaseHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">GOVERNED DISSEMINATION · NOT A NEW SCIENTIFIC INFERENCE</div><h2>Preparar um pacote auditável para manuscrito, banca ou apresentação</h2><p class="project-question">O servidor aceita apenas entradas `APPROVED_FOR_GOVERNED_USE`, revalida novamente o Human Synthesis Brief e o contexto científico atual e preserva o release como `canonical:false`.</p></div></section>
+
+      <div id="releaseState" class="loading dashboard-state">Conectando aos registros locais…</div>
+
+      <section id="releaseContent" class="hidden">
+        <div id="releaseKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Prepare package</h2><p>Somente uma entrada aprovada pode ser selecionada. A preparação não altera a decisão de governance.</p></div></div>
+            <label class="release-field"><span>Approved registry entry</span><select id="approvedEntry"></select></label>
+            <label class="release-field"><span>Preparado por</span><input id="preparedBy" type="text" maxlength="120" placeholder="Nome do responsável"></label>
+            <label class="release-field"><span>Finalidade do pacote</span><textarea id="releasePurpose" minlength="20" maxlength="1200" placeholder="Ex.: pacote para redação do manuscrito e apresentação em banca, mantendo todas as fronteiras científicas explícitas."></textarea></label>
+            <button id="prepareRelease" type="button" disabled>Preparar governed release</button>
+            <div id="prepareState" class="small-state">Aguardando entrada aprovada.</div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Release contract</h2><p>O release organiza e transporta uma síntese já governada; não cria um novo julgamento científico.</p></div></div>
+            <div class="release-semantics">
+              <article><strong>Source gate</strong><p>`APPROVED_FOR_GOVERNED_USE` + aprovação humana explícita + source revalidation já registrada.</p></article>
+              <article><strong>Revalidation</strong><p>Brief SHA/context fingerprint/search state são rechecados novamente no momento da preparação.</p></article>
+              <article><strong>Output</strong><p>`NUTEV_GOVERNED_SYNTHESIS_RELEASE_V1`, `canonical:false`, com hash próprio e proveniência preservada.</p></article>
+              <article><strong>Boundary</strong><p>Nenhum EvidenceClaim aceito, RoB, certainty, pooling, meta-analysis, PRISMA ou formal-search mutation é criado.</p></article>
+            </div>
+          </section>
+
+          <section id="latestPackageCard" class="card dashboard-card span-12 hidden">
+            <div class="panel-head"><div><h2>Prepared package</h2><p>O JSON abaixo é o artefato integral retornado pelo servidor após revalidação.</p></div><button id="downloadRelease" class="ghost" type="button">Baixar JSON</button></div>
+            <div id="latestPackage" class="release-package"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Release ledger</h2><p>Somente metadata auditável. O ledger não reenvia `reviewed_decisions` nem o corpo integral dos packages.</p></div></div>
+            <div id="releaseRecords" class="release-records"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 release-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>Approved governance source ≠ scientific validity · release record ≠ canonical synthesis · package hash ≠ authenticated authorship · relationship count ≠ evidence strength · package ≠ certainty · package ≠ RoB · package ≠ meta-analysis · package ≠ PRISMA.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./synthesis-release.js"></script>
+</body>
+</html>
