@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Recommendation Adoption — NutEV</title>
+  <meta name="description" content="Governance humana de adoção scope-limited de Recommendation Development, sem força/certainty automáticas ou guideline promotion.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./recommendation-candidates.css">
+  <link rel="stylesheet" href="./recommendation-adoption.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Scientific claims</div>
+        <a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a>
+        <a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a>
+        <a class="nav-item" href="/evidence-sets.html"><span class="nav-icon">▦</span><span>EvidenceSet Construction</span></a>
+        <a class="nav-item" href="/recommendation-candidates.html"><span class="nav-icon">→</span><span>RecommendationCandidate</span></a>
+        <a class="nav-item" href="/recommendation-human-validation.html"><span class="nav-icon">✓</span><span>HumanValidation</span></a>
+        <a class="nav-item" href="/recommendation-development.html"><span class="nav-icon">≋</span><span>Recommendation Development</span></a>
+        <a class="nav-item active" href="/recommendation-adoption.html"><span class="nav-icon">§</span><span>Recommendation Adoption</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">ADOPT_FOR_DEFINED_SCOPE = adoção humana apenas para o escopo declarado. Não cria recommendation strength, certainty/GRADE, guideline ou clinical recommendation universal.</div>
+    </aside>
+
+    <main class="main dashboard-main adoption-main">
+      <header class="topbar dashboard-topbar"><div><h1>Recommendation Adoption</h1><p>PENDING → ADOPT_FOR_DEFINED_SCOPE / REJECT / RETURN_FOR_REVISION</p></div><div class="dashboard-actions"><a href="/recommendation-development.html" class="ghost" style="text-decoration:none">Recommendation Development</a><button id="refreshAdoption" class="ghost" type="button">Atualizar</button><span id="adoptionHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">HUMAN GOVERNANCE · SCOPE-LIMITED ONLY · NO AUTO-STRENGTH</div><h2>Adotar o wording para um escopo definido sem convertê-lo em guideline universal</h2><p class="project-question">A Fase 22 recebe somente Recommendation Development finalizado e revalidado. O governor pode ADOPT_FOR_DEFINED_SCOPE, REJECT ou RETURN_FOR_REVISION. Nenhuma decisão calcula recommendation strength, certainty, GRADE, formal EtD ou cria clinical/guideline recommendation.</p></div></section>
+
+      <div id="adoptionState" class="loading dashboard-state">Conectando ao coordenador local…</div>
+
+      <section id="adoptionContent" class="hidden">
+        <div id="adoptionKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Finalized Recommendation Development records</h2><p>Abra manualmente um Adoption Case. Nenhuma decisão é inferida a partir do texto, EvidenceSets, appraisal ou HumanValidation anterior.</p></div></div><div id="developmentRecords" class="adoption-list"></div></section>
+          <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Pending adoption cases</h2><p>O seletor começa vazio. ADOPT_FOR_DEFINED_SCOPE vale somente para o adoption scope registrado.</p></div></div><div id="pendingAdoptions" class="adoption-list"></div></section>
+          <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Canonical adoption records</h2><p>Canonical = registro autoritativo da decisão de governance, não recommendation científica autoritativa.</p></div></div><div id="finalizedAdoptions" class="adoption-list"></div></section>
+          <section class="card dashboard-card span-12 adoption-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>ADOPT_FOR_DEFINED_SCOPE ≠ recommendation strength · adoption ≠ certainty/GRADE · adoption ≠ GRADE EtD · adoption ≠ formal RoB · adoption ≠ clinical recommendation · adoption ≠ guideline recommendation · adoption ≠ universal recommendation · adoption ≠ canonical scientific synthesis · adoption ≠ meta-analysis · adoption ≠ PRISMA.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./recommendation-adoption.js"></script>
+</body>
+</html>
