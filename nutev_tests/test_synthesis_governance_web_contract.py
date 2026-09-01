@@ -27,7 +27,7 @@ def test_governance_ui_distinguishes_stage_approval_and_science() -> None:
 
     assert "LOCAL-ONLY WRITE SURFACE · GOVERNANCE ≠ SCIENTIFIC VALIDATION" in html
     assert "Importar um Human Synthesis Brief cria somente um registro `STAGED`" in html
-    assert "STAGED não significa aprovado" in html
+    assert "`STAGED` não significa aprovado" in html
     assert "APPROVED_FOR_GOVERNED_USE" in html
     assert "canonical scientific synthesis" in html.casefold()
     assert "Import != approval" in html
