@@ -14,7 +14,8 @@ Esta pasta contém a documentação operacional, técnica, de auditoria, taxonom
 8. [`SCIENTIFIC_INTELLIGENCE.md`](SCIENTIFIC_INTELLIGENCE.md) — síntese estrutural por domínio, achados candidatos lazy, recorrência de outcomes e filas humanas de convergência/divergência sem decisão científica automática.
 9. [`HUMAN_SYNTHESIS_REVIEW.md`](HUMAN_SYNTHESIS_REVIEW.md) — adjudicação humana pairwise de comparabilidade e relação entre achados, com rascunho local, justificativa obrigatória, proveniência e export SHA-256 não canônico.
 10. [`HUMAN_SYNTHESIS_BRIEF.md`](HUMAN_SYNTHESIS_BRIEF.md) — verificação fail-closed de content SHA/context fingerprint e apresentação executiva dos julgamentos humanos, sem transformar integridade em autenticidade ou validade científica.
-11. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
+11. [`SYNTHESIS_GOVERNANCE_REGISTRY.md`](SYNTHESIS_GOVERNANCE_REGISTRY.md) — registry servidor-local para staging e decisão explícita de governance, com revalidação de fonte/contexto e separação formal entre governance approval e canonical scientific synthesis.
+12. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
 ## Release, DOI e proveniência
 
@@ -75,7 +76,7 @@ O ranking exporta `reference_rank` global e também classificação/rank taxonô
 
 ## Fronteira de interpretação
 
-O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano e apresentação executiva desses julgamentos com verificação de integridade/contexto.
+O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano, apresentação executiva desses julgamentos e registry de governance local com trilha explícita de decisão.
 
 Ele não substitui:
 
@@ -83,9 +84,11 @@ Ele não substitui:
 - avaliação metodológica;
 - avaliação de risco de viés;
 - síntese formal de evidências;
-- autenticação da identidade de revisores;
+- autenticação da identidade de revisores ou responsáveis de governance;
 - decisão clínica;
 - julgamento humano sobre a pertinência de uma referência.
+
+`APPROVED_FOR_GOVERNED_USE` é um estado de governance do registry. Não significa certeza, qualidade metodológica, inclusão PRISMA ou canonical scientific synthesis.
 
 A deduplicação atual é orientada por DOI, PMID, URL e, como fallback, título normalizado. Ela não garante unicidade semântica entre publicações relacionadas.
 

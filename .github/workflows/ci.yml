@@ -47,6 +47,8 @@ jobs:
         run: PYTHONPATH=src python -m pytest -q nutev_tests/test_rank_references.py
       - name: Run Scientific Workspace v2 death test
         run: python tools/audit_scientific_workspace_v2.py --compact
+      - name: Run Synthesis Governance death test
+        run: python tools/audit_synthesis_governance.py --compact
 
   windows-smoke:
     name: windows smoke (python 3.12)
@@ -106,6 +108,7 @@ jobs:
           node --check apps/nutev-web/intelligence.js
           node --check apps/nutev-web/synthesis-review.js
           node --check apps/nutev-web/synthesis-brief.js
+          node --check apps/nutev-web/synthesis-governance.js
       - name: Install ruff
         run: python -m pip install ruff
       - name: Ruff blocking errors

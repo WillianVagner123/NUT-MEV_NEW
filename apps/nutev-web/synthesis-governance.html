@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Synthesis Governance Registry — NutEV</title>
+  <meta name="description" content="Registry local de governance para artefatos de síntese humana do NutEV.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./synthesis-governance.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
+        <div class="nav-group-label">Governance</div><a class="nav-item active" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a>
+        <div class="nav-group-label">Review</div><a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a><a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Registry de governance é local-only. `STAGED` não significa aprovado. `APPROVED_FOR_GOVERNED_USE` registra uma decisão humana de governance; não cria certeza, RoB, meta-analysis, PRISMA nem canonical scientific synthesis.</div>
+    </aside>
+
+    <main class="main dashboard-main governance-main">
+      <header class="topbar dashboard-topbar"><div><h1>Synthesis Governance Registry</h1><p>Local-only staging · explicit human governance · immutable source artifact</p></div><div class="dashboard-actions"><button id="refreshRegistry" class="ghost" type="button">Atualizar</button><span id="registryHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">LOCAL-ONLY WRITE SURFACE · GOVERNANCE ≠ SCIENTIFIC VALIDATION</div><h2>Registrar, revisar e decidir sem canonização automática</h2><p class="project-question">Importar um Human Synthesis Brief cria somente um registro `STAGED`. Aprovação ou rejeição exige ação humana explícita, nome e justificativa. A fonte é revalidada contra SHA-256 e contexto no momento da decisão.</p></div></section>
+
+      <div id="registryState" class="loading dashboard-state">Conectando ao registry local…</div>
+
+      <section id="registryContent" class="hidden">
+        <div id="registryKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Stage verified Brief</h2><p>O servidor revalida o arquivo; a verificação feita pelo navegador não é confiada como autoridade.</p></div></div>
+            <label class="governance-field"><span>Responsável pelo registro</span><input id="stageActor" type="text" maxlength="120" placeholder="Nome do responsável"></label>
+            <label class="governance-file"><span>Human Synthesis Brief JSON</span><input id="briefFile" type="file" accept="application/json,.json"></label>
+            <div id="stageFileState" class="small-state">Nenhum Brief selecionado.</div>
+            <button id="stageBrief" type="button" disabled>Registrar como STAGED</button>
+            <div class="governance-warning">Staging é idempotente pelo `content_sha256`. O mesmo Brief não cria entradas duplicadas.</div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Registry semantics</h2><p>O registry é autoridade sobre o estado de governance, não sobre a verdade científica.</p></div></div>
+            <div class="governance-semantics">
+              <article><strong>STAGED</strong><p>Artefato recebido e revalidado. Nenhuma aprovação humana registrada.</p></article>
+              <article><strong>APPROVED_FOR_GOVERNED_USE</strong><p>Governance humana aprovou uso controlado do artefato. Não equivale a certainty ou scientific validation.</p></article>
+              <article><strong>REJECTED_BY_GOVERNANCE</strong><p>Governance humana rejeitou o uso controlado. Não equivale a exclusão PRISMA do estudo fonte.</p></article>
+            </div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Governance ledger</h2><p>Entradas são listadas sem carregar o corpo completo dos Briefs para o navegador.</p></div></div>
+            <div id="registryEntries" class="registry-entries"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 governance-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>Import != approval · approval != evidence certainty · governance identity field != cryptographic identity authentication · registry record != accepted EvidenceClaim · governed use != meta-analysis · registry != PRISMA · no canonical scientific synthesis is created in this phase.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./synthesis-governance.js"></script>
+</body>
+</html>
