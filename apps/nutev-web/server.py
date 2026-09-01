@@ -26,6 +26,7 @@ from article_workbench_data import (
     load_article_page,
     workbench_status,
 )
+from governed_synthesis_release import prepare_governed_release, release_status
 from progress_search import search_evidence_progressive
 from query_compiler import compile_query_plan
 from radar_data import RadarDataError, load_radar_state
@@ -308,7 +309,7 @@ class NutEVHandler(SimpleHTTPRequestHandler):
             {
                 "error": "coordinator_local_only",
                 "message": (
-                    "Coordenação científica, governance, adjudicação, gold, métricas e lock "
+                    "Coordenação científica, governance, releases, adjudicação, gold, métricas e lock "
                     "de decisão só podem ser executados no navegador local do servidor."
                 ),
             },
@@ -341,8 +342,20 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                     "validation_metrics_gate": True,
                     "validation_decision_lock": True,
                     "synthesis_governance_registry": True,
+                    "governed_synthesis_release": True,
                 }
             )
+            return
+        if path == "/api/synthesis/releases":
+            if not self._require_loopback():
+                return
+            try:
+                self._json(release_status())
+            except Exception as exc:
+                self._json(
+                    {"error": "governed_synthesis_release_status_failed", "message": f"{type(exc).__name__}: {exc}"},
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                )
             return
         if path == "/api/synthesis/governance":
             if not self._require_loopback():
@@ -519,6 +532,22 @@ class NutEVHandler(SimpleHTTPRequestHandler):
                 self._json(compile_query_plan(query, providers, payload.get("strategy")), HTTPStatus.OK)
             except ValueError as exc:
                 self._json({"error": "invalid_query_strategy", "message": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        if path == "/api/synthesis/releases/prepare":
+            if not self._require_loopback():
+                return
+            try:
+                payload = self._read_json()
+                self._json(prepare_governed_release(payload), HTTPStatus.CREATED)
+            except (ValueError, SynthesisGovernanceError) as exc:
+                self._json({"error": "governed_synthesis_release_blocked", "message": str(exc)}, HTTPStatus.CONFLICT)
+            except FileNotFoundError as exc:
+                self._json({"error": "governed_synthesis_release_source_missing", "message": str(exc)}, HTTPStatus.NOT_FOUND)
+            except Exception as exc:
+                self._json(
+                    {"error": "governed_synthesis_release_failed", "message": f"{type(exc).__name__}: {exc}"},
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                )
             return
         if path in {"/api/synthesis/governance/stage", "/api/synthesis/governance/decide"}:
             if not self._require_loopback():

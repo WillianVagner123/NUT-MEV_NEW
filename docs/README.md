@@ -15,7 +15,8 @@ Esta pasta contém a documentação operacional, técnica, de auditoria, taxonom
 9. [`HUMAN_SYNTHESIS_REVIEW.md`](HUMAN_SYNTHESIS_REVIEW.md) — adjudicação humana pairwise de comparabilidade e relação entre achados, com rascunho local, justificativa obrigatória, proveniência e export SHA-256 não canônico.
 10. [`HUMAN_SYNTHESIS_BRIEF.md`](HUMAN_SYNTHESIS_BRIEF.md) — verificação fail-closed de content SHA/context fingerprint e apresentação executiva dos julgamentos humanos, sem transformar integridade em autenticidade ou validade científica.
 11. [`SYNTHESIS_GOVERNANCE_REGISTRY.md`](SYNTHESIS_GOVERNANCE_REGISTRY.md) — registry servidor-local para staging e decisão explícita de governance, com revalidação de fonte/contexto e separação formal entre governance approval e canonical scientific synthesis.
-12. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
+12. [`GOVERNED_SYNTHESIS_RELEASE.md`](GOVERNED_SYNTHESIS_RELEASE.md) — pacote de disseminação auditável derivado exclusivamente de entradas `APPROVED_FOR_GOVERNED_USE`, com nova revalidação de fonte/contexto, hash próprio e fronteira explícita entre disseminação governada e inferência científica.
+13. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
 ## Release, DOI e proveniência
 
@@ -76,7 +77,7 @@ O ranking exporta `reference_rank` global e também classificação/rank taxonô
 
 ## Fronteira de interpretação
 
-O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano, apresentação executiva desses julgamentos e registry de governance local com trilha explícita de decisão.
+O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano, apresentação executiva desses julgamentos, registry de governance local e preparação auditável de pacotes de disseminação governada.
 
 Ele não substitui:
 
@@ -84,11 +85,13 @@ Ele não substitui:
 - avaliação metodológica;
 - avaliação de risco de viés;
 - síntese formal de evidências;
-- autenticação da identidade de revisores ou responsáveis de governance;
+- autenticação da identidade de revisores, responsáveis de governance ou preparadores de release;
 - decisão clínica;
 - julgamento humano sobre a pertinência de uma referência.
 
 `APPROVED_FOR_GOVERNED_USE` é um estado de governance do registry. Não significa certeza, qualidade metodológica, inclusão PRISMA ou canonical scientific synthesis.
+
+`NUTEV_GOVERNED_SYNTHESIS_RELEASE_V1` é um pacote de disseminação `canonical:false`. Seu hash e seu release record documentam integridade/proveniência do package, não validade científica, autoria autenticada, certeza ou meta-análise.
 
 A deduplicação atual é orientada por DOI, PMID, URL e, como fallback, título normalizado. Ela não garante unicidade semântica entre publicações relacionadas.
 

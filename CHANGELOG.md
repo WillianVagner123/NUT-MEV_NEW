@@ -35,6 +35,13 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - `APPROVED_FOR_GOVERNED_USE` é explicitamente governance approval, não certainty, RoB, EvidenceClaim, meta-analysis, PRISMA ou canonical scientific synthesis; todas as entradas mantêm `canonical_scientific_synthesis_created:false`.
 - O registry registra que reviewer/governor names não são identidades criptograficamente autenticadas nesta fase.
 - Adicionado `tools/audit_synthesis_governance.py`; o job de guardrail do CI passou a executar o death test de governance além do Scientific Workspace death test, e o lint verifica a sintaxe de `synthesis-governance.js`.
+- Adicionado `/synthesis-release.html` como **Governed Synthesis Release**, uma superfície local-only que permite preparar disseminação apenas a partir de registry entries `APPROVED_FOR_GOVERNED_USE` com aprovação humana explícita.
+- A preparação reabre o Brief persistido e revalida novamente content SHA-256, context fingerprint, search id/context version/pergunta e os guardrails do Brief no momento do release; aprovação sob contexto antigo não é grandfathered para disseminação.
+- O package `NUTEV_GOVERNED_SYNTHESIS_RELEASE_V1` permanece `canonical:false`, preserva decisões humanas source-linked, governor/reviewer/preparer provenance e purpose declarado, e recebe SHA-256 determinístico próprio.
+- Releases são persistidos em `project_output_reference/scientific/synthesis_releases/` com package integral e record metadata-only; repetir a mesma preparação é idempotente pelo package hash.
+- O release record é canônico apenas como trilha operacional (`canonical_release_record:true`), mantendo `release_package_canonical:false` e `canonical_scientific_synthesis_created:false`.
+- O package explicita `accepted_evidence_claims_created:false`, `risk_of_bias_assessed:false`, `certainty_assessed:false`, `meta_analysis_performed:false`, `prisma_event_emitted:false` e `formal_search_state_changed:false`.
+- Adicionado `tools/audit_governed_synthesis_release.py`; o CI passa a executar um terceiro death test e `node --check` para `synthesis-release.js`, protegendo o fluxo `Review -> Brief -> Governance -> Release` contra auto-release, stale context, canonização científica ou fake certainty/meta-analysis/PRISMA.
 
 ### Documentação e governança
 
@@ -50,6 +57,7 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Documentado o fluxo de adjudicação humana e export não canônico em `docs/HUMAN_SYNTHESIS_REVIEW.md`.
 - Documentado o contrato de verificação, context fingerprint, fronteira criptográfica e export executivo em `docs/HUMAN_SYNTHESIS_BRIEF.md`.
 - Documentado o registry servidor-local, estados de governance, idempotência, revalidação no momento da decisão e fronteira `governance approval != scientific canonization` em `docs/SYNTHESIS_GOVERNANCE_REGISTRY.md`.
+- Documentado o pacote de disseminação governada, persistência/idempotência, revalidação pós-approval e fronteira `governed release != scientific validation` em `docs/GOVERNED_SYNTHESIS_RELEASE.md`.
 
 ### Correções pós-v1.0.0 já presentes na main
 
