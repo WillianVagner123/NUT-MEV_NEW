@@ -27,6 +27,8 @@ CLAIM_STAGE_OPERATION = "STAGE_EVIDENCE_CLAIM_REVIEW"
 CLAIM_DECIDE_OPERATION = "DECIDE_EVIDENCE_CLAIM"
 EVALUATION_STAGE_OPERATION = "STAGE_CLAIM_EVALUATION"
 EVALUATION_FINALIZE_OPERATION = "FINALIZE_CLAIM_EVALUATION"
+EVIDENCE_SET_STAGE_OPERATION = "STAGE_EVIDENCE_SET"
+EVIDENCE_SET_FINALIZE_OPERATION = "FINALIZE_EVIDENCE_SET"
 _RELEASE_LOCK = threading.RLock()
 
 
@@ -208,6 +210,14 @@ def prepare_governed_release(
         from claim_evaluation_appraisal import finalize_claim_evaluation
 
         return finalize_claim_evaluation(payload, output_root=output_root)
+    if operation == EVIDENCE_SET_STAGE_OPERATION:
+        from evidence_set_construction import stage_evidence_set
+
+        return stage_evidence_set(payload, output_root=output_root)
+    if operation == EVIDENCE_SET_FINALIZE_OPERATION:
+        from evidence_set_construction import finalize_evidence_set
+
+        return finalize_evidence_set(payload, output_root=output_root)
 
     package = build_governed_release(
         str(payload.get("artifact_id") or ""),
@@ -267,26 +277,32 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
 
     from claim_evaluation_appraisal import claim_evaluation_status
     from evidence_claim_review import claim_review_status
+    from evidence_set_construction import evidence_set_status
     from governed_publication_manifest import publication_status
 
     publication = publication_status(output_root=output_root)
     claims = claim_review_status(output_root=output_root)
     evaluations = claim_evaluation_status(output_root=output_root)
+    evidence_sets = evidence_set_status(output_root=output_root)
 
     finalized_by_claim = {
         str(item.get("claim_id") or ""): item
         for item in evaluations["finalized_evaluations"]
         if item.get("claim_id")
     }
+    membership_index = evidence_sets["claim_membership_index"]
     accepted_claims = []
     for item in claims["accepted_claims"]:
         claim_id = str(item.get("claim_id") or "")
         finalized = finalized_by_claim.get(claim_id)
+        set_ids = list(membership_index.get(claim_id) or [])
         accepted_claims.append(
             {
                 **item,
                 "claim_evaluation_finalized": finalized is not None,
                 "claim_evaluation_id": finalized.get("evaluation_id") if finalized else None,
+                "evidence_set_ids": set_ids,
+                "evidence_set_membership_count": len(set_ids),
             }
         )
 
@@ -322,10 +338,23 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
         "finalized_claim_evaluation_list_truncated": evaluations[
             "finalized_evaluation_list_truncated"
         ],
+        "evidence_set_draft_type": evidence_sets["draft_type"],
+        "evidence_set_record_type": evidence_sets["canonical_evidence_set_record_type"],
+        "evidence_set_draft_count": evidence_sets["draft_count"],
+        "evidence_set_draft_counts": evidence_sets["draft_counts"],
+        "evidence_set_drafts": evidence_sets["drafts"],
+        "evidence_set_draft_list_truncated": evidence_sets["draft_list_truncated"],
+        "finalized_evidence_set_count": evidence_sets["finalized_evidence_set_count"],
+        "finalized_evidence_sets": evidence_sets["finalized_evidence_sets"],
+        "finalized_evidence_set_list_truncated": evidence_sets[
+            "finalized_evidence_set_list_truncated"
+        ],
+        "evidence_set_scope_fields": evidence_sets["scope_fields"],
+        "evidence_set_max_members": evidence_sets["max_members"],
         "scientific_boundary": (
             "Release/publication remain preparation artifacts; accepted EvidenceClaims are source-level "
-            "propositions; ClaimEvaluation records explicit human appraisal dimensions only. The generic "
-            "appraisal is not formal risk of bias, certainty/GRADE, EvidenceSet synthesis, recommendation, "
-            "meta-analysis, PRISMA, or canonical scientific synthesis."
+            "propositions; ClaimEvaluation records explicit human appraisal dimensions; EvidenceSet records "
+            "human-curated membership only. EvidenceSet membership is not agreement, contradiction, certainty, "
+            "formal risk of bias, canonical scientific synthesis, recommendation, meta-analysis, or PRISMA."
         ),
     }
