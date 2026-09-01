@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Governed Publication Manifest — NutEV</title>
+  <meta name="description" content="Publication manifest local-only com citation bundle e statement candidates rastreáveis.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./synthesis-publication.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
+        <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a><a class="nav-item active" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Publication Manifest prepara rastreabilidade para escrita. Statement candidate ≠ EvidenceClaim aceito · citation ≠ validade · relation ≠ certainty · manifest ≠ canonical synthesis.</div>
+    </aside>
+
+    <main class="main dashboard-main publication-main">
+      <header class="topbar dashboard-topbar"><div><h1>Governed Publication Manifest</h1><p>Release revalidation · citation bundle · publication statement candidates</p></div><div class="dashboard-actions"><a href="/synthesis-release.html" class="ghost" style="text-decoration:none">Governed Release</a><button id="refreshPublication" class="ghost" type="button">Atualizar</button><span id="publicationHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">PUBLICATION PREPARATION · NOT CLAIM ACCEPTANCE</div><h2>Preparar escrita rastreável sem automatizar conclusão científica</h2><p class="project-question">O manifest só pode ser criado a partir de um Governed Release persistido e novamente revalidado contra o contexto atual. Cada statement candidate descreve um julgamento humano registrado e aponta para citations source-linked; nenhum statement é promovido automaticamente a EvidenceClaim.</p></div></section>
+
+      <div id="publicationState" class="loading dashboard-state">Conectando aos ledgers locais…</div>
+
+      <section id="publicationContent" class="hidden">
+        <div id="publicationKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Prepare publication manifest</h2><p>Escolha um Governed Release existente. O servidor revalida release, governance, Brief e contexto novamente.</p></div></div>
+            <label class="publication-field"><span>Governed Release</span><select id="releasePackage"><option value="">Selecione um release</option></select></label>
+            <label class="publication-field"><span>Responsável pela publicação</span><input id="publicationOwner" type="text" maxlength="120" placeholder="Nome do responsável"></label>
+            <label class="publication-field"><span>Uso pretendido</span><textarea id="intendedUse" rows="4" maxlength="800" placeholder="Ex.: preparar seção de resultados para manuscrito, mantendo rastreabilidade das decisões humanas."></textarea></label>
+            <button id="preparePublication" type="button" disabled>Preparar publication manifest</button>
+            <div id="preparePublicationState" class="small-state">Nenhum manifest preparado nesta sessão.</div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Publication contract</h2><p>O sistema pode descrever julgamentos humanos; ele não pode converter esses julgamentos em verdade científica automaticamente.</p></div></div>
+            <div class="publication-semantics">
+              <article><strong>PUBLICATION_STATEMENT_CANDIDATE</strong><p>Frase auditável sobre uma relação humana registrada. Exige edição/autoria humana antes de publicação.</p></article>
+              <article><strong>CITATION BUNDLE</strong><p>Snapshots source-linked com document id, bundle id, result text e identificadores disponíveis. Citation não valida o estudo.</p></article>
+              <article><strong>FAIL-CLOSED CONTEXT</strong><p>Se o contexto atual não reproduzir o Governed Release, o manifest não é criado.</p></article>
+            </div>
+          </section>
+
+          <section id="latestManifestCard" class="card dashboard-card span-12 hidden">
+            <div class="panel-head"><div><h2>Prepared manifest</h2><p>Artefato não canônico pronto para inspeção e export JSON.</p></div><button id="downloadManifest" class="ghost" type="button">Baixar JSON</button></div>
+            <div id="latestManifestMeta" class="publication-meta"></div>
+            <div class="publication-grid-two">
+              <div><h3>Statement candidates</h3><div id="statementCandidates" class="statement-list"></div></div>
+              <div><h3>Citation bundle</h3><div id="citationBundle" class="citation-list"></div></div>
+            </div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Publication ledger</h2><p>Metadata-only. O ledger não envia citation bundle, statements ou reviewed decisions completos.</p></div></div>
+            <div id="publicationRecords" class="publication-records"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 publication-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>Governed Release != scientific validity · Publication Statement Candidate != accepted EvidenceClaim · citation != study endorsement · CONVERGENT != certainty · DIVERGENT != proven contradiction · manifest != recommendation · manifest != meta-analysis · manifest != PRISMA · no canonical scientific synthesis is created.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./synthesis-publication.js"></script>
+</body>
+</html>
