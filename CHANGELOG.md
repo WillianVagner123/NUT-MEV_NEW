@@ -27,6 +27,14 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - `NUTEV_HUMAN_SYNTHESIS_BRIEF_V1` permanece `canonical:false`, preserva os julgamentos source-linked, produz SHA-256 próprio e oferece Print/PDF para apresentação executiva sem converter contagens de relações em evidence strength, meta-analysis ou certainty.
 - A documentação/UI agora explicita que SHA-256 verifica consistência/integridade de conteúdo, mas **não prova autoria, autenticidade da identidade do revisor nem validade científica**.
 - A CI passou a executar `node --check` também em `synthesis-brief.js`, e a suíte/death test cobrem a cadeia `Scientific Intelligence -> Human Synthesis Review -> Human Synthesis Brief`.
+- Adicionado `/synthesis-governance.html` como **Synthesis Governance Registry**, uma superfície de coordenação local-only para registrar Briefs verificados sem converter importação em aprovação automática.
+- O registry persiste o Brief pelo `content_sha256` e mantém entradas metadata-only com estados `STAGED`, `APPROVED_FOR_GOVERNED_USE` e `REJECTED_BY_GOVERNANCE`; staging repetido do mesmo Brief é idempotente.
+- Os endpoints `GET /api/synthesis/governance`, `POST /api/synthesis/governance/stage` e `POST /api/synthesis/governance/decide` exigem loopback; o limite ampliado de 2 MiB é aplicado somente aos payloads de governance, mantendo 256 KiB como padrão da API.
+- O servidor revalida tipo, guardrails, decisões humanas, `content_sha256`, `source_context_fingerprint`, search id, context version e pergunta antes do staging; ele não confia na validação browser-side do Brief.
+- Aprovação/rejeição exige nome do responsável e justificativa mínima, reabre o Brief imutável no artifact store e revalida fonte/contexto no momento da decisão. Mudança do Workbench após staging bloqueia a decisão.
+- `APPROVED_FOR_GOVERNED_USE` é explicitamente governance approval, não certainty, RoB, EvidenceClaim, meta-analysis, PRISMA ou canonical scientific synthesis; todas as entradas mantêm `canonical_scientific_synthesis_created:false`.
+- O registry registra que reviewer/governor names não são identidades criptograficamente autenticadas nesta fase.
+- Adicionado `tools/audit_synthesis_governance.py`; o job de guardrail do CI passou a executar o death test de governance além do Scientific Workspace death test, e o lint verifica a sintaxe de `synthesis-governance.js`.
 
 ### Documentação e governança
 
@@ -41,6 +49,7 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Documentado o contrato da Scientific Intelligence / Synthesis Layer em `docs/SCIENTIFIC_INTELLIGENCE.md`.
 - Documentado o fluxo de adjudicação humana e export não canônico em `docs/HUMAN_SYNTHESIS_REVIEW.md`.
 - Documentado o contrato de verificação, context fingerprint, fronteira criptográfica e export executivo em `docs/HUMAN_SYNTHESIS_BRIEF.md`.
+- Documentado o registry servidor-local, estados de governance, idempotência, revalidação no momento da decisão e fronteira `governance approval != scientific canonization` em `docs/SYNTHESIS_GOVERNANCE_REGISTRY.md`.
 
 ### Correções pós-v1.0.0 já presentes na main
 
