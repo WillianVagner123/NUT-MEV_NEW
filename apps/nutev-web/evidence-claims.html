@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>EvidenceClaim Review — NutEV</title>
+  <meta name="description" content="Revisão humana claim-by-claim com promoção explícita para EvidenceClaim source-level canônico.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./evidence-claims.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
+        <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a><a class="nav-item" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
+        <div class="nav-group-label">Scientific claims</div><a class="nav-item active" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">EvidenceClaim aceito = proposição source-level vinculada a um EvidenceRecord existente. Não significa inclusão PRISMA, validade do estudo, RoB, certainty, síntese, causalidade ou recomendação.</div>
+    </aside>
+
+    <main class="main dashboard-main claims-main">
+      <header class="topbar dashboard-topbar"><div><h1>EvidenceClaim Review & Promotion</h1><p>Atomic citation source · explicit human decision · EvidenceRecord integrity gate</p></div><div class="dashboard-actions"><a href="/synthesis-publication.html" class="ghost" style="text-decoration:none">Publication Manifest</a><button id="refreshClaims" class="ghost" type="button">Atualizar</button><span id="claimsHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">HUMAN CLAIM GATE · PAIRWISE SYNTHESIS IS NOT AN ATOMIC CLAIM</div><h2>Transformar uma fonte rastreável em EvidenceClaim sem transformar síntese em certeza</h2><p class="project-question">A Fase 16 não promove os pairwise statement candidates da síntese. Ela abre cada citation individualmente, exige vínculo real com `evidence_records.jsonl` e só cria um EvidenceClaim canônico depois de `ACCEPT` humano com statement escrito pelo revisor, justificativa e confirmações de fronteira científica.</p></div></section>
+
+      <div id="claimsState" class="loading dashboard-state">Conectando ao coordenador local…</div>
+
+      <section id="claimsContent" class="hidden">
+        <div id="claimsKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-5">
+            <div class="panel-head"><div><h2>Stage claim review</h2><p>O staging cria candidatos source-linked; ele nunca aceita claims automaticamente.</p></div></div>
+            <label class="claim-field"><span>Publication Manifest</span><select id="claimManifest"><option value="">Selecione um manifest</option></select></label>
+            <label class="claim-field"><span>Iniciado por</span><input id="stagedBy" type="text" maxlength="120" placeholder="Nome do responsável"></label>
+            <button id="stageClaims" type="button" disabled>Iniciar EvidenceClaim review</button>
+            <div id="stageClaimsState" class="small-state">Selecione um manifest já persistido.</div>
+          </section>
+
+          <section class="card dashboard-card span-7">
+            <div class="panel-head"><div><h2>Promotion contract</h2><p>Esta é a primeira camada que pode criar um EvidenceClaim canônico — e por isso os gates são mais fortes.</p></div></div>
+            <div class="claim-semantics">
+              <article><strong>Atomic source only</strong><p>Um EvidenceClaim pertence a um único `EvidenceRecord`. O pairwise `CONVERGENT/DIVERGENT/...` continua contexto de síntese e não é diretamente promovível.</p></article>
+              <article><strong>EvidenceRecord required</strong><p>`ACCEPT` falha se `evidence:{document_id}` não existir de fato em `scientific/evidence_records.jsonl`.</p></article>
+              <article><strong>Human statement</strong><p>O campo de claim começa vazio. O sistema não copia nem pré-preenche o result text como claim canônico.</p></article>
+              <article><strong>Acceptance scope</strong><p>Aceitar significa apenas: “esta proposição source-level foi revisada e vinculada à fonte”. Não avalia qualidade, certainty ou inclusão.</p></article>
+            </div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Claim candidates</h2><p>Snapshots curtos source-linked. Nenhum full text é carregado aqui.</p></div><div class="claim-filter"><label>Status <select id="claimStatusFilter"><option value="ALL">Todos</option><option value="PENDING_HUMAN_REVIEW">Pendentes</option><option value="REVISION_REQUIRED">Revisão solicitada</option><option value="ACCEPTED">Aceitos</option><option value="REJECTED">Rejeitados</option></select></label></div></div>
+            <div id="claimCandidates" class="claim-candidates"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Accepted EvidenceClaims</h2><p>Claims canônicos source-level. A ausência de ClaimEvaluation é mostrada explicitamente.</p></div></div>
+            <div id="acceptedClaims" class="accepted-claims"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 claim-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>EvidenceClaim acceptance != screening inclusion · EvidenceClaim != study validity · EvidenceClaim != Risk of Bias · EvidenceClaim != certainty · EvidenceClaim != EvidenceSet synthesis · EvidenceClaim != recommendation · EvidenceClaim != meta-analysis · EvidenceClaim != PRISMA event · typed reviewer name != cryptographically authenticated identity.</p></div></div></section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./evidence-claims.js"></script>
+</body>
+</html>
