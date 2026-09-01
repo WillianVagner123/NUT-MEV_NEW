@@ -21,9 +21,9 @@ from evidence_claim_review import (  # noqa: E402
     SynthesisGovernanceError,
     _claim_root,
     claim_review_status,
-    decide_claim_candidate,
     stage_claim_candidates,
 )
+from evidence_claim_review_gate import decide_claim_candidate  # noqa: E402
 from governed_publication_manifest import prepare_publication_manifest  # noqa: E402
 from governed_synthesis_release import prepare_governed_release  # noqa: E402
 from synthesis_governance import (  # noqa: E402
@@ -207,6 +207,10 @@ def _stage(output_root: Path) -> dict:
     )
 
 
+def _candidate(status: dict, document_id: str = "doi:10.1000/a") -> dict:
+    return next(item for item in status["candidates"] if item["document_id"] == document_id)
+
+
 def _accept_payload(candidate_id: str) -> dict:
     return {
         "candidate_id": candidate_id,
@@ -242,14 +246,14 @@ def test_accept_creates_canonical_source_claim_only_after_evidence_record_resolu
     _write_search_state(tmp_path)
     status = _stage(tmp_path)
     _write_evidence_records(tmp_path)
-    candidate_id = status["candidates"][0]["candidate_id"]
+    candidate_id = _candidate(status)["candidate_id"]
 
     decided = decide_claim_candidate(_accept_payload(candidate_id), output_root=tmp_path)
 
     assert decided["candidate_counts"][ACCEPTED] == 1
     assert decided["accepted_claim_count"] == 1
     claim_meta = decided["accepted_claims"][0]
-    assert claim_meta["evidence_record_id"].startswith("evidence:")
+    assert claim_meta["evidence_record_id"] == "evidence:doi:10.1000/a"
     assert claim_meta["claim_evaluation_created"] is False
 
     claim_id = claim_meta["claim_id"]
@@ -277,7 +281,7 @@ def test_accept_creates_canonical_source_claim_only_after_evidence_record_resolu
 def test_accept_missing_evidence_record_fails_without_acceptance_artifacts(tmp_path: Path) -> None:
     _write_search_state(tmp_path)
     status = _stage(tmp_path)
-    candidate_id = status["candidates"][0]["candidate_id"]
+    candidate_id = _candidate(status)["candidate_id"]
 
     with pytest.raises(SynthesisGovernanceError, match="EvidenceRecord correspondente"):
         decide_claim_candidate(_accept_payload(candidate_id), output_root=tmp_path)
@@ -295,7 +299,7 @@ def test_revise_is_nonfinal_and_can_be_followed_by_accept(tmp_path: Path) -> Non
     _write_search_state(tmp_path)
     status = _stage(tmp_path)
     _write_evidence_records(tmp_path)
-    candidate_id = status["candidates"][0]["candidate_id"]
+    candidate_id = _candidate(status)["candidate_id"]
 
     revised = decide_claim_candidate(
         {
@@ -318,7 +322,7 @@ def test_reject_is_final_and_does_not_create_claim(tmp_path: Path) -> None:
     _write_search_state(tmp_path)
     status = _stage(tmp_path)
     _write_evidence_records(tmp_path)
-    candidate_id = status["candidates"][0]["candidate_id"]
+    candidate_id = _candidate(status)["candidate_id"]
 
     rejected = decide_claim_candidate(
         {
@@ -340,7 +344,7 @@ def test_accept_requires_explicit_source_and_boundary_confirmations(tmp_path: Pa
     _write_search_state(tmp_path)
     status = _stage(tmp_path)
     _write_evidence_records(tmp_path)
-    candidate_id = status["candidates"][0]["candidate_id"]
+    candidate_id = _candidate(status)["candidate_id"]
     payload = _accept_payload(candidate_id)
     payload["source_attribution_confirmed"] = False
     with pytest.raises(SynthesisGovernanceError, match="proposição reportada"):
@@ -356,7 +360,7 @@ def test_claim_decision_fails_closed_when_context_changes_after_staging(tmp_path
     _write_search_state(tmp_path)
     status = _stage(tmp_path)
     _write_evidence_records(tmp_path)
-    candidate_id = status["candidates"][0]["candidate_id"]
+    candidate_id = _candidate(status)["candidate_id"]
     _write_search_state(tmp_path, database_sha="f" * 64)
 
     with pytest.raises(SynthesisGovernanceError, match="contexto científico atual|Context fingerprint"):
