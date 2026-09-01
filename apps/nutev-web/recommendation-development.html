@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Recommendation Development — NutEV</title>
+  <meta name="description" content="Worksheet humano de desenvolvimento de recomendação a partir de HumanValidation ACCEPT, sem GRADE EtD ou força automática.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./recommendation-candidates.css">
+  <link rel="stylesheet" href="./recommendation-development.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Scientific claims</div>
+        <a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a>
+        <a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a>
+        <a class="nav-item" href="/evidence-sets.html"><span class="nav-icon">▦</span><span>EvidenceSet Construction</span></a>
+        <a class="nav-item" href="/recommendation-candidates.html"><span class="nav-icon">→</span><span>RecommendationCandidate</span></a>
+        <a class="nav-item" href="/recommendation-human-validation.html"><span class="nav-icon">✓</span><span>HumanValidation</span></a>
+        <a class="nav-item active" href="/recommendation-development.html"><span class="nav-icon">≋</span><span>Recommendation Development</span></a>
+        <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Recommendation Development = worksheet humano genérico após HumanValidation ACCEPT. Não é GRADE EtD, não avalia força e não cria guideline/clinical recommendation.</div>
+    </aside>
+
+    <main class="main dashboard-main development-main">
+      <header class="topbar dashboard-topbar"><div><h1>Recommendation Development</h1><p>HumanValidation ACCEPT · human-entered considerations · strength not_evaluated</p></div><div class="dashboard-actions"><a href="/recommendation-human-validation.html" class="ghost" style="text-decoration:none">HumanValidation</a><button id="refreshDevelopment" class="ghost" type="button">Atualizar</button><span id="developmentHealth" class="status-pill">verificando…</span></div></header>
+
+      <section class="card project-hero"><div><div class="project-eyebrow">GENERIC WORKSHEET · NOT GRADE EtD · NO AUTO-RECOMMENDATION</div><h2>Desenvolver a proposta sem fingir que o framework formal já foi aplicado</h2><p class="project-question">A Fase 21 recebe apenas HumanValidation ACCEPT. O humano escreve um novo wording e registra considerações sobre população, ação, alternativas, benefícios, harms/burdens, valores/preferências, recursos, equidade, aceitabilidade, viabilidade, implementação e incerteza. Nenhum campo é convertido automaticamente em força, certainty ou guideline recommendation.</p></div></section>
+
+      <div id="developmentState" class="loading dashboard-state">Conectando ao coordenador local…</div>
+
+      <section id="developmentContent" class="hidden">
+        <div id="developmentKpis" class="kpi-grid"></div>
+        <div class="dashboard-grid">
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Accepted HumanValidations available</h2><p>Somente ACCEPT pode abrir Recommendation Development. O source candidate é mostrado para inspeção, nunca copiado para o formulário.</p></div></div>
+            <div id="acceptedValidations" class="development-list"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Recommendation Development drafts</h2><p>Finalizar congela o worksheet e sua provenance; recommendation strength continua not_evaluated.</p></div></div>
+            <div id="developmentDrafts" class="development-list"></div>
+          </section>
+
+          <section class="card dashboard-card span-12">
+            <div class="panel-head"><div><h2>Finalized development records</h2><p>Canonical = worksheet/provenance autoritativos, não guideline ou clinical recommendation autoritativa.</p></div></div>
+            <div id="finalizedDevelopments" class="development-list"></div>
+          </section>
+
+          <section class="card dashboard-card span-12 development-boundary">
+            <div class="panel-head"><div><h2>Scientific boundary</h2><p>HumanValidation ACCEPT ≠ recommendation strength · generic worksheet ≠ GRADE Evidence-to-Decision · narrative benefits/harms ≠ formal benefit-harm balance · values/preferences/resources/equity/acceptability/feasibility notes ≠ formal assessments · Recommendation Development ≠ certainty/GRADE · ≠ formal RoB · ≠ validated recommendation · ≠ clinical recommendation · ≠ guideline recommendation · ≠ canonical scientific synthesis · ≠ meta-analysis · ≠ PRISMA.</p></div></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./recommendation-development.js"></script>
+</body>
+</html>
