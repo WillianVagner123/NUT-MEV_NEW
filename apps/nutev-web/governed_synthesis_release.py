@@ -22,6 +22,7 @@ from synthesis_governance import (
 
 RELEASE_TYPE = "NUTEV_GOVERNED_SYNTHESIS_RELEASE_V1"
 RELEASE_RECORD_TYPE = "NUTEV_GOVERNED_SYNTHESIS_RELEASE_RECORD_V1"
+PUBLICATION_OPERATION = "PREPARE_PUBLICATION_MANIFEST"
 _RELEASE_LOCK = threading.RLock()
 
 
@@ -182,6 +183,11 @@ def build_governed_release(
 def prepare_governed_release(
     payload: Mapping[str, Any], *, output_root: Path = DEFAULT_OUTPUT_ROOT
 ) -> dict[str, Any]:
+    if str(payload.get("operation") or "").strip() == PUBLICATION_OPERATION:
+        from governed_publication_manifest import prepare_publication_manifest
+
+        return prepare_publication_manifest(payload, output_root=output_root)
+
     package = build_governed_release(
         str(payload.get("artifact_id") or ""),
         prepared_by=str(payload.get("prepared_by") or ""),
@@ -237,13 +243,21 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
                 except (FileNotFoundError, SynthesisGovernanceError):
                     continue
     records.sort(key=lambda item: str(item.get("generated_at") or ""), reverse=True)
+
+    from governed_publication_manifest import publication_status
+
+    publication = publication_status(output_root=output_root)
     return {
         "status": "READY",
         "release_type": RELEASE_TYPE,
         "count": len(records),
         "records": records,
+        "publication_manifest_type": publication["manifest_type"],
+        "publication_count": publication["count"],
+        "publication_records": publication["records"],
         "scientific_boundary": (
-            "Release records describe governed dissemination packages only. They do not create "
-            "certainty, RoB, meta-analysis, PRISMA, accepted EvidenceClaims, or canonical synthesis."
+            "Release records and publication-manifest records describe governed preparation only. "
+            "They do not create certainty, RoB, meta-analysis, PRISMA, accepted EvidenceClaims, "
+            "recommendations, or canonical synthesis."
         ),
     }
