@@ -1,7 +1,7 @@
 const MANIFEST_TYPE='NUTEV_GOVERNED_PUBLICATION_MANIFEST_V1';
 const STATEMENT_TYPE='NUTEV_PUBLICATION_STATEMENT_CANDIDATE_V1';
+const PUBLICATION_OPERATION='PREPARE_PUBLICATION_MANIFEST';
 let releases=null;
-let publications=null;
 let latestManifest=null;
 
 const $=id=>document.getElementById(id);
@@ -23,7 +23,7 @@ async function postJson(url,payload){
 }
 
 function releaseRecords(){return Array.isArray(releases?.records)?releases.records:[];}
-function publicationRecords(){return Array.isArray(publications?.records)?publications.records:[];}
+function publicationRecords(){return Array.isArray(releases?.publication_records)?releases.publication_records:[];}
 
 function renderKpis(){
   $('publicationKpis').innerHTML=[
@@ -99,14 +99,14 @@ async function prepare(){
   $('preparePublication').disabled=true;
   $('preparePublicationState').textContent='Revalidando Governed Release e construindo citation bundle no servidor…';
   try{
-    const result=await postJson('/api/synthesis/publications/prepare',{package_id:packageId,publication_owner:publicationOwner,intended_use:intendedUse});
+    const result=await postJson('/api/synthesis/releases/prepare',{operation:PUBLICATION_OPERATION,package_id:packageId,publication_owner:publicationOwner,intended_use:intendedUse});
     if(result?.manifest?.manifest_type!==MANIFEST_TYPE||result?.manifest?.canonical!==false)throw new Error('Publication manifest perdeu o contrato V1 não canônico.');
     const statements=Array.isArray(result.manifest?.statement_candidates)?result.manifest.statement_candidates:[];
     if(statements.some(item=>item.statement_type!==STATEMENT_TYPE||item.accepted_evidence_claim!==false||item.publication_status!=='CANDIDATE_ONLY'))throw new Error('Statement candidate foi promovido indevidamente.');
     if(result.manifest?.guardrails?.accepted_evidence_claims_created!==false)throw new Error('Manifest perdeu o guardrail de EvidenceClaim.');
     renderManifest(result);
     $('preparePublicationState').textContent='Manifest preparado após revalidação. Statement candidate ≠ accepted EvidenceClaim.';
-    publications=await getJson('/api/synthesis/publications');
+    releases=await getJson('/api/synthesis/releases');
     renderKpis();renderRecords();
   }catch(error){
     latestManifest=null;
@@ -130,7 +130,7 @@ async function load(){
   $('publicationState').classList.remove('hidden');
   $('publicationContent').classList.add('hidden');
   try{
-    [releases,publications]=await Promise.all([getJson('/api/synthesis/releases'),getJson('/api/synthesis/publications')]);
+    releases=await getJson('/api/synthesis/releases');
     renderKpis();renderReleaseSelect();renderRecords();
     $('publicationState').classList.add('hidden');
     $('publicationContent').classList.remove('hidden');
