@@ -31,6 +31,8 @@ EVIDENCE_SET_STAGE_OPERATION = "STAGE_EVIDENCE_SET"
 EVIDENCE_SET_FINALIZE_OPERATION = "FINALIZE_EVIDENCE_SET"
 RECOMMENDATION_STAGE_OPERATION = "STAGE_RECOMMENDATION_CANDIDATE"
 RECOMMENDATION_FINALIZE_OPERATION = "FINALIZE_RECOMMENDATION_CANDIDATE"
+VALIDATION_STAGE_OPERATION = "STAGE_RECOMMENDATION_HUMAN_VALIDATION"
+VALIDATION_DECIDE_OPERATION = "DECIDE_RECOMMENDATION_HUMAN_VALIDATION"
 _RELEASE_LOCK = threading.RLock()
 
 
@@ -228,6 +230,14 @@ def prepare_governed_release(
         from recommendation_candidate_drafting import finalize_recommendation_candidate
 
         return finalize_recommendation_candidate(payload, output_root=output_root)
+    if operation == VALIDATION_STAGE_OPERATION:
+        from recommendation_human_validation import stage_recommendation_human_validation
+
+        return stage_recommendation_human_validation(payload, output_root=output_root)
+    if operation == VALIDATION_DECIDE_OPERATION:
+        from recommendation_human_validation import decide_recommendation_human_validation
+
+        return decide_recommendation_human_validation(payload, output_root=output_root)
 
     package = build_governed_release(
         str(payload.get("artifact_id") or ""),
@@ -290,12 +300,14 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
     from evidence_set_construction import evidence_set_status
     from governed_publication_manifest import publication_status
     from recommendation_candidate_drafting import recommendation_candidate_status
+    from recommendation_human_validation import recommendation_human_validation_status
 
     publication = publication_status(output_root=output_root)
     claims = claim_review_status(output_root=output_root)
     evaluations = claim_evaluation_status(output_root=output_root)
     evidence_sets = evidence_set_status(output_root=output_root)
     recommendations = recommendation_candidate_status(output_root=output_root)
+    validations = recommendation_human_validation_status(output_root=output_root)
 
     finalized_by_claim = {
         str(item.get("claim_id") or ""): item
@@ -328,6 +340,20 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
                 **item,
                 "recommendation_candidate_ids": candidate_ids,
                 "recommendation_candidate_count": len(candidate_ids),
+            }
+        )
+
+    validation_index = validations["candidate_validation_index"]
+    finalized_recommendations = []
+    for item in recommendations["finalized_recommendation_candidates"]:
+        candidate_id = str(item.get("recommendation_candidate_id") or "")
+        validation = validation_index.get(candidate_id)
+        finalized_recommendations.append(
+            {
+                **item,
+                "human_validation_id": validation.get("validation_id") if validation else None,
+                "human_validation_status": validation.get("status") if validation else "NOT_STAGED",
+                "human_validation_decision": validation.get("decision") if validation else None,
             }
         )
 
@@ -390,18 +416,36 @@ def release_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Any]
         "finalized_recommendation_candidate_count": recommendations[
             "finalized_recommendation_candidate_count"
         ],
-        "finalized_recommendation_candidates": recommendations[
-            "finalized_recommendation_candidates"
-        ],
+        "finalized_recommendation_candidates": finalized_recommendations,
         "finalized_recommendation_candidate_list_truncated": recommendations[
             "finalized_recommendation_candidate_list_truncated"
         ],
         "recommendation_candidate_max_evidence_sets": recommendations["max_evidence_sets"],
+        "recommendation_human_validation_case_type": validations["validation_case_type"],
+        "recommendation_human_validation_record_type": validations[
+            "canonical_human_validation_record_type"
+        ],
+        "recommendation_human_validation_target_type": validations["target_type"],
+        "recommendation_human_validation_decision_options": validations["decision_options"],
+        "recommendation_human_validation_counts": validations["counts"],
+        "recommendation_human_validation_case_count": validations["case_count"],
+        "recommendation_human_validation_cases": validations["cases"],
+        "recommendation_human_validation_case_list_truncated": validations[
+            "case_list_truncated"
+        ],
+        "finalized_recommendation_human_validation_count": validations[
+            "finalized_validation_count"
+        ],
+        "finalized_recommendation_human_validations": validations["finalized_validations"],
+        "finalized_recommendation_human_validation_list_truncated": validations[
+            "finalized_validation_list_truncated"
+        ],
         "scientific_boundary": (
             "Release/publication remain preparation artifacts; accepted EvidenceClaims are source-level "
             "propositions; ClaimEvaluation records explicit human appraisal dimensions; EvidenceSet records "
             "human-curated membership; RecommendationCandidate records human-authored candidate text with "
-            "readiness not_evaluated. Candidate finalization is not recommendation validation, certainty, "
-            "clinical recommendation, canonical scientific synthesis, meta-analysis, or PRISMA."
+            "readiness not_evaluated; HumanValidation records ACCEPT/REJECT/REVISE for the declared review scope. "
+            "HumanValidation does not alter readiness and does not create certainty, formal risk of bias, a "
+            "clinical/guideline recommendation, canonical scientific synthesis, meta-analysis, or PRISMA state."
         ),
     }
