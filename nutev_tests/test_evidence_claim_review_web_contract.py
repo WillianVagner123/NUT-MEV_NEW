@@ -40,10 +40,12 @@ def test_claim_candidates_come_from_atomic_citations_not_pairwise_statements() -
 
 def test_accept_requires_real_evidence_record_and_explicit_human_confirmations() -> None:
     service = read("evidence_claim_review.py")
+    gate = read("evidence_claim_review_gate.py")
     script = read("evidence-claims.js")
 
     assert 'output_root / "scientific" / "evidence_records.jsonl"' in service
-    assert "EvidenceRecord correspondente não foi localizado" in service
+    assert "EvidenceRecord correspondente não foi localizado" in gate
+    assert "before an ACCEPT review can be persisted" in gate
     assert "source_attribution_confirmed" in service
     assert "scientific_boundary_confirmed" in service
     assert "source_attribution_confirmed:field(card,'source_attribution_confirmed')" in script
@@ -87,7 +89,9 @@ def test_claim_ui_has_no_external_llm_or_auto_accept_path() -> None:
 
     for token in ("openai", "anthropic", "claude", "gemini", "chatgpt"):
         assert token not in lowered
-    load_body = script.split("async function load()", 1)[1]
+    load_body = script.split("async function load()", 1)[1].split(
+        "$('claimManifest').addEventListener", 1
+    )[0]
     assert "decide(" not in load_body
     stage_body = script.split("async function stage()", 1)[1].split("function field", 1)[0]
     assert "DECIDE_OPERATION" not in stage_body
