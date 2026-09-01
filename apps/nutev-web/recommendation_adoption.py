@@ -16,7 +16,7 @@ from recommendation_development import (
     _revalidate_draft,
     _scientific_content as _development_scientific_content,
 )
-from synthesis_governance import SynthesisGovernanceError
+from synthesis_governance import SynthesisGovernanceError, current_context_fingerprint
 
 ADOPTION_CASE_TYPE = "NUTEV_RECOMMENDATION_ADOPTION_CASE_V1"
 ADOPTION_STATE_TYPE = "NUTEV_RECOMMENDATION_ADOPTION_STATE_V1"
@@ -88,9 +88,9 @@ def _load_finalized_development(
         )
     if record.get("method") != DEVELOPMENT_METHOD:
         raise SynthesisGovernanceError("Recommendation Development method inválido")
-
-    expected_sha = _digest(_development_scientific_content(record))
-    if str(record.get("content_sha256") or "") != expected_sha:
+    if str(record.get("content_sha256") or "") != _digest(
+        _development_scientific_content(record)
+    ):
         raise SynthesisGovernanceError("Recommendation Development content SHA-256 inválido")
 
     development = record.get("development")
@@ -164,6 +164,12 @@ def _load_finalized_development(
     if _digest(record.get("source_snapshot")) != _digest(draft.get("source_snapshot")):
         raise SynthesisGovernanceError("Recommendation Development source snapshot divergiu")
 
+    _, current_fingerprint = current_context_fingerprint(output_root)
+    if str(record.get("source_context_fingerprint") or "") != current_fingerprint:
+        raise SynthesisGovernanceError(
+            "Recommendation Development não corresponde ao contexto científico atual; restage necessário"
+        )
+
     return record, dict(development)
 
 
@@ -200,7 +206,6 @@ def stage_recommendation_adoption(
     staged_by = str(payload.get("staged_by") or "").strip()
     adoption_scope = str(payload.get("adoption_scope") or "").strip()
     governance_purpose = str(payload.get("governance_purpose") or "").strip()
-
     if not development_id:
         raise SynthesisGovernanceError("Recommendation Development id obrigatório")
     if not staged_by:
@@ -256,7 +261,6 @@ def stage_recommendation_adoption(
             "PENDING is not adoption, recommendation strength, certainty, guideline status, or clinical recommendation."
         ),
     }
-
     root = _adoption_root(output_root)
     with _ADOPTION_LOCK:
         case_path = _case_path(root, adoption_id)
@@ -337,7 +341,6 @@ def decide_recommendation_adoption(
     governor = str(payload.get("governor") or "").strip()
     rationale = str(payload.get("rationale") or "").strip()
     revision_instructions = str(payload.get("revision_instructions") or "").strip()
-
     if not governor:
         raise SynthesisGovernanceError("Identifique o governor responsável pela decisão")
     if len(rationale) < 50:
@@ -385,30 +388,26 @@ def decide_recommendation_adoption(
     with _ADOPTION_LOCK:
         case, state = _load_case(adoption_id, output_root=output_root)
         _revalidate_case(case, output_root=output_root)
-
         if state.get("status") != PENDING:
             record = _read_json(_record_path(root, adoption_id), "canonical Recommendation Adoption")
             adoption = record.get("recommendation_adoption")
-            if isinstance(adoption, Mapping):
-                metadata = adoption.get("metadata")
-                same = (
-                    str(adoption.get("decision") or "") == MODEL_DECISIONS[decision]
-                    and str(adoption.get("governor") or "") == governor
-                    and str(adoption.get("rationale") or "") == rationale
-                    and str(metadata.get("revision_instructions") or "")
-                    == revision_instructions
-                    if isinstance(metadata, Mapping)
-                    else False
-                )
-                if same:
-                    return recommendation_adoption_status(output_root=output_root)
+            metadata = adoption.get("metadata") if isinstance(adoption, Mapping) else None
+            same = bool(
+                isinstance(adoption, Mapping)
+                and isinstance(metadata, Mapping)
+                and str(adoption.get("decision") or "") == MODEL_DECISIONS[decision]
+                and str(adoption.get("governor") or "") == governor
+                and str(adoption.get("rationale") or "") == rationale
+                and str(metadata.get("revision_instructions") or "") == revision_instructions
+            )
+            if same:
+                return recommendation_adoption_status(output_root=output_root)
             raise SynthesisGovernanceError(
                 "Recommendation Adoption já possui decisão canônica; decisão conflitante não pode sobrescrevê-la"
             )
 
         current = _development_snapshot(str(case.get("target_id") or ""), output_root=output_root)
         decided_at = _now()
-        model_decision = MODEL_DECISIONS[decision]
         adopted = decision == ADOPT_FOR_DEFINED_SCOPE
         scientific = {
             "recommendation_adoption_record_type": CANONICAL_RECOMMENDATION_ADOPTION_RECORD_TYPE,
@@ -426,7 +425,7 @@ def decide_recommendation_adoption(
             "context_version": current.get("context_version"),
             "recommendation_adoption": {
                 "id": adoption_id,
-                "decision": model_decision,
+                "decision": MODEL_DECISIONS[decision],
                 "governor": governor,
                 "rationale": rationale,
                 "adoption_scope": case.get("adoption_scope"),
@@ -492,7 +491,7 @@ def decide_recommendation_adoption(
             {
                 **state,
                 "status": decision,
-                "decision": model_decision,
+                "decision": MODEL_DECISIONS[decision],
                 "canonical_recommendation_adoption_id": adoption_id,
                 "decided_at": decided_at,
                 "identity_cryptographically_authenticated": False,
@@ -511,11 +510,9 @@ def recommendation_adoption_status(*, output_root: Path = DEFAULT_OUTPUT_ROOT) -
     }
     cases: list[dict[str, Any]] = []
     development_index: dict[str, dict[str, Any]] = {}
-
     states_dir = root / "states"
     with _ADOPTION_LOCK:
-        state_paths = sorted(states_dir.glob("*.json")) if states_dir.is_dir() else []
-        for state_path in state_paths:
+        for state_path in sorted(states_dir.glob("*.json")) if states_dir.is_dir() else []:
             try:
                 state = _read_json(state_path, state_path.name)
                 adoption_id = str(state.get("adoption_id") or "")
