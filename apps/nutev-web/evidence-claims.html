@@ -18,14 +18,14 @@
         <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
         <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
         <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a><a class="nav-item" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
-        <div class="nav-group-label">Scientific claims</div><a class="nav-item active" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a>
+        <div class="nav-group-label">Scientific claims</div><a class="nav-item active" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a><a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a>
         <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
-      <div class="sidebar-note">EvidenceClaim aceito = proposição source-level vinculada a um EvidenceRecord existente. Não significa inclusão PRISMA, validade do estudo, RoB, certainty, síntese, causalidade ou recomendação.</div>
+      <div class="sidebar-note">EvidenceClaim aceito = proposição source-level vinculada a um EvidenceRecord existente. A etapa seguinte é ClaimEvaluation humana; aceitação do claim por si só não significa validade, RoB, certainty, síntese ou recomendação.</div>
     </aside>
 
     <main class="main dashboard-main claims-main">
-      <header class="topbar dashboard-topbar"><div><h1>EvidenceClaim Review & Promotion</h1><p>Atomic citation source · explicit human decision · EvidenceRecord integrity gate</p></div><div class="dashboard-actions"><a href="/synthesis-publication.html" class="ghost" style="text-decoration:none">Publication Manifest</a><button id="refreshClaims" class="ghost" type="button">Atualizar</button><span id="claimsHealth" class="status-pill">verificando…</span></div></header>
+      <header class="topbar dashboard-topbar"><div><h1>EvidenceClaim Review & Promotion</h1><p>Atomic citation source · explicit human decision · EvidenceRecord integrity gate</p></div><div class="dashboard-actions"><a href="/synthesis-publication.html" class="ghost" style="text-decoration:none">Publication Manifest</a><a href="/claim-appraisal.html" class="ghost" style="text-decoration:none">ClaimEvaluation</a><button id="refreshClaims" class="ghost" type="button">Atualizar</button><span id="claimsHealth" class="status-pill">verificando…</span></div></header>
 
       <section class="card project-hero"><div><div class="project-eyebrow">HUMAN CLAIM GATE · PAIRWISE SYNTHESIS IS NOT AN ATOMIC CLAIM</div><h2>Transformar uma fonte rastreável em EvidenceClaim sem transformar síntese em certeza</h2><p class="project-question">A Fase 16 não promove os pairwise statement candidates da síntese. Ela abre cada citation individualmente, exige vínculo real com `evidence_records.jsonl` e só cria um EvidenceClaim canônico depois de `ACCEPT` humano com statement escrito pelo revisor, justificativa e confirmações de fronteira científica.</p></div></section>
 
@@ -48,7 +48,7 @@
               <article><strong>Atomic source only</strong><p>Um EvidenceClaim pertence a um único `EvidenceRecord`. O pairwise `CONVERGENT/DIVERGENT/...` continua contexto de síntese e não é diretamente promovível.</p></article>
               <article><strong>EvidenceRecord required</strong><p>`ACCEPT` falha se `evidence:{document_id}` não existir de fato em `scientific/evidence_records.jsonl`.</p></article>
               <article><strong>Human statement</strong><p>O campo de claim começa vazio. O sistema não copia nem pré-preenche o result text como claim canônico.</p></article>
-              <article><strong>Acceptance scope</strong><p>Aceitar significa apenas: “esta proposição source-level foi revisada e vinculada à fonte”. Não avalia qualidade, certainty ou inclusão.</p></article>
+              <article><strong>Acceptance scope</strong><p>Aceitar significa apenas: “esta proposição source-level foi revisada e vinculada à fonte”. A avaliação metodológica ocorre depois em ClaimEvaluation.</p></article>
             </div>
           </section>
 
@@ -58,11 +58,11 @@
           </section>
 
           <section class="card dashboard-card span-12">
-            <div class="panel-head"><div><h2>Accepted EvidenceClaims</h2><p>Claims canônicos source-level. A ausência de ClaimEvaluation é mostrada explicitamente.</p></div></div>
+            <div class="panel-head"><div><h2>Accepted EvidenceClaims</h2><p>Claims canônicos source-level. A ausência de ClaimEvaluation é mostrada explicitamente.</p></div><a class="panel-link" href="/claim-appraisal.html">Abrir ClaimEvaluation →</a></div>
             <div id="acceptedClaims" class="accepted-claims"></div>
           </section>
 
-          <section class="card dashboard-card span-12 claim-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>EvidenceClaim acceptance != screening inclusion · EvidenceClaim != study validity · EvidenceClaim != Risk of Bias · EvidenceClaim != certainty · EvidenceClaim != EvidenceSet synthesis · EvidenceClaim != recommendation · EvidenceClaim != meta-analysis · EvidenceClaim != PRISMA event · typed reviewer name != cryptographically authenticated identity.</p></div></div></section>
+          <section class="card dashboard-card span-12 claim-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>EvidenceClaim acceptance != screening inclusion · EvidenceClaim != study validity · EvidenceClaim != Risk of Bias · EvidenceClaim != certainty · accepted claim != ClaimEvaluation · EvidenceClaim != EvidenceSet synthesis · EvidenceClaim != recommendation · EvidenceClaim != meta-analysis · EvidenceClaim != PRISMA event · typed reviewer name != cryptographically authenticated identity.</p></div></div></section>
         </div>
       </section>
     </main>
