@@ -18,16 +18,16 @@
         <div class="nav-group-label">Overview</div><a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
         <div class="nav-group-label">Evidence</div><a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a><a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a><a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
         <div class="nav-group-label">Governance</div><a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a><a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a><a class="nav-item" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
-        <div class="nav-group-label">Scientific claims</div><a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a><a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a><a class="nav-item" href="/evidence-sets.html"><span class="nav-icon">▦</span><span>EvidenceSet Construction</span></a><a class="nav-item active" href="/recommendation-candidates.html"><span class="nav-icon">→</span><span>RecommendationCandidate</span></a>
+        <div class="nav-group-label">Scientific claims</div><a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a><a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a><a class="nav-item" href="/evidence-sets.html"><span class="nav-icon">▦</span><span>EvidenceSet Construction</span></a><a class="nav-item active" href="/recommendation-candidates.html"><span class="nav-icon">→</span><span>RecommendationCandidate</span></a><a class="nav-item" href="/recommendation-human-validation.html"><span class="nav-icon">✓</span><span>HumanValidation</span></a>
         <div class="nav-group-label">System</div><a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a><a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
       <div class="sidebar-note">RecommendationCandidate = texto candidato autorado por humano e ligado a EvidenceSets. `readiness=not_evaluated`. Não é recomendação validada, clinical recommendation, certainty, GRADE ou síntese canônica.</div>
     </aside>
 
     <main class="main dashboard-main recommendation-main">
-      <header class="topbar dashboard-topbar"><div><h1>RecommendationCandidate Drafting</h1><p>Finalized EvidenceSets · human-authored statement · readiness not_evaluated</p></div><div class="dashboard-actions"><a href="/evidence-sets.html" class="ghost" style="text-decoration:none">EvidenceSets</a><button id="refreshRecommendations" class="ghost" type="button">Atualizar</button><span id="recommendationHealth" class="status-pill">verificando…</span></div></header>
+      <header class="topbar dashboard-topbar"><div><h1>RecommendationCandidate Drafting</h1><p>Finalized EvidenceSets · human-authored statement · readiness not_evaluated</p></div><div class="dashboard-actions"><a href="/evidence-sets.html" class="ghost" style="text-decoration:none">EvidenceSets</a><a href="/recommendation-human-validation.html" class="ghost" style="text-decoration:none">HumanValidation</a><button id="refreshRecommendations" class="ghost" type="button">Atualizar</button><span id="recommendationHealth" class="status-pill">verificando…</span></div></header>
 
-      <section class="card project-hero"><div><div class="project-eyebrow">HUMAN AUTHORSHIP · NO AUTO-READINESS · CANDIDATE ≠ VALIDATED RECOMMENDATION</div><h2>Escrever uma proposta rastreável sem deixar o sistema decidir o que recomendar</h2><p class="project-question">A Fase 19 recebe apenas EvidenceSets finalizados. O autor seleciona manualmente os sets e escreve o statement do zero. O NutEV não converte membership, quantidade de sets, julgamentos de ClaimEvaluation ou relações anteriores em texto, score, readiness, certainty ou recomendação.</p></div></section>
+      <section class="card project-hero"><div><div class="project-eyebrow">HUMAN AUTHORSHIP · NO AUTO-READINESS · CANDIDATE ≠ VALIDATED RECOMMENDATION</div><h2>Escrever uma proposta rastreável sem deixar o sistema decidir o que recomendar</h2><p class="project-question">A Fase 19 recebe apenas EvidenceSets finalizados. O autor seleciona manualmente os sets e escreve o statement do zero. O NutEV não converte membership, quantidade de sets, julgamentos de ClaimEvaluation ou relações anteriores em texto, score, readiness, certainty ou recomendação. Candidates finalizados seguem para HumanValidation explícita sem alteração automática do readiness.</p></div></section>
 
       <div id="recommendationState" class="loading dashboard-state">Conectando ao coordenador local…</div>
 
@@ -52,7 +52,7 @@
               <article><strong>NO TEXT GENERATION</strong><p>O sistema não escreve, completa ou sugere o statement científico do candidato.</p></article>
               <article><strong>READINESS = NOT_EVALUATED</strong><p>Nenhuma quantidade de EvidenceSets ou julgamentos favoráveis altera readiness automaticamente.</p></article>
               <article><strong>SETS ≠ CONSENSUS</strong><p>Um ou vários EvidenceSets não significam agreement, strength, certainty ou recomendação.</p></article>
-              <article><strong>HumanValidation NEXT</strong><p>Um candidato finalizado continua aguardando validação humana separada antes de qualquer recomendação aceita.</p></article>
+              <article><strong>HumanValidation NEXT</strong><p>Um candidato finalizado segue para ACCEPT, REJECT ou REVISE explícito; mesmo ACCEPT não altera readiness nem cria clinical recommendation.</p></article>
             </div>
           </section>
 
@@ -67,11 +67,11 @@
           </section>
 
           <section class="card dashboard-card span-12">
-            <div class="panel-head"><div><h2>Finalized RecommendationCandidates</h2><p>Registros canônicos do candidato humano com `readiness=not_evaluated`.</p></div></div>
+            <div class="panel-head"><div><h2>Finalized RecommendationCandidates</h2><p>Registros canônicos do candidato humano com `readiness=not_evaluated`. HumanValidation aparece apenas como metadata downstream.</p></div></div>
             <div id="finalizedRecommendations" class="finalized-recommendations"></div>
           </section>
 
-          <section class="card dashboard-card span-12 recommendation-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>RecommendationCandidate != validated recommendation · RecommendationCandidate != clinical recommendation · EvidenceSet count != evidence strength · EvidenceSet membership != consensus · readiness remains not_evaluated · Candidate != certainty/GRADE · Candidate != canonical scientific synthesis · Candidate != meta-analysis · Candidate != PRISMA.</p></div></div></section>
+          <section class="card dashboard-card span-12 recommendation-boundary"><div class="panel-head"><div><h2>Scientific boundary</h2><p>RecommendationCandidate != validated recommendation · RecommendationCandidate != clinical recommendation · EvidenceSet count != evidence strength · EvidenceSet membership != consensus · readiness remains not_evaluated · HumanValidation downstream does not mutate the candidate · Candidate != certainty/GRADE · Candidate != canonical scientific synthesis · Candidate != meta-analysis · Candidate != PRISMA.</p></div></div></section>
         </div>
       </section>
     </main>

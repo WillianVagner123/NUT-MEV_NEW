@@ -21,7 +21,8 @@ Esta pasta contém a documentação operacional, técnica, de auditoria, taxonom
 15. [`CLAIM_EVALUATION_APPRAISAL.md`](CLAIM_EVALUATION_APPRAISAL.md) — appraisal humano claim-level em seis dimensões explícitas, sem score automático, RoB formal, GRADE/certainty, EvidenceSet ou recomendação automática.
 16. [`EVIDENCE_SET_CONSTRUCTION.md`](EVIDENCE_SET_CONSTRUCTION.md) — construção humana de EvidenceSets a partir de claims aceitos e avaliados, com membership rationale por claim, suporte a sobreposição e bloqueio explícito de consensus/certainty/synthesis automáticos.
 17. [`RECOMMENDATION_CANDIDATE_DRAFTING.md`](RECOMMENDATION_CANDIDATE_DRAFTING.md) — autoria humana de RecommendationCandidates ligados a EvidenceSets finalizados, com `readiness=not_evaluated`, sem geração automática de texto, certainty ou validação da recomendação.
-18. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
+18. [`RECOMMENDATION_HUMAN_VALIDATION.md`](RECOMMENDATION_HUMAN_VALIDATION.md) — HumanValidation explícita de RecommendationCandidates com `PENDING → ACCEPT | REJECT | REVISE`, sem alterar readiness, reescrever o candidate ou criar clinical/guideline recommendation automaticamente.
+19. [`VALIDATED_WINDOWS_RUN_2026-08-18.md`](VALIDATED_WINDOWS_RUN_2026-08-18.md) — registro de uma execução real bem-sucedida anterior à taxonomia canônica v2.
 
 ## Release, DOI e proveniência
 
@@ -82,7 +83,7 @@ O ranking exporta `reference_rank` global e também classificação/rank taxonô
 
 ## Fronteira de interpretação
 
-O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano, apresentação executiva desses julgamentos, registry de governance local, preparação auditável de pacotes de disseminação governada, publication manifests com citations source-linked, revisão humana de proposições source-level como `EvidenceClaim`, appraisal humano via `ClaimEvaluation`, construção explícita de `EvidenceSet` e autoria humana de `RecommendationCandidate`.
+O Reference Engine é uma ferramenta de **descoberta, classificação e priorização de leitura**. O Scientific Workspace também oferece superfícies de organização, síntese estrutural, registro de rascunhos de julgamento humano, apresentação executiva desses julgamentos, registry de governance local, preparação auditável de pacotes de disseminação governada, publication manifests com citations source-linked, revisão humana de proposições source-level como `EvidenceClaim`, appraisal humano via `ClaimEvaluation`, construção explícita de `EvidenceSet`, autoria humana de `RecommendationCandidate` e `HumanValidation` explícita desses candidates.
 
 A aceitação de um EvidenceClaim na Fase 16 é estreita: significa que um revisor humano aceitou uma **proposição reportada pela fonte**, vinculada a um `EvidenceRecord` materializado e revalidado. Ela não converte a proposição em verdade científica, não inclui o artigo em uma revisão e não avalia a qualidade da evidência.
 
@@ -90,7 +91,9 @@ A ClaimEvaluation da Fase 17 também é estreita: registra julgamentos humanos s
 
 A EvidenceSet Construction da Fase 18 agrupa apenas claims aceitos e avaliados, por seleção humana explícita. Membership exige rationale por claim, pode se sobrepor entre diferentes sets e não significa agreement, contradiction, pooled effect, certainty, synthesis ou recommendation.
 
-A RecommendationCandidate Drafting da Fase 19 recebe apenas EvidenceSets finalizados e revalidados. O statement começa vazio e precisa ser escrito por humano. Finalizar o candidate record mantém `readiness=not_evaluated`, `recommendation_validated:false` e `clinical_recommendation_created:false`; uma futura `HumanValidation` separada continua obrigatória antes de qualquer recomendação aceita.
+A RecommendationCandidate Drafting da Fase 19 recebe apenas EvidenceSets finalizados e revalidados. O statement começa vazio e precisa ser escrito por humano. Finalizar o candidate record mantém `readiness=not_evaluated`, `recommendation_validated:false` e `clinical_recommendation_created:false`; uma `HumanValidation` separada continua obrigatória antes de qualquer decisão de aceitação do candidate.
+
+A RecommendationCandidate HumanValidation da Fase 20 registra `ACCEPT`, `REJECT` ou `REVISE` em um artefato separado depois de revalidar o candidate e toda a cadeia upstream. `ACCEPT` significa apenas que o reviewer humano aceitou o candidate **para o review scope declarado**. A decisão não altera `readiness`, não reescreve o candidate, não cria GRADE/certainty ou formal RoB e não cria clinical/guideline recommendation.
 
 Ele não substitui:
 
@@ -99,8 +102,8 @@ Ele não substitui:
 - avaliação formal de risco de viés;
 - avaliação de certainty;
 - síntese formal de evidências;
-- validação humana de RecommendationCandidates;
-- autenticação da identidade de revisores, assessores, curadores, autores/finalizadores de candidates, responsáveis de governance, preparadores de release ou responsáveis de publicação;
+- desenvolvimento formal de guideline/recommendation com método próprio;
+- autenticação da identidade de revisores, assessores, curadores, autores/finalizadores de candidates, validators, responsáveis de governance, preparadores de release ou responsáveis de publicação;
 - decisão clínica;
 - julgamento humano sobre a pertinência de uma referência.
 
@@ -117,6 +120,8 @@ Ele não substitui:
 `NUTEV_CANONICAL_EVIDENCE_SET_RECORD_V1` é canônico apenas como registro autoritativo da membership/proveniência de um conjunto humano de claims aceitos e avaliados. Ele mantém `consensus_inferred:false`, `contradiction_inferred:false`, `certainty_assessed:false`, `formal_risk_of_bias_assessed:false`, `canonical_scientific_synthesis_created:false`, `clinical_recommendation_created:false`, `meta_analysis_performed:false` e `prisma_event_emitted:false`.
 
 `NUTEV_CANONICAL_RECOMMENDATION_CANDIDATE_RECORD_V1` é canônico apenas como registro autoritativo do **candidato** e de sua proveniência. Ele mantém `readiness=not_evaluated`, `recommendation_validated:false`, `human_validation_created:false`, `certainty_assessed:false`, `clinical_recommendation_created:false`, `canonical_scientific_synthesis_created:false`, `meta_analysis_performed:false` e `prisma_event_emitted:false`.
+
+`NUTEV_CANONICAL_HUMAN_VALIDATION_RECORD_V1` é canônico apenas como registro autoritativo de uma decisão humana sobre um RecommendationCandidate e seu review scope. Mesmo quando `decision=accept`, ele mantém `readiness_changed:false`, `readiness_evaluated:false`, `validated_recommendation_created:false`, `clinical_recommendation_created:false`, `guideline_recommendation_created:false`, `certainty_assessed:false`, `grade_assessed:false`, `formal_risk_of_bias_assessed:false`, `canonical_scientific_synthesis_created:false`, `meta_analysis_performed:false` e `prisma_event_emitted:false`.
 
 A deduplicação atual é orientada por DOI, PMID, URL e, como fallback, título normalizado. Ela não garante unicidade semântica entre publicações relacionadas.
 
