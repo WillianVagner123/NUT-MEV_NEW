@@ -42,6 +42,14 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - O release record é canônico apenas como trilha operacional (`canonical_release_record:true`), mantendo `release_package_canonical:false` e `canonical_scientific_synthesis_created:false`.
 - O package explicita `accepted_evidence_claims_created:false`, `risk_of_bias_assessed:false`, `certainty_assessed:false`, `meta_analysis_performed:false`, `prisma_event_emitted:false` e `formal_search_state_changed:false`.
 - Adicionado `tools/audit_governed_synthesis_release.py`; o CI passa a executar um terceiro death test e `node --check` para `synthesis-release.js`, protegendo o fluxo `Review -> Brief -> Governance -> Release` contra auto-release, stale context, canonização científica ou fake certainty/meta-analysis/PRISMA.
+- Adicionado `/synthesis-publication.html` como **Governed Publication Manifest**, transformando um Governed Release revalidado em citation bundle e `PUBLICATION_STATEMENT_CANDIDATE` sem aceitar scientific claims automaticamente.
+- A Fase 15 reutiliza o coordenador local-only do Governed Release: `POST /api/synthesis/releases/prepare` recebe a operação explícita `PREPARE_PUBLICATION_MANIFEST`, evitando uma nova superfície de escrita remota; `GET /api/synthesis/releases` inclui apenas publication records metadata-only.
+- Antes de preparar o manifest, o serviço verifica o release record/package, recalcula o release SHA-256 e reconstrói o Governed Release contra governance, Brief e contexto atuais; stale release ou package adulterado falham fechado.
+- O citation bundle preserva document id, title, identificadores disponíveis, bundle id, `source_sentence_sha256`, result text e demais campos source-linked já presentes; metadados bibliográficos ausentes não são inventados.
+- `NUTEV_PUBLICATION_STATEMENT_CANDIDATE_V1` descreve somente o julgamento humano registrado (`classified by the reviewer as ...`), permanece `CANDIDATE_ONLY`, `accepted_evidence_claim:false`, `machine_inferred_scientific_claim:false` e exige edição/autoria humana.
+- `NUTEV_GOVERNED_PUBLICATION_MANIFEST_V1` permanece `canonical:false` e explicita que não cria EvidenceClaims aceitos, RoB, certainty, meta-analysis, PRISMA, formal-search mutation, recomendação clínica ou identidade autenticada.
+- Publication manifests são persistidos em `project_output_reference/scientific/publication_manifests/` com manifest integral e record metadata-only; preparação repetida é idempotente pelo manifest content hash.
+- Adicionado `tools/audit_governed_publication_manifest.py`; o CI passa a executar um quarto death test e `node --check` para `synthesis-publication.js`, protegendo a cadeia `Review -> Brief -> Governance -> Release -> Publication Manifest` contra stale publication, claim promotion e perda de provenance.
 
 ### Documentação e governança
 
@@ -58,6 +66,7 @@ Mudanças públicas relevantes do NutEV Reference Engine são registradas aqui. 
 - Documentado o contrato de verificação, context fingerprint, fronteira criptográfica e export executivo em `docs/HUMAN_SYNTHESIS_BRIEF.md`.
 - Documentado o registry servidor-local, estados de governance, idempotência, revalidação no momento da decisão e fronteira `governance approval != scientific canonization` em `docs/SYNTHESIS_GOVERNANCE_REGISTRY.md`.
 - Documentado o pacote de disseminação governada, persistência/idempotência, revalidação pós-approval e fronteira `governed release != scientific validation` em `docs/GOVERNED_SYNTHESIS_RELEASE.md`.
+- Documentado o publication manifest, citation bundle, statement candidates, reutilização do coordenador local-only e fronteira `publication preparation != EvidenceClaim acceptance` em `docs/GOVERNED_PUBLICATION_MANIFEST.md`.
 
 ### Correções pós-v1.0.0 já presentes na main
 
