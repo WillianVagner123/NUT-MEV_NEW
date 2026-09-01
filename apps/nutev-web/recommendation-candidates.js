@@ -72,7 +72,7 @@ function renderFinalized(){
   const rows=finalizedCandidates();
   $('finalizedRecommendations').innerHTML=rows.length?rows.map(item=>`<article class="finalized-recommendation">
     <div class="finalized-recommendation-head"><div><h3>${esc(item.statement||item.recommendation_candidate_id)}</h3><div class="recommendation-meta"><span>${esc(item.recommendation_candidate_id)}</span><span>${esc(item.evidence_set_count??0)} EvidenceSet(s)</span><span>readiness: ${esc(item.readiness||'not_evaluated')}</span></div></div><span class="recommendation-pill">candidate only</span></div>
-    <p>${esc(item.rationale||'')}</p><div class="recommendation-meta"><span>validated: ${item.recommendation_validated?'YES':'NO'}</span><span>clinical recommendation created: ${item.clinical_recommendation_created?'YES':'NO'}</span><span>finalizer: ${esc(item.finalizer||'—')}</span></div>
+    <p>${esc(item.rationale||'')}</p><div class="recommendation-meta"><span>validated recommendation: ${item.recommendation_validated?'YES':'NO'}</span><span>clinical recommendation created: ${item.clinical_recommendation_created?'YES':'NO'}</span><span>HumanValidation: ${esc(item.human_validation_status||'NOT_STAGED')}</span><span>decision: ${esc(item.human_validation_decision||'—')}</span><span>finalizer: ${esc(item.finalizer||'—')}</span></div>
   </article>`).join(''):'<div class="small-empty">Nenhum RecommendationCandidate finalizado.</div>';
 }
 
