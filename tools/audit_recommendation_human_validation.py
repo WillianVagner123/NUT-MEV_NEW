@@ -79,7 +79,7 @@ def main() -> int:
         "HumanValidation must revalidate candidate, EvidenceSets and upstream source context.",
     )
     require(
-        "decisions conflitantes não podem sobrescrevê-la" in service,
+        "decisões conflitantes não podem sobrescrevê-la" in service,
         "Canonical HumanValidation decisions must fail closed on conflicting overwrite attempts.",
     )
     require(
