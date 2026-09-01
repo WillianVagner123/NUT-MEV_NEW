@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Ask NutEV — Grounded Evidence Retrieval</title>
+  <meta name="description" content="Consulta grounded do corpus seguro do Article 1, com documentos de suporte e prompt auditável para ChatGPT e Claude.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="./ask.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav>
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <div class="nav-group-label">Evidence</div>
+        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
+        <a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
+        <a class="nav-item active" href="/ask.html"><span class="nav-icon">?</span><span>Ask NutEV</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <div class="nav-group-label">Review</div>
+        <a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a>
+        <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
+        <div class="nav-group-label">Strategy</div>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <div class="nav-group-label">Validation</div>
+        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
+        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
+      </nav>
+      <div class="sidebar-note">Ask NutEV faz retrieval e monta contexto grounded. Não toma decisão de elegibilidade, RoB, certeza, recomendação ou PRISMA.</div>
+    </aside>
+
+    <main class="main dashboard-main ask-main">
+      <header class="topbar dashboard-topbar">
+        <div><h1>Ask NutEV</h1><p>Faça perguntas ao corpus estruturado e veja primeiro os documentos que sustentam a análise.</p></div>
+        <span class="status-pill" id="askHealth">carregando contexto…</span>
+      </header>
+
+      <section class="card project-hero ask-hero">
+        <div>
+          <div class="project-eyebrow">ARTICLE 1 · GROUNDED RETRIEVAL</div>
+          <h2>Evidence first. Generation second.</h2>
+          <p class="project-question">Esta versão não chama um LLM externo. Ela recupera documentos do contexto rank-blind do Article 1, explica a correspondência e monta um pacote auditável para análise posterior em ChatGPT ou Claude.</p>
+        </div>
+        <span class="ask-mode">0 external LLM calls</span>
+      </section>
+
+      <section class="card ask-query-card">
+        <label class="ask-question-label" for="askQuestion">Pergunta</label>
+        <div class="ask-query-row">
+          <textarea id="askQuestion" rows="3" placeholder="Ex.: Quais documentos normativos tratam simultaneamente de avaliação nutricional e monitoramento?"></textarea>
+          <button id="runAsk" type="button">Buscar evidência</button>
+        </div>
+        <div class="ask-suggestions" aria-label="Perguntas sugeridas">
+          <button type="button" data-question="Quais documentos normativos tratam de avaliação nutricional e monitoramento?">Assessment + monitoring</button>
+          <button type="button" data-question="Quais documentos abordam contexto social da alimentação?">Social context</button>
+          <button type="button" data-question="Quais diretrizes e frameworks abordam food literacy ou competências alimentares?">Food literacy</button>
+          <button type="button" data-question="Compare documentos B-NORM e C-STRUCT relacionados à Lifestyle Medicine.">Lifestyle Medicine</button>
+        </div>
+        <div class="ask-filters">
+          <label>Rota<select id="askRoute"><option value="">Todas</option><option value="B-NORM">B-NORM</option><option value="C-STRUCT">C-STRUCT</option></select></label>
+          <label>Domínio<select id="askDomain"><option value="">Todos os domínios</option></select></label>
+          <label>Tipo documental<select id="askClass"><option value="">Todos os tipos</option></select></label>
+          <button id="clearAsk" class="ghost" type="button">Limpar</button>
+        </div>
+      </section>
+
+      <div id="askState" class="loading dashboard-state">Carregando os resumos científicos seguros…</div>
+
+      <section id="askContent" class="hidden ask-workspace">
+        <div class="ask-results-column">
+          <section class="card dashboard-card">
+            <div class="panel-head"><div><h2>Supporting documents</h2><p id="askResultMeta">Faça uma pergunta para iniciar.</p></div><span id="selectedCount" class="mini-pill">0 selecionados</span></div>
+            <div id="askResults" class="ask-results"><p class="small-state">Nenhuma consulta executada.</p></div>
+          </section>
+        </div>
+
+        <aside class="card dashboard-card ask-context-panel">
+          <div class="panel-head"><div><h2>Grounded context packet</h2><p>Use documentos selecionados; se nenhum estiver marcado, usamos os melhores resultados da consulta.</p></div></div>
+          <div class="ask-context-actions">
+            <button id="buildPacket" type="button">Gerar contexto</button>
+            <button id="copyPacket" class="ghost" type="button">Copiar para ChatGPT / Claude</button>
+          </div>
+          <textarea id="contextPacket" class="context-packet" readonly placeholder="O pacote grounded aparecerá aqui."></textarea>
+          <p class="small-state">O pacote contém metadados e contexto seguro, não full text protegido. Para aprofundar um documento, abra o Scientific Dossier no Corpus Explorer.</p>
+        </aside>
+      </section>
+
+      <section class="card workbench-guardrail ask-boundary">
+        <strong>Scientific interpretation boundary</strong>
+        <p>Retrieval ≠ inclusão. Correspondência lexical ≠ relevância científica validada. Route membership ≠ eligibility. Machine profile ≠ RoB/certainty. Evidence excerpts continuam candidatos até revisão humana. Ask NutEV não autoriza PRESS, GF-10, freeze, busca formal ou PRISMA.</p>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./ask.js"></script>
+</body>
+</html>
