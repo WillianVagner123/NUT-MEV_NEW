@@ -1,0 +1,52 @@
+ library/classification explorer.
+path = WEB / "articles.html"
+text = read(path)
+for old, new, label in (
+    ("<title>Corpus Explorer — NutEV Evidence Engine</title>", "<title>Biblioteca de Artigos — NutEV Evidence Engine</title>", "title"),
+    ("<meta name=\"description\" content=\"Corpus Explorer paginado do NutEV, com filtros server-side, dossiê e proveniência científica.\">", "<meta name=\"description\" content=\"Biblioteca pesquisável do NutEV com classificação automática, filtros, ranking e dossiê científico.\">", "description"),
+    ("<div class=\"sidebar-note\">O Corpus Explorer carrega páginas filtradas. Tiers, perfis, trechos e rotas são auxiliares operacionais, não conclusões científicas aceitas.</div>", "<div class=\"sidebar-note\">A Biblioteca organiza artigos por classe, tema, fonte, ranking e disponibilidade de texto. Classificações são auxiliares de indexação rastreáveis.</div>", "note"),
+    ("<header class=\"topbar\"><div><h1>Corpus Explorer</h1><p>Explore o banco em escala, filtre o corpus e abra o Scientific Dossier sem carregar todos os registros no navegador.</p></div><span class=\"status-pill\" id=\"articleHealth\">verificando banco…</span></header>", "<header class=\"topbar\"><div><h1>Biblioteca de Artigos</h1><p>Explore o banco NutEV por classificação, tema, fonte, prioridade de leitura e disponibilidade de texto.</p></div><span class=\"status-pill\" id=\"articleHealth\">verificando banco…</span></header>", "header"),
+    ("<label>Tipo documental<select id=\"classFilter\">", "<label>Classificação do artigo<select id=\"classFilter\">", "class filter"),
+    ("<span> artigos no filtro atual</span>", "<span> artigos na seleção atual</span>", "summary"),
+):
+    text = replace_once(text, old, new, f"articles {label}")
+write(path, text)
+
+# Preserve current scientific dashboard, then replace product home.
+old_index = read(WEB / "index.html")
+legacy = old_index.replace("<title>NutEV — Scientific Overview</title>", "<title>NutEV — Painel científico avançado</title>", 1)
+legacy = legacy.replace("<h1>Scientific Overview</h1>", "<h1>Painel científico avançado</h1>", 1)
+write(WEB / "scientific-dashboard.html", legacy)
+
+new_index = '''<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>NutEV Evidence Engine — Busca e classificação científica</title>
+  <meta name="description" content="NutEV é um motor de busca, ranking e classificação rastreável de artigos científicos.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./product-ui.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
+      <nav aria-label="Navegação principal"></nav>
+      <div class="sidebar-note">Motor de busca e classificação científica. Revisão sistemática e governança avançada ficam fora do fluxo principal.</div>
+    </aside>
+    <main class="main home-main">
+      <header class="topbar"><div><h1>NutEV Evidence Engine</h1><p>Busca científica, ranking, classificação e exploração de artigos.</p></div><span class="status-pill">Search & Classification</span></header>
+      <section class="card home-hero">
+        <div class="home-eyebrow">Motor de busca científica</div>
+        <h2>Encontre artigos e entenda rapidamente o que cada estudo é e por que ele apareceu.</h2>
+        <p>O NutEV consulta múltiplas fontes, normaliza e deduplica registros, ranqueia por prioridade de leitura e classifica cada artigo com sinais rastreáveis de metadados, título, resumo e taxonomia.</p>
+        <form class="home-search" action="/search.html" method="get">
+          <input name="q" type="search" autocomplete="off" aria-label="Buscar artigos" placeholder="Ex.: creatina e cognição em idosos">
+          <button class="primary" type="submit">Buscar artigos</button>
+        </form>
+      </section>
+      <section class="home-grid" aria-label="Áreas principais">
+        <a class="card home-action" href="/search.html"><strong>⌕ Buscar artigos</strong><span>Consulta múltiplas fontes, deduplica, ranqueia e explica os resultados.</span></a>
+        <a class="card home-action" href="/articles.html"><strong>▤ Biblioteca</strong><span>Filtre o banco por classe documental, fonte, t

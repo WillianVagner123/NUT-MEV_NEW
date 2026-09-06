@@ -1,0 +1,33 @@
+return ''
+"""
+text = replace_once(text, old_active, new_active, "product-ui active nav")
+write(path, text)
+
+# Search page: simple search first, advanced strategy optional.
+path = WEB / "search.html"
+text = read(path)
+for old, new, label in (
+    ("<title>Search Workspace — NutEV Evidence Engine</title>", "<title>NutEV Search — Busca e classificação de artigos</title>", "title"),
+    ("<meta name=\"description\" content=\"Workspace de busca de evidências e estratégias versionadas do NutEV.\">", "<meta name=\"description\" content=\"Motor de busca científica do NutEV para encontrar, deduplicar, ranquear e classificar artigos.\">", "description"),
+    ("<div class=\"sidebar-note\">A busca prioriza leitura. Não substitui avaliação metodológica, triagem humana nem decisão científica.</div>", "<div class=\"sidebar-note\">Busque artigos, veja a classificação automática e entenda por que cada resultado apareceu. Métodos de revisão ficam no Laboratório avançado.</div>", "sidebar note"),
+    ("<header class=\"topbar\"><div><h1 id=\"pageTitle\">Search Workspace</h1><p id=\"pageSubtitle\">Pergunta, estratégia, providers e execução em um fluxo auditável.</p></div><span class=\"status-pill\" id=\"health\">verificando engine…</span></header>", "<header class=\"topbar\"><div><h1 id=\"pageTitle\">NutEV Search</h1><p id=\"pageSubtitle\">Busque, deduplique, ranqueie e classifique artigos em múltiplas fontes científicas.</p></div><span class=\"status-pill\" id=\"health\">verificando engine…</span></header>", "header"),
+    ("<label for=\"question\">Qual evidência você quer encontrar?</label>", "<label for=\"question\">O que você quer encontrar na literatura?</label>", "label"),
+    ("<textarea id=\"question\" rows=\"4\" placeholder=\"Pergunta humana da revisão; a estratégia eletrônica pode ser estruturada separadamente abaixo.\"></textarea>", "<textarea id=\"question\" rows=\"3\" placeholder=\"Ex.: creatina e cognição em idosos · dieta mediterrânea e mortalidade cardiovascular · proteína durante perda de peso\"></textarea>", "placeholder"),
+    ("<label><input id=\"structuredReviewToggle\" type=\"checkbox\"> <strong>Modo revisão científica</strong></label>", "<label><input id=\"structuredReviewToggle\" type=\"checkbox\"> <strong>Busca avançada</strong></label>", "advanced label"),
+    ("<span>Construa PCC/PICO/PECO ou use uma estratégia eletrônica exata/versionada por base.</span>", "<span>Opcional: use PCC/PICO/PECO ou uma estratégia exata por base quando precisar de controle metodológico fino.</span>", "advanced help"),
+    ("<details class=\"advanced\" open>", "<details class=\"advanced\">", "details closed"),
+    ("<button id=\"searchBtn\" class=\"primary\">Buscar evidências</button>", "<button id=\"searchBtn\" class=\"primary\">Buscar artigos</button>", "search button"),
+    (">Busca global</button>", ">Busca ampla</button>", "global button"),
+    ("<div class=\"global-search-note\"><strong>Busca global = sem teto interno.</strong> Não há corte interno de 100, 300 ou outro número. No modo comum, usa todas as fontes conectadas. No modo de estratégia exata, usa somente as bases para as quais existe query exata e que estão selecionadas. Limites ou bloqueios impostos pela própria fonte permanecem explícitos.</div>", "<div class=\"global-search-note\"><strong>Busca ampla = sem teto interno do NutEV.</strong> Consulta as fontes selecionadas até o limite demonstrável de cada provider. Limites ou bloqueios impostos pela própria fonte continuam explícitos.</div>", "global note"),
+):
+    text = replace_once(text, old, new, f"search.html {label}")
+write(path, text)
+
+# Search result cards: expose classification, confidence, taxonomy and retrieval explanation.
+path = WEB / "app.js"
+text = read(path)
+for old, new, label in (
+    ("enabled?'Modo revisão ativo. Escolha construtor ou estratégia exata.':'A estratégia só será usada quando este modo estiver ativado.'", "enabled?'Busca avançada ativa. Escolha construtor ou estratégia exata.':'A estratégia avançada só será usada quando este modo estiver ativado.'", "toggle advanced"),
+    ("alert('Digite primeiro a pergunta humana da revisão.')", "alert('Digite primeiro o que você quer buscar na literatura.')", "compile prompt"),
+    ("alert('Ative o modo revisão científica.')", "alert('Ative a busca avançada.')", "advanced prompt"),
+    ("alert('Digite a pergunta humana da revisão.')", "alert('Digite o que você quer buscar

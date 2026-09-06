@@ -1,0 +1,118 @@
+from __future__ import annotations
+
+from pathlib import Path
+import re
+
+ROOT = Path(__file__).resolve().parents[1]
+WEB = ROOT / "apps" / "nutev-web"
+
+
+def read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+
+
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise RuntimeError(f"{label}: expected one match, found {count}")
+    return text.replace(old, new, 1)
+
+
+# Wire search-time classification into both search paths.
+path = WEB / "search_adapter.py"
+text = read(path)
+text = replace_once(
+    text,
+    "from nutev.reference_identity import dedupe_records\n",
+    "from nutev.reference_identity import dedupe_records\nfrom nutev.search.classification import classify_search_record\n",
+    "search_adapter import",
+)
+text = replace_once(
+    text,
+    "def _score_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:\n",
+    "def _score_rows(rows: list[dict[str, Any]], *, query: str | None = None) -> list[dict[str, Any]]:\n",
+    "score_rows signature",
+)
+text = replace_once(
+    text,
+    "        ranked.append(scored)\n",
+    "        scored[\"search_classification\"] = classify_search_record(scored, query=query)\n        ranked.append(scored)\n",
+    "score_rows classification",
+)
+text = replace_once(
+    text,
+    "    ranked = _score_rows(unique) if unique else []\n",
+    "    ranked = _score_rows(unique, query=question) if unique else []\n",
+    "direct search classification",
+)
+write(path, text)
+
+path = WEB / "progress_search.py"
+text = read(path)
+text = replace_once(
+    text,
+    "    ranked = _score_rows(unique) if unique else []\n",
+    "    ranked = _score_rows(unique, query=question) if unique else []\n",
+    "progressive search classification",
+)
+write(path, text)
+
+# Compact product navigation: search/classification first.
+path = WEB / "product-ui.js"
+text = read(path)
+new_nav = """const NAV_GROUPS=[
+  {label:'Descoberta',items:[
+    {key:'dashboard',href:'/',icon:'⌂',label:'Início'},
+    {key:'search',href:'/search.html',icon:'⌕',label:'Buscar artigos'},
+    {key:'articles',href:'/articles.html',icon:'▤',label:'Biblioteca'},
+    {key:'map',href:'/evidence-map.html',icon:'▦',label:'Mapa de evidências'},
+    {key:'radar',href:'/radar.html',icon:'⌁',label:'Radar'},
+    {key:'ask',href:'/ask.html',icon:'?',label:'Perguntar ao corpus'}
+  ]},
+  {label:'Sistema',items:[
+    {key:'history',href:'/search.html?view=history',icon:'◷',label:'Minhas buscas'},
+    {key:'advanced',href:'/advanced.html',icon:'⚙',label:'Laboratório avançado'}
+  ]}
+]
+"""
+text, count = re.subn(
+    r"const NAV_GROUPS=\[.*?\n\]\n\nconst GLOSSARY=",
+    new_nav + "\nconst GLOSSARY=",
+    text,
+    count=1,
+    flags=re.S,
+)
+if count != 1:
+    raise RuntimeError(f"product-ui NAV_GROUPS replacement count={count}")
+old_active = """  if(path==='/')return 'dashboard'
+  if(path==='/search.html'||path==='/ask.html')return 'search'
+  if(['/articles.html','/evidence.html','/evidence-map.html'].includes(path))return 'articles'
+  if(['/radar.html','/intelligence.html'].includes(path))return 'radar'
+  if(['/review-qa.html','/review-routes.html','/quality.html','/strategy.html'].includes(path))return 'qa'
+  if(path==='/press-review.html')return 'press'
+  if(path==='/regional-routes.html')return 'regional'
+  if(path.startsWith('/validation'))return 'validation'
+  return ''
+"""
+new_active = """  if(path==='/')return 'dashboard'
+  if(path==='/search.html')return 'search'
+  if(path==='/articles.html'||path==='/evidence.html')return 'articles'
+  if(path==='/evidence-map.html')return 'map'
+  if(path==='/radar.html')return 'radar'
+  if(path==='/ask.html')return 'ask'
+  if(path==='/advanced.html')return 'advanced'
+  if(path.startsWith('/validation')||[
+    '/scientific-dashboard.html','/review.html','/review-routes.html','/review-qa.html',
+    '/press-review.html','/regional-routes.html','/quality.html','/strategy.html',
+    '/intelligence.html','/synthesis-review.html','/synthesis-brief.html',
+    '/synthesis-governance.html','/synthesis-release.html','/synthesis-publication.html',
+    '/evidence-claims.html','/claim-appraisal.html','/evidence-sets.html',
+    '/recommendation-candidates.html','/recommendation-human-validation.html'
+  ].includes(path))return 'advanced'
+  
