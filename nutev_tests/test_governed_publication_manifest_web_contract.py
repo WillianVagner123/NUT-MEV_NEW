@@ -86,7 +86,7 @@ def test_publication_ledger_is_metadata_only() -> None:
 
 
 def test_publication_navigation_is_connected() -> None:
-    dashboard = read("index.html")
+    dashboard = read("advanced.html")
     release = read("synthesis-release.html")
     publication = read("synthesis-publication.html")
 

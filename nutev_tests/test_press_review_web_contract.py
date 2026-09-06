@@ -85,7 +85,7 @@ def test_press_ui_never_authorizes_freeze_or_gf10() -> None:
 
 
 def test_main_navigation_exposes_press_module() -> None:
-    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    index = (WEB_ROOT / "advanced.html").read_text(encoding="utf-8")
     review_qa = (WEB_ROOT / "review-qa.html").read_text(encoding="utf-8")
     for source in (index, review_qa):
         assert 'href="/press-review.html"' in source

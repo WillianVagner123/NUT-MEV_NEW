@@ -68,6 +68,6 @@ def test_service_and_coordinator_keep_candidate_separate_from_validation() -> No
 
 def test_recommendation_page_is_linked_from_evidence_set_chain() -> None:
     html = read("evidence-sets.html")
-    dashboard = read("index.html")
+    dashboard = read("advanced.html")
     assert "/recommendation-candidates.html" in html
     assert "/recommendation-candidates.html" in dashboard

@@ -89,7 +89,7 @@ def test_release_status_joins_membership_without_mutating_claim_artifact() -> No
 
 
 def test_dashboard_chain_mentions_evidence_set_construction() -> None:
-    index = read("index.html")
+    index = read("advanced.html")
     appraisal = read("claim-appraisal.html")
     assert "/evidence-sets.html" in index
     assert "/evidence-sets.html" in appraisal

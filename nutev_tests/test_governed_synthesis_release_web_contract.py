@@ -72,7 +72,7 @@ def test_release_ledger_is_metadata_only() -> None:
 
 
 def test_release_is_linked_from_dashboard_and_registry() -> None:
-    dashboard = read("index.html")
+    dashboard = read("advanced.html")
     registry = read("synthesis-governance.html")
     release = read("synthesis-release.html")
 

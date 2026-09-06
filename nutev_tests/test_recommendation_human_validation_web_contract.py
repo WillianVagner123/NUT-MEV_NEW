@@ -80,7 +80,7 @@ def test_service_and_coordinator_preserve_validation_boundary() -> None:
 
 def test_human_validation_is_linked_from_candidate_and_dashboard() -> None:
     candidate_html = read("recommendation-candidates.html")
-    dashboard = read("index.html")
+    dashboard = read("advanced.html")
     assert "/recommendation-human-validation.html" in candidate_html
     assert "/recommendation-human-validation.html" in dashboard
     assert "HumanValidation ACCEPT ≠ clinical/guideline recommendation/certainty/GRADE" in dashboard

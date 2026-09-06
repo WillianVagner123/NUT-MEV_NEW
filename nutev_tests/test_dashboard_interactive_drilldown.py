@@ -10,7 +10,7 @@ def read(name: str) -> str:
 
 
 def test_dashboard_wires_interactive_filter_layer() -> None:
-    home = read("index.html")
+    home = read("scientific-dashboard.html")
     script = read("dashboard-interactive.js")
 
     assert 'href="./dashboard-interactive.css"' in home

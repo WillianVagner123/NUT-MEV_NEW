@@ -102,7 +102,7 @@ def test_appraisal_ui_has_no_external_llm_path() -> None:
 
 
 def test_appraisal_navigation_is_connected() -> None:
-    dashboard = read("index.html")
+    dashboard = read("advanced.html")
     claims = read("evidence-claims.html")
     appraisal = read("claim-appraisal.html")
 

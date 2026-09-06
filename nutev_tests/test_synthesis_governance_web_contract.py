@@ -74,7 +74,7 @@ def test_registry_listing_does_not_send_full_brief_bodies() -> None:
 
 
 def test_dashboard_links_governance_registry_and_keeps_boundary_explicit() -> None:
-    dashboard = read("index.html")
+    dashboard = read("advanced.html")
 
     assert 'href="/synthesis-governance.html"' in dashboard
     assert "Synthesis Registry" in dashboard

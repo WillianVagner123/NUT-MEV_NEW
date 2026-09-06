@@ -99,7 +99,7 @@ def test_claim_ui_has_no_external_llm_or_auto_accept_path() -> None:
 
 
 def test_claim_navigation_is_connected() -> None:
-    dashboard = read("index.html")
+    dashboard = read("advanced.html")
     publication = read("synthesis-publication.html")
     claims = read("evidence-claims.html")
 
