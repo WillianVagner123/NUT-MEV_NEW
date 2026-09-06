@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "record_type": "NUTEV_ARTICLE1_PRESS_HUMAN_REVIEW_SAMPLE_MANIFEST",
+  "run_id": "article1_press_20260906T202201Z",
+  "provider": "pubmed",
+  "source_run_sha256": "2ffae67debc73bfb29e271ee1f46ac3332760704188f6be3f08817d63253b63d",
+  "technical_status": "TECHNICAL_DELTA_RUN_COMPLETE_HUMAN_REVIEW_PENDING",
+  "record_count": 100,
+  "files": [
+    {
+      "path": "HUMAN_REVIEW_SAMPLE_D02.csv",
+      "delta_id": "D02",
+      "records": 25,
+      "sha256": "272e12d15df3a98953bdacab2fbcf88b2a369155ff500708bc0a6302530eddd1"
+    },
+    {
+      "path": "HUMAN_REVIEW_SAMPLE_D03.csv",
+      "delta_id": "D03",
+      "records": 25,
+      "sha256": "27d0ab03f640617b52a8d47809a81b0dd163388595507c887752ca5f0aff489a"
+    },
+    {
+      "path": "HUMAN_REVIEW_SAMPLE_D04.csv",
+      "delta_id": "D04",
+      "records": 25,
+      "sha256": "20d033d56ad1c48f7ffec4aa91e1b65db7e379bb975942de71c1e9f63b07e6cd"
+    },
+    {
+      "path": "HUMAN_REVIEW_SAMPLE_D05.csv",
+      "delta_id": "D05",
+      "records": 25,
+      "sha256": "500bf3e96bf79c8045bd18d13e07ac711942d92e408afc6673a39bf90401ca85"
+    }
+  ],
+  "guardrails": {
+    "no_human_labels_present": true,
+    "not_press_pass": true,
+    "not_c4_decision": true,
+    "not_gf10": true,
+    "not_query_freeze": true,
+    "not_formal_search": true,
+    "not_prisma": true
+  }
+}
