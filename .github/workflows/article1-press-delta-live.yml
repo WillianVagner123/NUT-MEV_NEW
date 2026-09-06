@@ -1,0 +1,54 @@
+name: article1-press-delta-live
+
+on:
+  push:
+    branches:
+      - ops/article1-press-delta-live-20260906
+
+permissions:
+  contents: read
+
+jobs:
+  pubmed-delta-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install project
+        run: python -m pip install -e .
+      - name: Execute Article 1 PRESS PubMed delta tests
+        run: |
+          mkdir -p press-live
+          python tools/run_article1_press_delta_tests.py \
+            --provider pubmed \
+            --sample-size 25 \
+            --execute \
+            --output press-live/DELTA_TEST_RUN.json
+      - name: Verify fail-closed scientific state
+        run: python tools/audit_nutev_scientific_closure.py --compact
+      - name: Print technical summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('press-live/DELTA_TEST_RUN.json').read_text(encoding='utf-8'))
+          print('status=', data['status'])
+          print('run_id=', data['run_id'])
+          print('sha256=', data['run_sha256'])
+          for item in data['delta_tests']:
+              print(item['id'], item['route'])
+              for key in ('baseline','variant','incremental'):
+                  run=item.get(key)
+                  if run:
+                      print(' ', key, 'status=',run.get('status'),'total_found=',run.get('total_found'),'returned=',run.get('total_returned'))
+          PY
+      - name: Upload PRESS technical artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: article1-press-pubmed-delta-live
+          path: press-live/DELTA_TEST_RUN.json
+          if-no-files-found: error
+          retention-days: 30
