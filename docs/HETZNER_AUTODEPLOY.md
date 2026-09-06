@@ -36,7 +36,9 @@ Create an environment named `HETZNER` to match the workflow and configure:
 
 ### Secret
 
-- `HETZNER_SSH_KEY`: private SSH key dedicated to deployment.
+- `HETZNER_SSH_KEY`: complete **private** SSH key dedicated to deployment. Use an unencrypted OpenSSH/PEM private key whose public half is installed in the target user's `~/.ssh/authorized_keys`. Do not store the `.pub` key in this secret.
+
+The workflow normalizes Windows CRLF and one-line secrets containing literal `\n` sequences before use. It then validates the private key locally with `ssh-keygen` and performs a non-interactive SSH probe before any Git/Docker operation on the server. Invalid, public-only or passphrase-protected key material fails before deployment with an explicit error.
 
 Leaving `HETZNER_AUTODEPLOY` unset or false disables only the automatic `workflow_run` path. It does not disable an explicit manual deploy from `main`.
 
@@ -44,6 +46,7 @@ Leaving `HETZNER_AUTODEPLOY` unset or false disables only the automatic `workflo
 
 The deployment user must be able to:
 
+- authenticate with the public half of `HETZNER_SSH_KEY`;
 - read/write the repository at `HETZNER_APP_DIR`;
 - fetch `origin/main`;
 - run Docker and Docker Compose;
@@ -56,6 +59,8 @@ The production `.env` remains on the server and is never committed.
 ```text
 manual main dispatch OR successful main CI with autodeploy enabled
   -> resolve exact TARGET_SHA
+  -> normalize and validate private SSH key
+  -> non-interactive SSH probe
   -> SSH to Hetzner
   -> fetch origin/main and reset to TARGET_SHA
   -> build nutev:<sha> with build identity
@@ -69,6 +74,20 @@ manual main dispatch OR successful main CI with autodeploy enabled
 ```
 
 The previous running image is tagged `nutev:rollback` before the switch. If the production health check or build-identity check fails, Compose restores that image and the workflow exits as failed.
+
+## SSH troubleshooting
+
+If Actions reports `Load key ... error in libcrypto`, first re-save `HETZNER_SSH_KEY` with the complete private-key block, including the BEGIN/END lines. The workflow handles CRLF and literal `\n`, but it cannot reconstruct a truncated key, convert a public key into a private key, or unlock a passphrase-protected key.
+
+The secret should resemble one of these private-key envelopes:
+
+```text
+-----BEGIN OPENSSH PRIVATE KEY-----
+...
+-----END OPENSSH PRIVATE KEY-----
+```
+
+or another private PEM format accepted by `ssh-keygen`. Never paste `ssh-ed25519 AAAA...` / `ssh-rsa AAAA...` into `HETZNER_SSH_KEY`; that is the public key format and belongs in the server's `authorized_keys`.
 
 ## Persistence
 
