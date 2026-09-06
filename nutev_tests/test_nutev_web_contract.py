@@ -8,12 +8,13 @@ VALIDATION_ROOT = REPO_ROOT / "apps" / "nutev-validation"
 
 def test_web_app_exposes_dashboard_search_and_validation_without_csv_ui() -> None:
     index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")
+    advanced = (WEB_ROOT / "advanced.html").read_text(encoding="utf-8")
     search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
-    assert "Scientific Overview" in index
+    assert "NutEV Evidence Engine" in index
     assert 'href="/search.html"' in index
-    assert "Buscar evidências" in search
-    assert "/validation/" in index
+    assert "Buscar artigos" in search
+    assert "/validation/" in advanced
     assert "/api/search/jobs" in app
     for forbidden in (".csv", "upload csv", "importar csv"):
         assert forbidden not in search.casefold()
@@ -172,3 +173,5 @@ def test_server_adds_basic_security_headers() -> None:
         "Permissions-Policy",
     ):
         assert header in server
+
+# search-first-contract-migration-v1

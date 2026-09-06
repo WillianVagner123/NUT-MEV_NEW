@@ -317,7 +317,7 @@ def search_evidence_progressive(
     )
 
     unique = dedupe_records(combined)
-    ranked = _score_rows(unique) if unique else []
+    ranked = _score_rows(unique, query=question) if unique else []
     returned = ranked if result_limit is None else ranked[:result_limit]
     failed = [item["provider"] for item in provider_status if item["status"] == "failed"]
     unavailable = [

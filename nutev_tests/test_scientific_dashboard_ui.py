@@ -10,17 +10,17 @@ def read(name: str) -> str:
 
 
 def test_dashboard_is_home_and_search_is_separate_workspace() -> None:
-    home = read("index.html")
+    home = read("scientific-dashboard.html")
     search = read("search.html")
 
-    assert "Scientific Overview" in home
+    assert "Painel científico avançado" in home
     assert 'src="./dashboard.js"' in home
     assert 'src="./app.js"' not in home
     assert 'href="/search.html"' in home
 
-    assert "Search Workspace" in search
+    assert "NutEV Search" in search
     assert 'src="./app.js"' in search
-    assert 'href="/"' in search
+    assert 'src="./product-ui.js"' in search
 
 
 def test_dashboard_has_no_production_count_literals() -> None:
@@ -50,7 +50,7 @@ def test_evidence_and_review_pages_use_rank_blind_agent_context() -> None:
 
 
 def test_visible_guardrails_preserve_scientific_meaning() -> None:
-    home = read("index.html")
+    home = read("scientific-dashboard.html")
     review = read("review-routes.html")
     evidence = read("evidence.html")
 

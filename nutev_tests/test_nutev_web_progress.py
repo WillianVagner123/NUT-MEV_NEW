@@ -56,7 +56,7 @@ def test_progressive_search_emits_provider_completion_without_changing_engine_pr
     monkeypatch.setattr(
         progress_search,
         "_score_rows",
-        lambda rows: [
+        lambda rows, **_kwargs: [
             {**row, "reference_score": 1.0, "reference_rank": index}
             for index, row in enumerate(rows, start=1)
         ],

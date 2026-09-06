@@ -41,7 +41,7 @@ def test_review_qa_keeps_scientific_decision_human() -> None:
 
 
 def test_review_qa_is_exposed_in_web_navigation() -> None:
-    index = (WEB / "index.html").read_text(encoding="utf-8")
+    index = (WEB / "advanced.html").read_text(encoding="utf-8")
     page = (WEB / "review-qa.html").read_text(encoding="utf-8")
     assert 'href="/review-qa.html"' in index
     assert 'id="runQaBtn"' in page

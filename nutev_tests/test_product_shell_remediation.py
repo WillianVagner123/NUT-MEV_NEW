@@ -19,29 +19,51 @@ def test_core_product_surfaces_load_shared_product_ui() -> None:
         "review-qa.html",
         "press-review.html",
         "regional-routes.html",
+        "advanced.html",
+        "scientific-dashboard.html",
     ):
         assert "product-ui.js" in read(WEB / name), name
     assert 'src="/product-ui.js"' in read(VALIDATION / "index.html")
 
 
-def test_canonical_navigation_is_single_compact_contract() -> None:
+def test_canonical_navigation_is_search_classification_first() -> None:
     script = read(WEB / "product-ui.js")
+    nav = script.split("const NAV_GROUPS=", 1)[1].split("const GLOSSARY=", 1)[0]
     for label in (
-        "Dashboard",
-        "Buscar evidências",
-        "Corpus",
-        "Radar de evidências",
-        "QA",
-        "PRESS",
-        "Rotas regionais",
-        "Validação científica",
+        "Início",
+        "Buscar artigos",
+        "Biblioteca",
+        "Mapa de evidências",
+        "Radar",
+        "Perguntar ao corpus",
         "Minhas buscas",
+        "Laboratório avançado",
     ):
-        assert label in script
+        assert label in nav
+    for hibernated in (
+        "PRESS",
+        "Review Control",
+        "Review Routes",
+        "Validação científica",
+        "QA",
+    ):
+        assert hibernated not in nav
     assert "normalizeNavigation" in script
-    assert "aria-current=\"page\"" in script
-    assert "AI Context" not in script
+    assert 'aria-current="page"' in script
+    assert "AI Context" not in nav
 
+
+def test_search_and_home_present_search_classification_as_primary_product() -> None:
+    home = read(WEB / "index.html")
+    search = read(WEB / "search.html")
+    advanced = read(WEB / "advanced.html")
+    assert "Motor de busca científica" in home
+    assert "Classificação explicável" in home
+    assert "Buscar artigos" in search
+    assert "Busca avançada" in search
+    assert "Modo revisão científica" not in search
+    assert "Workflow tipo Rayyan / revisão sistemática" in advanced
+    assert "hibernado" in advanced
 
 def test_glossary_explains_scientific_terms_without_rewriting_raw_code() -> None:
     script = read(WEB / "product-ui.js")

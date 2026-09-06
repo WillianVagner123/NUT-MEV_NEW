@@ -58,7 +58,7 @@ def test_scientific_intelligence_export_is_bounded_snapshot_of_current_view() ->
 
 
 def test_dashboard_links_scientific_intelligence() -> None:
-    html = read(WEB / "index.html")
+    html = read(WEB / "advanced.html")
 
     assert 'href="/intelligence.html"' in html
     assert "Scientific Intelligence" in html

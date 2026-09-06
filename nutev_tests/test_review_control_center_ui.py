@@ -39,4 +39,4 @@ def test_review_control_does_not_create_screening_decisions() -> None:
 
 
 def test_dashboard_exposes_review_control() -> None:
-    assert 'href="/review.html"' in read("index.html")
+    assert 'href="/review.html"' in read("advanced.html")

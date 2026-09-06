@@ -73,7 +73,7 @@ def test_human_synthesis_review_only_persists_browser_draft_and_export() -> None
 
 def test_scientific_intelligence_and_dashboard_link_human_review() -> None:
     intelligence = read("intelligence.html")
-    dashboard = read("index.html")
+    dashboard = read("advanced.html")
 
     assert 'href="/synthesis-review.html"' in intelligence
     assert "Abrir revisão humana" in intelligence
