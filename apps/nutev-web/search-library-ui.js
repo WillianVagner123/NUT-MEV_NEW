@@ -71,7 +71,7 @@ function ensureSummaryActions(){
   const summary=document.querySelector('#summary');if(!summary||summary.classList.contains('hidden')||!latestSearch?.results?.length)return;
   if(summary.querySelector('.search-library-bar'))return;
   const bar=document.createElement('div');bar.className='search-library-bar';
-  bar.innerHTML=`<div><strong>Biblioteca</strong><span>Guarde esta busca no CORE local sem alterar o corpus científico verificado.</span></div><div class="search-library-buttons"><button class="ghost" type="button" id="saveAllSearchResults">Guardar todos os resultados</button><a href="/articles.html">Abrir Biblioteca →</a></div>`;
+  bar.innerHTML=`<div><strong>Biblioteca</strong><span>Guarde os resultados retornados no CORE local sem alterar o corpus científico verificado.</span></div><div class="search-library-buttons"><button class="ghost" type="button" id="saveAllSearchResults">Guardar todos os resultados retornados</button><a href="/articles.html">Abrir Biblioteca →</a></div>`;
   summary.appendChild(bar);
   bar.querySelector('#saveAllSearchResults').addEventListener('click',saveAll);
 }
@@ -80,11 +80,14 @@ function ensureCardActions(){
   const cards=[...document.querySelectorAll('#results .result-card')];
   const results=latestSearch?.results||[];
   cards.forEach((card,index)=>{
-    const record=results[index];if(!record||card.querySelector('.saved-library-actions'))return;
+    const record=results[index];if(!record)return;
     const key=canonicalSavedKey(record);
+    const existing=card.querySelector('.saved-library-actions');
+    if(existing?.dataset.savedLibraryKey===key)return;
+    existing?.remove();
     let links=card.querySelector('.links');
     if(!links){links=document.createElement('div');links.className='links';card.appendChild(links)}
-    const actions=document.createElement('span');actions.className='saved-library-actions';
+    const actions=document.createElement('span');actions.className='saved-library-actions';actions.dataset.savedLibraryKey=key;
     actions.innerHTML=`<button class="ghost" type="button" data-save-library-key="${esc(key)}" aria-pressed="false">Guardar na Biblioteca</button><button class="ghost" type="button" data-open-saved-key="${esc(key)}">Abrir dossiê</button>`;
     links.prepend(actions);
     actions.querySelector('[data-save-library-key]').addEventListener('click',event=>saveKey(event.currentTarget.dataset.saveLibraryKey));
