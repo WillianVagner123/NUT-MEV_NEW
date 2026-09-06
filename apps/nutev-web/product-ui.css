@@ -1,0 +1,4 @@
+.skip-link{position:fixed;left:1rem;top:1rem;z-index:1000;transform:translateY(-180%);background:#fff;color:#111;padding:.65rem .9rem;border-radius:.5rem;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.skip-link:focus{transform:translateY(0)}
+.product-footer{padding:1rem 1.5rem 1.5rem;color:#667572;font-size:.75rem;text-align:right}
+#resultCapNote{margin-top:.8rem}
