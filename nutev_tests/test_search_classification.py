@@ -42,3 +42,18 @@ def test_search_classification_stays_unclassified_when_signal_is_insufficient() 
     assert result["document_class"] == "unclassified"
     assert result["confidence"] == "low"
     assert result["classification_basis"] == "insufficient_signal"
+
+
+def test_query_overlap_uses_token_boundaries_instead_of_substrings() -> None:
+    result = classify_search_record(
+        {
+            "title": "Women and dietary strategy in nutrition care",
+            "abstract": "A population-level overview for nutrition practice.",
+        },
+        query="men rat nutrition",
+    )
+    assert "nutrition" in result["query_match"]["title_hits"]
+    assert "men" not in result["query_match"]["title_hits"]
+    assert "rat" not in result["query_match"]["title_hits"]
+    assert "men" not in result["query_match"]["abstract_hits"]
+    assert "rat" not in result["query_match"]["abstract_hits"]
