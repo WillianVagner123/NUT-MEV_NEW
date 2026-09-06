@@ -35,6 +35,24 @@ _SESSION_STARTS: dict[str, deque[float]] = defaultdict(deque)
 _IP_STARTS: dict[str, deque[float]] = defaultdict(deque)
 _JOB_OWNERS: dict[str, str] = {}
 
+NOINDEX_EXACT_PATHS = {
+    "/validation",
+    "/review-qa.html",
+    "/press-review.html",
+    "/regional-routes.html",
+    "/strategy.html",
+    "/quality.html",
+    "/review-routes.html",
+    "/ai-context.html",
+}
+NOINDEX_PATH_PREFIXES = (
+    "/validation/",
+    "/agent-context/",
+    "/synthesis-",
+    "/recommendation-",
+    "/api/",
+)
+
 
 def _prune_times(values: deque[float], now: float) -> None:
     while values and now - values[0] > RATE_WINDOW_SECONDS:
@@ -61,6 +79,10 @@ def _build_metadata() -> dict[str, str]:
     }
 
 
+def _should_noindex(path: str) -> bool:
+    return path in NOINDEX_EXACT_PATHS or any(path.startswith(prefix) for prefix in NOINDEX_PATH_PREFIXES)
+
+
 class SecureNutEVHandler(NutEVHandler):
     """Production-facing NutEV handler with browser-session isolation.
 
@@ -81,6 +103,9 @@ class SecureNutEVHandler(NutEVHandler):
                 flags.append("Secure")
             self.send_header("Set-Cookie", "; ".join(flags))
             self._pending_session_cookie = ""
+        path = urlparse(self.path).path
+        if _should_noindex(path):
+            self.send_header("X-Robots-Tag", "noindex, nofollow")
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
