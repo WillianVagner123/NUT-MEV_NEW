@@ -75,9 +75,13 @@ def test_map_drills_into_evidence_explorer_intersection() -> None:
     assert "params.get('route')" in evidence
 
 
-def test_main_navigation_surfaces_evidence_map() -> None:
+def test_evidence_map_is_hibernated_under_advanced_laboratory() -> None:
     home = read("index.html")
+    advanced = read("advanced.html")
     explorer = read("evidence.html")
+    map_html = read("evidence-map.html")
 
-    assert 'href="/evidence-map.html"' in home
-    assert 'href="/evidence-map.html"' in explorer
+    assert 'href="/evidence-map.html"' not in home
+    assert 'href="/evidence-map.html"' in advanced
+    assert '<meta name="robots" content="noindex,nofollow">' in explorer
+    assert '<meta name="robots" content="noindex,nofollow">' in map_html

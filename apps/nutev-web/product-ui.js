@@ -13,10 +13,7 @@ const NAV_GROUPS=[
   {label:'Descoberta',items:[
     {key:'dashboard',href:'/',icon:'⌂',label:'Início'},
     {key:'search',href:'/search.html',icon:'⌕',label:'Buscar artigos'},
-    {key:'articles',href:'/articles.html',icon:'▤',label:'Biblioteca'},
-    {key:'map',href:'/evidence-map.html',icon:'▦',label:'Mapa de evidências'},
-    {key:'radar',href:'/radar.html',icon:'⌁',label:'Radar'},
-    {key:'ask',href:'/ask.html',icon:'?',label:'Perguntar ao corpus'}
+    {key:'articles',href:'/articles.html',icon:'▤',label:'Biblioteca'}
   ]},
   {label:'Sistema',items:[
     {key:'history',href:'/search.html?view=history',icon:'◷',label:'Minhas buscas'},
@@ -28,17 +25,8 @@ const GLOSSARY=[
   ['Busca progressiva','Execução que consulta provedores em etapas e preserva o estado de cada fonte. Uma fonte indisponível não é tratada como zero resultados.'],
   ['Provider','Fonte externa consultada pelo NutEV, como PubMed, Europe PMC, OpenAlex, Crossref, DOAJ, SciELO ou LILACS/BVS.'],
   ['Deduplicação','Processo que consolida registros equivalentes vindos de fontes diferentes sem apagar a proveniência de origem.'],
-  ['Ranking','Ordem operacional de leitura ou processamento. Ranking não significa recomendação, inclusão, qualidade metodológica ou certeza da evidência.'],
-  ['ResultBundle','Estrutura processada que organiza resultados extraídos pelo pipeline. Seu texto não deve ser tratado como citação literal da publicação.'],
-  ['Fonte verbatim','Trecho reproduzido literalmente de uma fonte rastreável, acompanhado de identificadores e hash quando disponível.'],
-  ['EvidenceClaim','Afirmação de evidência com proveniência própria e revisão governada. Não é criada automaticamente só porque um ResultBundle existe.'],
-  ['EvidenceSet','Conjunto governado de evidências associado a uma pergunta ou decisão científica específica.'],
-  ['QA','Controle metodológico prospectivo da estratégia de busca. Não substitui triagem humana e não autoriza PRISMA por si só.'],
-  ['PRESS','Revisão independente e estruturada de uma estratégia eletrônica de busca. Alterações materiais devem retornar ao ciclo de versionamento e PILOT.'],
-  ['Pré-freeze','Estado anterior ao congelamento formal de uma estratégia. Ajustes ainda podem ocorrer desde que sejam rastreados e revalidados.'],
-  ['Freeze','Congelamento formal de uma estratégia/versionamento após os gates definidos. O NutEV não deve inferir freeze apenas por haver um run executado.'],
-  ['PRISMA','Relato estruturado do processo de revisão. Snapshots, pilots, QA, PRESS ou buscas exploratórias não equivalem automaticamente a uma etapa PRISMA.'],
-  ['Proveniência','Rastro que liga um dado, trecho, decisão ou resultado à sua origem, versão e contexto de processamento.']
+  ['Ranking','Ordem de apresentação condicionada à consulta, combinando relevância para a busca e prioridade operacional NutEV. Não significa qualidade, certeza ou recomendação.'],
+  ['Proveniência','Rastro que liga um registro à fonte, consulta, versão e contexto em que foi recuperado e processado.']
 ]
 
 const STRATEGY_FLOW_STORAGE_KEY='nutev_strategy_flow:article1-scientific-closure-v1'
@@ -63,10 +51,8 @@ function activeNavKey(){
   if(path==='/search.html'&&params.get('view')==='history')return 'history'
   if(path==='/')return 'dashboard'
   if(path==='/search.html')return 'search'
-  if(path==='/articles.html'||path==='/evidence.html')return 'articles'
-  if(path==='/evidence-map.html')return 'map'
-  if(path==='/radar.html')return 'radar'
-  if(path==='/ask.html')return 'ask'
+  if(path==='/articles.html')return 'articles'
+  if(['/evidence.html','/evidence-map.html','/radar.html','/ask.html'].includes(path))return 'advanced'
   if(path==='/advanced.html')return 'advanced'
   if(path.startsWith('/validation')||[
     '/scientific-dashboard.html','/review.html','/review-routes.html','/review-qa.html',
@@ -165,7 +151,7 @@ function ensureGlossary(){
   const dialog=document.createElement('dialog')
   dialog.id='nutevGlossaryDialog'
   dialog.className='glossary-dialog'
-  dialog.innerHTML=`<div class="glossary-head"><div><span class="glossary-eyebrow">Ajuda de termos</span><h2>Glossário científico</h2><p>Definições de interface para reduzir ambiguidade sem alterar os contratos científicos internos.</p></div><button class="glossary-close" type="button" aria-label="Fechar glossário">×</button></div><label class="glossary-search">Filtrar termos<input id="nutevGlossarySearch" type="search" autocomplete="off" placeholder="Ex.: PRESS, ResultBundle, PRISMA"></label><dl id="nutevGlossaryList" class="glossary-list">${glossaryRows()}</dl>`
+  dialog.innerHTML=`<div class="glossary-head"><div><span class="glossary-eyebrow">Ajuda de termos</span><h2>Glossário científico</h2><p>Definições de interface para reduzir ambiguidade sem alterar os contratos científicos internos.</p></div><button class="glossary-close" type="button" aria-label="Fechar glossário">×</button></div><label class="glossary-search">Filtrar termos<input id="nutevGlossarySearch" type="search" autocomplete="off" placeholder="Ex.: provider, ranking, proveniência"></label><dl id="nutevGlossaryList" class="glossary-list">${glossaryRows()}</dl>`
 
   document.body.append(button,dialog)
   const close=()=>{if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open')}

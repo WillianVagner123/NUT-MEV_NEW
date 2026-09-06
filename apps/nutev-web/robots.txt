@@ -18,6 +18,10 @@ Disallow: /ai-context.html
 Disallow: /agent-context/
 Disallow: /synthesis-
 Disallow: /recommendation-
+Disallow: /evidence.html
+Disallow: /evidence-map.html
+Disallow: /radar.html
+Disallow: /ask.html
 Disallow: /api/
 
 Sitemap: https://nutev.mindsperformance.com.br/sitemap.xml
