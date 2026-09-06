@@ -17,10 +17,12 @@ jobs:
   deploy:
     name: deploy production
     if: >-
-      ${{ vars.HETZNER_AUTODEPLOY == 'true' &&
-          (github.event_name == 'workflow_dispatch' ||
-           (github.event.workflow_run.conclusion == 'success' &&
-            github.event.workflow_run.head_branch == 'main')) }}
+      ${{ (github.event_name == 'workflow_dispatch' &&
+           github.ref == 'refs/heads/main') ||
+          (vars.HETZNER_AUTODEPLOY == 'true' &&
+           github.event_name == 'workflow_run' &&
+           github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     environment: HETZNER
     timeout-minutes: 30
