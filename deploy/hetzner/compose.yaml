@@ -4,11 +4,21 @@ services:
     build:
       context: ../..
       dockerfile: deploy/hetzner/Dockerfile
+      args:
+        NUTEV_BUILD_COMMIT: ${NUTEV_BUILD_COMMIT:-unknown}
+        NUTEV_BUILD_BRANCH: ${NUTEV_BUILD_BRANCH:-unknown}
+        NUTEV_BUILD_TIME: ${NUTEV_BUILD_TIME:-unknown}
+        NUTEV_VERSION: ${NUTEV_VERSION:-dev}
     restart: unless-stopped
     env_file:
       - .env
     environment:
       NUTEV_OCR_LANG: ${NUTEV_OCR_LANG:-eng+por}
+      NUTEV_BUILD_COMMIT: ${NUTEV_BUILD_COMMIT:-unknown}
+      NUTEV_BUILD_BRANCH: ${NUTEV_BUILD_BRANCH:-unknown}
+      NUTEV_BUILD_TIME: ${NUTEV_BUILD_TIME:-unknown}
+      NUTEV_VERSION: ${NUTEV_VERSION:-dev}
+      NUTEV_ENVIRONMENT: ${NUTEV_ENVIRONMENT:-production}
     expose:
       - "8765"
     ports:
