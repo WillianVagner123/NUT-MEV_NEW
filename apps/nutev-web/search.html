@@ -16,22 +16,7 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
-      <nav aria-label="Navegação principal">
-        <div class="nav-group-label">Overview</div>
-        <a class="nav-item" href="/"><span class="nav-icon" aria-hidden="true">◫</span><span>Dashboard</span></a>
-        <div class="nav-group-label">Evidence</div>
-        <button class="nav-item active" data-view="search"><span class="nav-icon" aria-hidden="true">⌕</span><span>Search</span></button>
-        <a class="nav-item" href="/articles.html"><span class="nav-icon" aria-hidden="true">▤</span><span>Corpus</span></a>
-        <a class="nav-item" href="/radar.html"><span class="nav-icon" aria-hidden="true">⌁</span><span>Evidence Radar</span></a>
-        <div class="nav-group-label">Strategy</div>
-        <a class="nav-item" href="/review-qa.html"><span class="nav-icon" aria-hidden="true">◎</span><span>QA</span></a>
-        <a class="nav-item" href="/press-review.html"><span class="nav-icon" aria-hidden="true">▣</span><span>PRESS</span></a>
-        <div class="nav-group-label">Validation</div>
-        <a class="nav-item" href="/validation/"><span class="nav-icon" aria-hidden="true">✓</span><span>Scientific validation</span></a>
-        <div class="nav-group-label">System</div>
-        <button class="nav-item" data-view="history"><span class="nav-icon" aria-hidden="true">◷</span><span>Search runs</span></button>
-        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon" aria-hidden="true">◇</span><span>AI Context</span></a>
-      </nav>
+      <nav aria-label="Navegação principal"></nav>
       <div class="sidebar-note">Busque artigos, veja a classificação automática e entenda por que cada resultado apareceu. Métodos de revisão ficam no Laboratório avançado.</div>
     </aside>
 
@@ -115,10 +100,10 @@
           </details>
           <div class="search-actions">
             <button id="searchBtn" class="primary">Buscar artigos</button>
-            <button id="globalSearchBtn" class="global-search" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Busca ampla</button>
+            <button id="globalSearchBtn" class="global-search" aria-describedby="globalSearchNote" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Busca global · sem teto</button>
             <span id="searchHint">carregando fontes…</span>
           </div>
-          <div class="global-search-note"><strong>Busca ampla = sem teto interno do NutEV.</strong> Consulta as fontes selecionadas até o limite demonstrável de cada provider. Limites ou bloqueios impostos pela própria fonte continuam explícitos.</div>
+          <div id="globalSearchNote" class="global-search-note"><strong>Busca global · sem teto = sem teto interno do NutEV.</strong> Consulta as fontes selecionadas até o limite demonstrável de cada provider. Limites ou bloqueios impostos pela própria fonte continuam explícitos.</div>
         </div>
 
         <div id="searchState" class="hidden"></div>
