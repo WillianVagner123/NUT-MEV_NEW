@@ -36,6 +36,14 @@ def test_facet_sorting_does_not_break_saved_article_identity() -> None:
     assert "canonicalSavedKey(record)" in library
 
 
+def test_facets_hide_while_new_search_is_loading() -> None:
+    facets = (WEB / "search-facets-ui.js").read_text(encoding="utf-8")
+
+    assert "summary.classList.contains('hidden')" in facets
+    assert "existingWorkspace?.classList.add('hidden')" in facets
+    assert "workspace.classList.remove('hidden')" in facets
+
+
 def test_facets_are_client_side_refinement_not_new_scientific_authority() -> None:
     facets = (WEB / "search-facets-ui.js").read_text(encoding="utf-8")
     server = (WEB / "server.py").read_text(encoding="utf-8")
