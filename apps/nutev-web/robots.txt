@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /advanced.html
+Disallow: /scientific-dashboard.html
+Disallow: /review.html
 Disallow: /validation/
 Disallow: /review-qa.html
 Disallow: /press-review.html
@@ -7,6 +10,10 @@ Disallow: /regional-routes.html
 Disallow: /strategy.html
 Disallow: /quality.html
 Disallow: /review-routes.html
+Disallow: /intelligence.html
+Disallow: /evidence-claims.html
+Disallow: /claim-appraisal.html
+Disallow: /evidence-sets.html
 Disallow: /ai-context.html
 Disallow: /agent-context/
 Disallow: /synthesis-
