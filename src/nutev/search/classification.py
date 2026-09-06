@@ -130,6 +130,18 @@ def _query_terms(query: str | None) -> list[str]:
     return terms
 
 
+def _contains_query_term(text: str, term: str) -> bool:
+    """Return whether a normalized query token occurs as a whole lexical token.
+
+    This deliberately avoids substring explanations such as ``men`` in
+    ``women`` or ``rat`` in ``strategy``. The search engine can still retrieve
+    a record for other reasons; this helper only governs the user-facing
+    literal query-overlap explanation.
+    """
+
+    return re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", text) is not None
+
+
 def _classification_source(record: Mapping[str, Any]) -> tuple[str, str, list[dict[str, str]]]:
     article_type = _normalized(
         record.get("article_type")
@@ -176,8 +188,12 @@ def classify_search_record(
     abstract = _normalized(
         record.get("abstract") or record.get("summary") or record.get("snippet")
     )
-    title_hits = [term for term in terms if term in title]
-    abstract_hits = [term for term in terms if term in abstract and term not in title_hits]
+    title_hits = [term for term in terms if _contains_query_term(title, term)]
+    abstract_hits = [
+        term
+        for term in terms
+        if term not in title_hits and _contains_query_term(abstract, term)
+    ]
     taxonomy_primary = str(record.get("taxonomy_primary") or "").strip()
     taxonomy_secondary = [
         str(value).strip()
