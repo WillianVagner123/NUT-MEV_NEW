@@ -72,8 +72,16 @@ jobs:
           replace('nutev_tests/test_scientific_dashboard_ui.py', 'home = read("index.html")', 'home = read("scientific-dashboard.html")', minimum=1)
           replace('nutev_tests/test_scientific_dashboard_ui.py', 'assert "Scientific Overview" in home', 'assert "Painel científico avançado" in home')
           replace('nutev_tests/test_scientific_dashboard_ui.py', 'assert "Search Workspace" in search', 'assert "NutEV Search" in search')
-          # Navigation is injected by product-ui.js; do not require a static home link in search.html.
-          replace('nutev_tests/test_scientific_dashboard_ui.py', '    assert \'href="/"\' in search\n', '    assert \'src="./product-ui.js"\' in search\n')
+          # Navigation is injected by product-ui.js; migrate the old static-home assertion only when present.
+          scientific_ui = root / 'nutev_tests/test_scientific_dashboard_ui.py'
+          text = scientific_ui.read_text(encoding='utf-8')
+          old_static_nav = '    assert \'href="/"\' in search\n'
+          new_shell_nav = '    assert \'src="./product-ui.js"\' in search\n'
+          if old_static_nav in text:
+              text = text.replace(old_static_nav, new_shell_nav, 1)
+          elif 'src="./product-ui.js"' not in text:
+              text += '\n\ndef test_search_uses_canonical_product_shell() -> None:\n    search = read("search.html")\n    assert \'src="./product-ui.js"\' in search\n'
+          scientific_ui.write_text(text, encoding='utf-8', newline='\n')
 
           web_contract = root / 'nutev_tests/test_nutev_web_contract.py'
           text = web_contract.read_text(encoding='utf-8')
