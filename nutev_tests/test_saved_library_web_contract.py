@@ -28,11 +28,13 @@ def test_search_can_save_single_open_dossier_and_save_all() -> None:
     assert html.index("search-library-ui.js") < html.index("app.js")
     assert "Cobertura máxima disponível" in html
     assert "Guardar na Biblioteca" in ui
-    assert "Guardar todos os resultados" in ui
+    assert "Guardar todos os resultados retornados" in ui
     assert "Abrir dossiê" in ui
     assert "saveArticle(" in ui
     assert "saveArticles(" in ui
     assert "/articles.html?saved=" in ui
+    assert "existing?.dataset.savedLibraryKey===key" in ui
+    assert "existing?.remove()" in ui
 
 
 def test_biblioteca_surfaces_saved_core_without_replacing_verified_corpus() -> None:
