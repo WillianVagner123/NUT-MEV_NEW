@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Strategy QA — NutEV</title>
+  <title>QA da estratégia — NutEV</title>
   <meta name="description" content="QA determinístico de estratégias eletrônicas versionadas para revisão científica.">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
@@ -36,9 +36,15 @@
 
     <main class="main">
       <header class="topbar">
-        <div><h1>Strategy QA</h1><p>Controles prospectivos de uma estratégia exata/versionada sem alterar a consulta principal.</p></div>
+        <div><h1>QA da estratégia</h1><p>Controles prospectivos de uma estratégia exata/versionada sem alterar a consulta principal.</p></div>
         <span class="status-pill" id="qaHealth">carregando…</span>
       </header>
+
+      <nav class="strategy-flow" aria-label="Fluxo de revisão da estratégia">
+        <span class="active" aria-current="step"><strong>1 · QA</strong><small>Verificar estrutura, sentinelas e comportamento da estratégia.</small></span>
+        <a href="/press-review.html"><strong>2 · PRESS</strong><small>Submeter a estratégia versionada a revisão independente.</small></a>
+        <a href="/regional-routes.html"><strong>3 · Rotas regionais</strong><small>Validar LILACS/BVS e SciELO quando a execução exigir interface oficial.</small></a>
+      </nav>
 
       <section class="qa-layout">
         <div class="card qa-card">
@@ -54,8 +60,14 @@
         <section id="qaSummary" class="card qa-card hidden"></section>
         <section id="branchResults" class="qa-branches"></section>
       </section>
+
+      <div class="strategy-flow-actions">
+        <span></span>
+        <a class="ghost" href="/press-review.html">Próxima etapa: PRESS →</a>
+      </div>
     </main>
   </div>
+  <script type="module" src="./product-ui.js"></script>
   <script type="module" src="./review-qa.js"></script>
 </body>
 </html>
