@@ -92,6 +92,59 @@ def test_assessors_receive_same_items_with_assessor_specific_order_keys() -> Non
     ) != packets._order_key("fixed", "assessor_B", "q1", "doi:10.1000/a")
 
 
+def test_generated_assessor_ids_are_opaque_deterministic_and_configurable() -> None:
+    digest = "a" * 64
+    first = packets.generated_assessor_ids(3, pool_sha256=digest, seed="fixed")
+    second = packets.generated_assessor_ids(3, pool_sha256=digest, seed="fixed")
+    assert first == second
+    assert len(first) == 3
+    assert len(set(first)) == 3
+    assert all(value.startswith("assessor_") for value in first)
+    assert all("@" not in value and " " not in value for value in first)
+
+
+def test_generated_assessor_ids_require_at_least_two() -> None:
+    with pytest.raises(packets.AssessorPacketError, match="at least two"):
+        packets.generated_assessor_ids(1, pool_sha256="a" * 64, seed="fixed")
+
+
+def test_generated_assessor_ids_reject_invalid_pool_digest() -> None:
+    with pytest.raises(packets.AssessorPacketError, match="SHA-256"):
+        packets.generated_assessor_ids(2, pool_sha256="not-a-digest", seed="fixed")
+
+
+def test_runtime_identity_resolution_defaults_to_two_generated_slots() -> None:
+    ids, mode = packets._resolve_assessor_ids(
+        explicit_values=[],
+        assessor_count=None,
+        pool_sha256="b" * 64,
+        seed="fixed",
+    )
+    assert mode == "generated_opaque_ids"
+    assert len(ids) == 2
+    assert len(set(ids)) == 2
+
+
+def test_explicit_identity_compatibility_rejects_email_like_values() -> None:
+    with pytest.raises(packets.AssessorPacketError, match="opaque operational ID"):
+        packets._resolve_assessor_ids(
+            explicit_values=["reviewer@example.org", "assessor_B"],
+            assessor_count=None,
+            pool_sha256="c" * 64,
+            seed="fixed",
+        )
+
+
+def test_generated_and_explicit_modes_are_mutually_exclusive() -> None:
+    with pytest.raises(packets.AssessorPacketError, match="either --assessor-id or --assessor-count"):
+        packets._resolve_assessor_ids(
+            explicit_values=["assessor_A", "assessor_B"],
+            assessor_count=2,
+            pool_sha256="d" * 64,
+            seed="fixed",
+        )
+
+
 def test_leakage_column_in_input_fails_closed(tmp_path: Path) -> None:
     path = tmp_path / "bad_pool.csv"
     path.write_text(
