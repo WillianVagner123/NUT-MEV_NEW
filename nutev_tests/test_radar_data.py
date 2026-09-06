@@ -282,7 +282,10 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, Path]]:
 def test_radar_returns_not_ready_without_topic_audit(tmp_path: Path) -> None:
     result = load_radar_state(topic_dir=tmp_path / "topics", watch_dir=tmp_path / "watch")
     assert result["status"] == "not_ready"
-    assert "science-topics" in result["next_commands"][0]
+    assert "Ainda não há snapshot científico publicado" in result["message"]
+    assert "paths" not in result
+    assert "next_commands" not in result
+    assert "project_output_reference" not in json.dumps(result)
 
 
 def test_radar_builds_verified_summary_and_topic_dossiers(tmp_path: Path) -> None:

@@ -230,15 +230,10 @@ def load_radar_state(
     if not manifest_path.is_file():
         return {
             "status": "not_ready",
-            "message": "Nenhuma auditoria canônica de tópicos/competências foi encontrada.",
-            "paths": {
-                "topic_manifest": str(manifest_path),
-                "watch_manifest": str(watch_dir / "WATCH_MANIFEST.json"),
-            },
-            "next_commands": [
-                "nutev science-topics --output-dir project_output_reference/scientific/topics",
-                "nutev science-watch --output-dir project_output_reference/scientific/watch",
-            ],
+            "message": (
+                "Ainda não há snapshot científico publicado. "
+                "O Radar será preenchido quando uma curadoria científica válida estiver disponível."
+            ),
         }
 
     manifest = _read_json(manifest_path, label="topic audit manifest")

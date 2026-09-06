@@ -42,6 +42,12 @@
         <span class="status-pill" id="pressHealth">carregando…</span>
       </header>
 
+      <nav class="strategy-flow" aria-label="Fluxo de revisão da estratégia">
+        <a href="/review-qa.html"><strong>1 · QA</strong><small>Verificar estrutura, sentinelas e comportamento da estratégia.</small></a>
+        <span class="active" aria-current="step"><strong>2 · PRESS</strong><small>Submeter a estratégia versionada a revisão humana independente.</small></span>
+        <a href="/regional-routes.html"><strong>3 · Rotas regionais</strong><small>Validar LILACS/BVS e SciELO quando a execução exigir interface oficial.</small></a>
+      </nav>
+
       <section class="press-layout">
         <div class="card press-card">
           <div class="section-head"><div><h2>Contexto da revisão</h2><p>Artigo 1 — fechamento científico da estratégia pré-freeze.</p></div></div>
@@ -84,8 +90,14 @@
           <div id="pressGate" class="qa-state">Aguardando parecer completo. GF-10 permanece bloqueado até o fechamento dos demais requisitos.</div>
         </div>
       </section>
+
+      <div class="strategy-flow-actions">
+        <a class="ghost" href="/review-qa.html">← Etapa anterior: QA</a>
+        <a class="ghost" href="/regional-routes.html">Próxima etapa: rotas regionais →</a>
+      </div>
     </main>
   </div>
+  <script type="module" src="./product-ui.js"></script>
   <script type="module" src="./press-review.js"></script>
 </body>
 </html>
