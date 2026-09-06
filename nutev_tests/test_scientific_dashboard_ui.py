@@ -20,7 +20,7 @@ def test_dashboard_is_home_and_search_is_separate_workspace() -> None:
 
     assert "Search Workspace" in search
     assert 'src="./app.js"' in search
-    assert 'href="/"' in search
+    assert 'src="./product-ui.js"' in search
 
 
 def test_dashboard_has_no_production_count_literals() -> None:
