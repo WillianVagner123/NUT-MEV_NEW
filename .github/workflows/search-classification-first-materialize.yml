@@ -1,0 +1,50 @@
+name: search-classification-first-materialize
+
+on:
+  push:
+    branches:
+      - feat/search-classification-first-product
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Materialize search and classification first product
+        run: |
+          set -euo pipefail
+          if grep -q "search-classification-first-v1" apps/nutev-web/styles.css; then
+            echo "Search-first surface already materialized."
+            exit 0
+          fi
+          cat tools/.materialize_search_classification_first.part* > /tmp/materialize_search_classification_first.py
+          python -m py_compile /tmp/materialize_search_classification_first.py
+          python /tmp/materialize_search_classification_first.py
+          python -m py_compile src/nutev/search/classification.py apps/nutev-web/search_adapter.py apps/nutev-web/progress_search.py
+          node --check apps/nutev-web/app.js
+          node --check apps/nutev-web/product-ui.js
+          python -m pip install --quiet pytest
+          PYTHONPATH=src python -m pytest -q nutev_tests/test_search_classification.py nutev_tests/test_product_shell_remediation.py
+          git add \
+            apps/nutev-web/index.html \
+            apps/nutev-web/scientific-dashboard.html \
+            apps/nutev-web/search.html \
+            apps/nutev-web/articles.html \
+            apps/nutev-web/app.js \
+            apps/nutev-web/styles.css \
+            apps/nutev-web/product-ui.js \
+            apps/nutev-web/search_adapter.py \
+            apps/nutev-web/progress_search.py \
+            nutev_tests/test_product_shell_remediation.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(product): make NutEV search and classification first"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
