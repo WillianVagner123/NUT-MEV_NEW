@@ -26,6 +26,16 @@ jobs:
             exit 0
           fi
           cat tools/.materialize_search_classification_first.part* > tools/_materialize_search_classification_first.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("tools/_materialize_search_classification_first.py")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace(
+              '    text = replace_once(text, old, new, f"app.js {label}")',
+              '    text = text.replace(old, new)',
+          )
+          path.write_text(text, encoding="utf-8", newline="\n")
+          PY
           python -m py_compile tools/_materialize_search_classification_first.py
           python tools/_materialize_search_classification_first.py
           rm -f tools/_materialize_search_classification_first.py
