@@ -80,7 +80,9 @@ function ensureCardActions(){
   const cards=[...document.querySelectorAll('#results .result-card')];
   const results=latestSearch?.results||[];
   cards.forEach((card,index)=>{
-    const record=results[index];if(!record)return;
+    const taggedIndex=Number(card.dataset.resultIndex);
+    const resultIndex=Number.isInteger(taggedIndex)&&taggedIndex>=0?taggedIndex:index;
+    const record=results[resultIndex];if(!record)return;
     const key=canonicalSavedKey(record);
     const existing=card.querySelector('.saved-library-actions');
     if(existing?.dataset.savedLibraryKey===key)return;
