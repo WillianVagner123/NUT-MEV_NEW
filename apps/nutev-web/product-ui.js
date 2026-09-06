@@ -10,24 +10,17 @@ const STATUS_LABELS={
 }
 
 const NAV_GROUPS=[
-  {label:'Visão geral',items:[
-    {key:'dashboard',href:'/',icon:'◫',label:'Dashboard'}
-  ]},
-  {label:'Evidências',items:[
-    {key:'search',href:'/search.html',icon:'⌕',label:'Buscar evidências'},
-    {key:'articles',href:'/articles.html',icon:'▤',label:'Corpus'},
-    {key:'radar',href:'/radar.html',icon:'⌁',label:'Radar de evidências'}
-  ]},
-  {label:'Estratégia',items:[
-    {key:'qa',href:'/review-qa.html',icon:'◎',label:'QA'},
-    {key:'press',href:'/press-review.html',icon:'▣',label:'PRESS'},
-    {key:'regional',href:'/regional-routes.html',icon:'↗',label:'Rotas regionais'}
-  ]},
-  {label:'Validação',items:[
-    {key:'validation',href:'/validation/',icon:'✓',label:'Validação científica'}
+  {label:'Descoberta',items:[
+    {key:'dashboard',href:'/',icon:'⌂',label:'Início'},
+    {key:'search',href:'/search.html',icon:'⌕',label:'Buscar artigos'},
+    {key:'articles',href:'/articles.html',icon:'▤',label:'Biblioteca'},
+    {key:'map',href:'/evidence-map.html',icon:'▦',label:'Mapa de evidências'},
+    {key:'radar',href:'/radar.html',icon:'⌁',label:'Radar'},
+    {key:'ask',href:'/ask.html',icon:'?',label:'Perguntar ao corpus'}
   ]},
   {label:'Sistema',items:[
-    {key:'history',href:'/search.html?view=history',icon:'◷',label:'Minhas buscas'}
+    {key:'history',href:'/search.html?view=history',icon:'◷',label:'Minhas buscas'},
+    {key:'advanced',href:'/advanced.html',icon:'⚙',label:'Laboratório avançado'}
   ]}
 ]
 
@@ -66,13 +59,20 @@ function activeNavKey(){
   const params=new URLSearchParams(location.search)
   if(path==='/search.html'&&params.get('view')==='history')return 'history'
   if(path==='/')return 'dashboard'
-  if(path==='/search.html'||path==='/ask.html')return 'search'
-  if(['/articles.html','/evidence.html','/evidence-map.html'].includes(path))return 'articles'
-  if(['/radar.html','/intelligence.html'].includes(path))return 'radar'
-  if(['/review-qa.html','/review-routes.html','/quality.html','/strategy.html'].includes(path))return 'qa'
-  if(path==='/press-review.html')return 'press'
-  if(path==='/regional-routes.html')return 'regional'
-  if(path.startsWith('/validation'))return 'validation'
+  if(path==='/search.html')return 'search'
+  if(path==='/articles.html'||path==='/evidence.html')return 'articles'
+  if(path==='/evidence-map.html')return 'map'
+  if(path==='/radar.html')return 'radar'
+  if(path==='/ask.html')return 'ask'
+  if(path==='/advanced.html')return 'advanced'
+  if(path.startsWith('/validation')||[
+    '/scientific-dashboard.html','/review.html','/review-routes.html','/review-qa.html',
+    '/press-review.html','/regional-routes.html','/quality.html','/strategy.html',
+    '/intelligence.html','/synthesis-review.html','/synthesis-brief.html',
+    '/synthesis-governance.html','/synthesis-release.html','/synthesis-publication.html',
+    '/evidence-claims.html','/claim-appraisal.html','/evidence-sets.html',
+    '/recommendation-candidates.html','/recommendation-human-validation.html'
+  ].includes(path))return 'advanced'
   return ''
 }
 

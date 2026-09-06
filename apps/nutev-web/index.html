@@ -4,76 +4,53 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>NutEV — Scientific Overview</title>
-  <meta name="description" content="Dashboard científico do NutEV Evidence Engine: corpus, cobertura, rotas, processamento e prontidão metodológica.">
+  <title>NutEV Evidence Engine — Busca e classificação científica</title>
+  <meta name="description" content="NutEV é um motor de busca, ranking e classificação rastreável de artigos científicos.">
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./dashboard.css">
-  <link rel="stylesheet" href="./dashboard-interactive.css">
+  <link rel="stylesheet" href="./product-ui.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
-      <nav>
-        <div class="nav-group-label">Overview</div>
-        <a class="nav-item active" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
-        <div class="nav-group-label">Evidence</div>
-        <a class="nav-item" href="/search.html"><span class="nav-icon">⌕</span><span>Search</span></a>
-        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
-        <a class="nav-item" href="/evidence.html"><span class="nav-icon">◈</span><span>Evidence Explorer</span></a>
-        <a class="nav-item" href="/evidence-map.html"><span class="nav-icon">▦</span><span>Evidence Map</span></a>
-        <a class="nav-item" href="/intelligence.html"><span class="nav-icon">◆</span><span>Scientific Intelligence</span></a>
-        <a class="nav-item" href="/synthesis-review.html"><span class="nav-icon">◉</span><span>Synthesis Review</span></a>
-        <a class="nav-item" href="/synthesis-brief.html"><span class="nav-icon">▰</span><span>Synthesis Brief</span></a>
-        <div class="nav-group-label">Governance</div>
-        <a class="nav-item" href="/synthesis-governance.html"><span class="nav-icon">▣</span><span>Synthesis Registry</span></a>
-        <a class="nav-item" href="/synthesis-release.html"><span class="nav-icon">⇧</span><span>Governed Release</span></a>
-        <a class="nav-item" href="/synthesis-publication.html"><span class="nav-icon">¶</span><span>Publication Manifest</span></a>
-        <div class="nav-group-label">Scientific claims</div>
-        <a class="nav-item" href="/evidence-claims.html"><span class="nav-icon">◇</span><span>EvidenceClaim Review</span></a>
-        <a class="nav-item" href="/claim-appraisal.html"><span class="nav-icon">◎</span><span>ClaimEvaluation</span></a>
-        <a class="nav-item" href="/evidence-sets.html"><span class="nav-icon">▦</span><span>EvidenceSet Construction</span></a>
-        <a class="nav-item" href="/recommendation-candidates.html"><span class="nav-icon">→</span><span>RecommendationCandidate</span></a>
-        <a class="nav-item" href="/recommendation-human-validation.html"><span class="nav-icon">✓</span><span>HumanValidation</span></a>
-        <div class="nav-group-label">Evidence tools</div>
-        <a class="nav-item" href="/ask.html"><span class="nav-icon">?</span><span>Ask NutEV</span></a>
-        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
-        <div class="nav-group-label">Review</div>
-        <a class="nav-item" href="/review.html"><span class="nav-icon">☑</span><span>Review Control</span></a>
-        <a class="nav-item" href="/review-routes.html"><span class="nav-icon">☷</span><span>Review Routes</span></a>
-        <div class="nav-group-label">Strategy</div>
-        <a class="nav-item" href="/strategy.html"><span class="nav-icon">⌘</span><span>Strategy Lab</span></a>
-        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
-        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
-        <div class="nav-group-label">Validation</div>
-        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
-        <div class="nav-group-label">System</div>
-        <a class="nav-item" href="/quality.html"><span class="nav-icon">⚙</span><span>Quality Observatory</span></a>
-        <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
-        <a class="nav-item" href="/ai-context.html"><span class="nav-icon">◇</span><span>AI Context</span></a>
-      </nav>
-      <div class="sidebar-note">O dashboard mostra processamento e contexto auditável. Volume, tier, rota e perfil não equivalem a qualidade, elegibilidade ou decisão PRISMA.</div>
+      <nav aria-label="Navegação principal"></nav>
+      <div class="sidebar-note">Motor de busca e classificação científica. Revisão sistemática e governança avançada ficam fora do fluxo principal.</div>
     </aside>
-
-    <main class="main dashboard-main">
-      <header class="topbar dashboard-topbar"><div><h1>Scientific Overview</h1><p>Article 1 · Nutrition & Lifestyle Medicine</p></div><div class="dashboard-actions"><a href="/presentation.html" class="ghost secondary-action" style="text-decoration:none">Presentation v2</a><button id="presentationToggle" class="ghost secondary-action" type="button">Focus view</button><button id="refreshDashboard" class="ghost" type="button">Atualizar</button><span class="status-pill" id="dashboardHealth">verificando engine…</span></div></header>
-      <section class="card project-hero"><div><div class="project-eyebrow">ACTIVE PROJECT · ARTICLE 1</div><h2>Nutrition parameters, food competencies and social eating context</h2><p id="projectQuestion" class="project-question">Carregando pergunta científica…</p></div><div id="heroStatuses" class="hero-statuses"></div></section>
-      <div id="dashboardState" class="loading dashboard-state">Carregando estado científico verificado…</div>
-      <section id="dashboardContent" class="hidden"><div id="kpiGrid" class="kpi-grid"></div><div class="dashboard-grid">
-        <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Scientific pipeline</h2><p>Estado técnico/metodológico do projeto. Etapas futuras permanecem bloqueadas até o gate canônico.</p></div><div class="panel-links"><a class="panel-link" href="/strategy.html">Strategy Lab →</a><a class="panel-link" href="/press-review.html">PRESS →</a></div></div><div id="pipeline" class="pipeline" aria-label="Pipeline científico"></div></section>
-        <section class="card dashboard-card span-5"><div class="panel-head"><div><h2>Evidence processing funnel</h2><p>Funil operacional — não é PRISMA.</p></div><a class="panel-link" href="/articles.html">Explorar corpus →</a></div><div id="funnel" class="funnel"></div></section>
-        <section class="card dashboard-card span-7"><div class="panel-head"><div><h2>Formal search readiness</h2><p>O frontend apenas reflete o master. Ele não autoriza GF-10 nem cria freeze.</p></div><a class="panel-link" href="/strategy.html">Abrir Strategy Lab →</a></div><div id="readinessGrid" class="readiness-grid"></div><div id="nextAction" class="next-action"></div></section>
-        <section class="card dashboard-card span-5"><div class="panel-head"><div><h2>Full-text coverage</h2><p>Recuperação técnica do Tier A; não equivale a elegibilidade.</p></div></div><div class="donut-layout"><div id="fullTextDonut" class="donut"></div><div id="fullTextLegend" class="legend-list"></div></div></section>
-        <section class="card dashboard-card span-7"><div class="panel-head"><div><h2>Extraction method</h2><p>Formato efetivamente usado no aprofundamento.</p></div></div><div id="extractionChart"></div></section>
-        <section class="card dashboard-card span-5"><div class="panel-head"><div><h2>Article 1 routes</h2><p>B-NORM e C-STRUCT são filas de navegação, não inclusão científica.</p></div><a class="panel-link" href="/review-routes.html">Abrir rotas →</a></div><div id="routesChart"></div></section>
-        <section class="card dashboard-card span-7"><div class="panel-head"><div><h2>Document types</h2><p>Classificação documental do Tier A, derivada do perfil v2.</p></div><a class="panel-link" href="/articles.html">Abrir Corpus Explorer →</a></div><div id="classChart"></div></section>
-        <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Operational domains</h2><p>Dimensões detectadas para navegação, síntese estrutural, revisão humana, governance, disseminação, publicação auditável, claims source-level, appraisal humano, EvidenceSets, RecommendationCandidates e HumanValidation explícita.</p></div><div class="panel-links"><a class="panel-link" href="/evidence-map.html">Evidence Map →</a><a class="panel-link" href="/intelligence.html">Scientific Intelligence →</a><a class="panel-link" href="/synthesis-review.html">Human Synthesis Review →</a><a class="panel-link" href="/synthesis-brief.html">Executive Brief →</a><a class="panel-link" href="/synthesis-governance.html">Governance Registry →</a><a class="panel-link" href="/synthesis-release.html">Governed Release →</a><a class="panel-link" href="/synthesis-publication.html">Publication Manifest →</a><a class="panel-link" href="/evidence-claims.html">EvidenceClaim Review →</a><a class="panel-link" href="/claim-appraisal.html">ClaimEvaluation →</a><a class="panel-link" href="/evidence-sets.html">EvidenceSet Construction →</a><a class="panel-link" href="/recommendation-candidates.html">RecommendationCandidate →</a><a class="panel-link" href="/recommendation-human-validation.html">HumanValidation →</a></div></div><div id="domainChart"></div></section>
-        <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Publications over time</h2><p>Distribuição temporal do Tier A. Não implica tendência causal ou força de evidência.</p></div></div><div id="timelineChart" class="timeline-chart"></div><div id="timelineAxis" class="timeline-axis"></div></section>
-        <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Provider operations</h2><p>Status operacional do Radar; gap de provider não significa ausência de literatura.</p></div><a class="panel-link" href="/radar.html">Abrir Radar →</a></div><div id="providerBoard" class="provider-board"></div></section>
-        <section class="card dashboard-card span-6"><div class="panel-head"><div><h2>Provenance & AI context</h2><p>Contexto vivo e versão que sustentam o dashboard.</p></div><div class="panel-links"><a class="panel-link" href="/quality.html">Quality →</a><a class="panel-link" href="/presentation.html">Snapshot / Presentation →</a><a class="panel-link" href="/ask.html">Ask NutEV →</a><a class="panel-link" href="/ai-context.html">AI Context →</a></div></div><div id="provenance" class="provider-board"></div></section>
-        <section class="card dashboard-card span-12"><div class="panel-head"><div><h2>Scientific interpretation boundary</h2><p>Discovery ≠ busca formal · Tier ≠ qualidade · rota ≠ inclusão · full text ≠ elegibilidade · perfil de máquina ≠ RoB · excerpt ≠ EvidenceClaim aceito · human brief ≠ certainty · governance approval ≠ scientific validation · governed release ≠ canonical synthesis · publication statement candidate ≠ accepted EvidenceClaim · accepted EvidenceClaim ≠ screening inclusion/RoB/certainty/recommendation · ClaimEvaluation ≠ formal RoB/GRADE/certainty · EvidenceSet membership ≠ agreement/contradiction/certainty/synthesis/recommendation · RecommendationCandidate ≠ validated recommendation/clinical recommendation/certainty · HumanValidation ACCEPT ≠ clinical/guideline recommendation/certainty/GRADE.</p></div></div></section>
-      </div></section>
+    <main class="main home-main">
+      <header class="topbar"><div><h1>NutEV Evidence Engine</h1><p>Busca científica, ranking, classificação e exploração de artigos.</p></div><span class="status-pill">Search & Classification</span></header>
+      <section class="card home-hero">
+        <div class="home-eyebrow">Motor de busca científica</div>
+        <h2>Encontre artigos e entenda rapidamente o que cada estudo é e por que ele apareceu.</h2>
+        <p>O NutEV consulta múltiplas fontes, normaliza e deduplica registros, ranqueia por prioridade de leitura e classifica cada artigo com sinais rastreáveis de metadados, título, resumo e taxonomia.</p>
+        <form class="home-search" action="/search.html" method="get">
+          <input name="q" type="search" autocomplete="off" aria-label="Buscar artigos" placeholder="Ex.: creatina e cognição em idosos">
+          <button class="primary" type="submit">Buscar artigos</button>
+        </form>
+      </section>
+      <section class="home-grid" aria-label="Áreas principais">
+        <a class="card home-action" href="/search.html"><strong>⌕ Buscar artigos</strong><span>Consulta múltiplas fontes, deduplica, ranqueia e explica os resultados.</span></a>
+        <a class="card home-action" href="/articles.html"><strong>▤ Biblioteca</strong><span>Filtre o banco por classe documental, fonte, texto completo e prioridade.</span></a>
+        <a class="card home-action" href="/evidence-map.html"><strong>▦ Mapa de evidências</strong><span>Explore padrões do corpus sem transformar classificação em conclusão clínica.</span></a>
+        <a class="card home-action" href="/radar.html"><strong>⌁ Radar</strong><span>Acompanhe fontes, cobertura operacional e novas referências.</span></a>
+      </section>
+      <section class="card">
+        <div class="home-eyebrow">Classificação explicável</div>
+        <h2>O que o NutEV organiza em cada resultado</h2>
+        <div class="classification-contract">
+          <div><strong>Tipo de estudo</strong><span>RCT, observacional, qualitativo, revisão, síntese de evidência, diretriz ou não classificado.</span></div>
+          <div><strong>Tema / taxonomia</strong><span>Domínios detectados pela taxonomia canônica e termos que sustentaram o agrupamento.</span></div>
+          <div><strong>Por que apareceu</strong><span>Termos da consulta encontrados no título/resumo e sinais de taxonomia/documento.</span></div>
+          <div><strong>Ranking NutEV</strong><span>Prioridade operacional de leitura com score breakdown auditável; não é qualidade científica.</span></div>
+          <div><strong>Proveniência</strong><span>Fonte, DOI/PMID, provider e rastros usados pelo motor para recuperar e organizar o registro.</span></div>
+          <div><strong>Dossiê</strong><span>Quando disponível, texto, estrutura, achados candidatos e informações enriquecidas do artigo.</span></div>
+        </div>
+      </section>
+      <section class="card hibernate-note">
+        <div><span class="hibernated-badge">fora do fluxo principal</span><strong style="display:block;margin-top:.45rem">Revisão sistemática, PRESS, PRISMA e governança continuam preservados.</strong><p>Esses módulos não foram apagados; ficam hibernados no Laboratório avançado para uso quando um projeto realmente exigir esse workflow.</p></div>
+        <a class="ghost" href="/advanced.html" style="text-decoration:none">Abrir laboratório avançado</a>
+      </section>
     </main>
   </div>
-  <script type="module" src="./product-ui.js"></script><script type="module" src="./dashboard.js"></script><script type="module" src="./dashboard-interactive.js"></script>
-</body></html>
+  <script type="module" src="./product-ui.js"></script>
+</body>
+</html>

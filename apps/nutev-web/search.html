@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Search Workspace — NutEV Evidence Engine</title>
-  <meta name="description" content="Workspace de busca de evidências e estratégias versionadas do NutEV.">
+  <title>NutEV Search — Busca e classificação de artigos</title>
+  <meta name="description" content="Motor de busca científica do NutEV para encontrar, deduplicar, ranquear e classificar artigos.">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./exact-strategy.css">
@@ -32,20 +32,20 @@
         <button class="nav-item" data-view="history"><span class="nav-icon" aria-hidden="true">◷</span><span>Search runs</span></button>
         <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon" aria-hidden="true">◇</span><span>AI Context</span></a>
       </nav>
-      <div class="sidebar-note">A busca prioriza leitura. Não substitui avaliação metodológica, triagem humana nem decisão científica.</div>
+      <div class="sidebar-note">Busque artigos, veja a classificação automática e entenda por que cada resultado apareceu. Métodos de revisão ficam no Laboratório avançado.</div>
     </aside>
 
     <main class="main">
-      <header class="topbar"><div><h1 id="pageTitle">Search Workspace</h1><p id="pageSubtitle">Pergunta, estratégia, providers e execução em um fluxo auditável.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
+      <header class="topbar"><div><h1 id="pageTitle">NutEV Search</h1><p id="pageSubtitle">Busque, deduplique, ranqueie e classifique artigos em múltiplas fontes científicas.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
 
       <section id="searchView" class="view">
         <div class="hero card">
-          <label for="question">Qual evidência você quer encontrar?</label>
-          <textarea id="question" rows="4" placeholder="Pergunta humana da revisão; a estratégia eletrônica pode ser estruturada separadamente abaixo."></textarea>
+          <label for="question">O que você quer encontrar na literatura?</label>
+          <textarea id="question" rows="3" placeholder="Ex.: creatina e cognição em idosos · dieta mediterrânea e mortalidade cardiovascular · proteína durante perda de peso"></textarea>
 
           <div class="review-mode-switch">
-            <label><input id="structuredReviewToggle" type="checkbox"> <strong>Modo revisão científica</strong></label>
-            <span>Construa PCC/PICO/PECO ou use uma estratégia eletrônica exata/versionada por base.</span>
+            <label><input id="structuredReviewToggle" type="checkbox"> <strong>Busca avançada</strong></label>
+            <span>Opcional: use PCC/PICO/PECO ou uma estratégia exata por base quando precisar de controle metodológico fino.</span>
           </div>
 
           <section id="strategyBuilder" class="strategy-builder hidden">
@@ -105,7 +105,7 @@
             <div id="strategyPreview" class="strategy-preview hidden"></div>
           </section>
 
-          <details class="advanced" open>
+          <details class="advanced">
             <summary>Fontes e limites</summary>
             <div class="provider-grid" id="providerGrid"></div>
             <div class="controls-row">
@@ -114,11 +114,11 @@
             </div>
           </details>
           <div class="search-actions">
-            <button id="searchBtn" class="primary">Buscar evidências</button>
-            <button id="globalSearchBtn" class="global-search" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Busca global</button>
+            <button id="searchBtn" class="primary">Buscar artigos</button>
+            <button id="globalSearchBtn" class="global-search" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Busca ampla</button>
             <span id="searchHint">carregando fontes…</span>
           </div>
-          <div class="global-search-note"><strong>Busca global = sem teto interno.</strong> Não há corte interno de 100, 300 ou outro número. No modo comum, usa todas as fontes conectadas. No modo de estratégia exata, usa somente as bases para as quais existe query exata e que estão selecionadas. Limites ou bloqueios impostos pela própria fonte permanecem explícitos.</div>
+          <div class="global-search-note"><strong>Busca ampla = sem teto interno do NutEV.</strong> Consulta as fontes selecionadas até o limite demonstrável de cada provider. Limites ou bloqueios impostos pela própria fonte continuam explícitos.</div>
         </div>
 
         <div id="searchState" class="hidden"></div>

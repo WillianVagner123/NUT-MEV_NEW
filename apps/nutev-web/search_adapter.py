@@ -17,6 +17,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from nutev.reference_identity import dedupe_records
+from nutev.search.classification import classify_search_record
 from nutev.search.crossref import search_crossref
 from nutev.search.doaj import search_doaj
 from nutev.search.europepmc import search_europepmc
@@ -112,7 +113,7 @@ def _provider_call(provider: str, query: str, limit: int) -> Callable[[], Any]:
     raise ValueError(f"Provider não suportado no modo web direto: {provider}")
 
 
-def _score_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _score_rows(rows: list[dict[str, Any]], *, query: str | None = None) -> list[dict[str, Any]]:
     taxonomy, taxonomy_meta = load_canonical_taxonomy(REPO_ROOT / "config")
     profile = _read_profile()
     focus_keywords = list(profile.get("focus_keywords") or [])
@@ -130,6 +131,7 @@ def _score_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             guardrails=guardrails,
             primary_dimension_order=primary_dimension_order,
         )
+        scored["search_classification"] = classify_search_record(scored, query=query)
         ranked.append(scored)
     ranked.sort(
         key=lambda item: (
@@ -341,7 +343,7 @@ def search_evidence(
     provider_status = [status_by_provider[p] for p in chosen if p in status_by_provider]
 
     unique = dedupe_records(combined)
-    ranked = _score_rows(unique) if unique else []
+    ranked = _score_rows(unique, query=question) if unique else []
     returned = ranked[:max_results]
     failed = [item["provider"] for item in provider_status if item["status"] == "failed"]
     unavailable = [item["provider"] for item in provider_status if item["status"] == "unavailable"]
