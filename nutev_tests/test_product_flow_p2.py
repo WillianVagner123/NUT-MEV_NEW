@@ -55,13 +55,14 @@ def test_strategy_flow_sync_observes_existing_outputs_instead_of_reimplementing_
         assert forbidden not in sync
 
 
-def test_search_keeps_exhaustive_mode_but_has_one_clear_visual_primary_action() -> None:
+def test_search_keeps_maximum_coverage_mode_but_has_one_clear_visual_primary_action() -> None:
     search = read("search.html")
     styles = read("styles.css")
 
     assert 'id="searchBtn" class="primary"' in search
     assert 'id="globalSearchBtn" class="global-search"' in search
-    assert "Busca global · sem teto" in search
+    assert "Cobertura máxima disponível" in search
+    assert "sem teto interno do NutEV" in search
     assert 'aria-describedby="globalSearchNote"' in search
     assert 'id="globalSearchNote"' in search
 
