@@ -8,9 +8,14 @@
 - Technical run SHA-256: `2ffae67debc73bfb29e271ee1f46ac3332760704188f6be3f08817d63253b63d`
 - Workflow run: `34057757287`
 - Workflow artifact: `9996495101`
+- Artifact digest: `sha256:10edddf5b16edd677cfe893c33dad0172c2b60da488de0b76abff10eca50d7de`
+- Artifact expiry: `2026-10-06T20:22:37Z`
+- Persistent sample custody: `SAMPLE_MANIFEST.json`
 - Technical status: `TECHNICAL_DELTA_RUN_COMPLETE_HUMAN_REVIEW_PENDING`
 
 This packet records technical evidence only. It does **not** record PRESS PASS, a C4 decision, GF-10 authorization, query freeze, formal search, eligibility decisions, or PRISMA.
+
+The exact identities of the incremental samples are now persisted in `SAMPLE_MANIFEST.json` as PMID/DOI pairs in the same order recorded by the immutable workflow artifact. Titles, abstracts and full text are deliberately not duplicated into Git. The manifest proves sample custody; it does not label any record as relevant or irrelevant.
 
 ## Delta results
 
@@ -46,7 +51,9 @@ C4 added 6,055 records beyond the non-C4 union. The sample contains food insecur
 
 ## Human review fields
 
-For each incremental sampled record in the immutable workflow artifact, record:
+Use `SAMPLE_MANIFEST.json` as the permanent identity/order reference for the sampled records. Use the original workflow artifact while it remains available for the richer retrieval payload needed by the reviewer.
+
+For each sampled record, record:
 
 - `Y` — relevant to the Article 1 review question / route purpose;
 - `N` — not relevant;
@@ -59,7 +66,7 @@ Then calculate the manual precision sample for D02–D05. D01 has no incremental
 
 ## Decision boundary
 
-The technical run may support, but cannot make, the following decisions:
+The technical run and sample manifest may support, but cannot make, the following decisions:
 
 - D01: retain or omit `food based` in PubMed;
 - D02: adopt, revise or omit `healthy eating`;
