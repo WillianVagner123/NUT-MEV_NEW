@@ -25,9 +25,10 @@ jobs:
             echo "Search-first surface already materialized."
             exit 0
           fi
-          cat tools/.materialize_search_classification_first.part* > /tmp/materialize_search_classification_first.py
-          python -m py_compile /tmp/materialize_search_classification_first.py
-          python /tmp/materialize_search_classification_first.py
+          cat tools/.materialize_search_classification_first.part* > tools/_materialize_search_classification_first.py
+          python -m py_compile tools/_materialize_search_classification_first.py
+          python tools/_materialize_search_classification_first.py
+          rm -f tools/_materialize_search_classification_first.py
           python -m py_compile src/nutev/search/classification.py apps/nutev-web/search_adapter.py apps/nutev-web/progress_search.py
           node --check apps/nutev-web/app.js
           node --check apps/nutev-web/product-ui.js
