@@ -106,6 +106,15 @@ _QUERY_STOPWORDS = {
     "with",
     "what",
     "which",
+    "or",
+    "not",
+    "title",
+    "abstract",
+    "mesh",
+    "decs",
+    "title_abs",
+    "tw",
+    "mh",
 }
 _QUERY_TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9_-]{2,}", re.I)
 

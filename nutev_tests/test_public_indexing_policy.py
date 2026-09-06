@@ -20,7 +20,6 @@ def test_sitemap_contains_only_core_public_surfaces() -> None:
         f"{DOMAIN}/",
         f"{DOMAIN}/search.html",
         f"{DOMAIN}/articles.html",
-        f"{DOMAIN}/radar.html",
     ]
     for forbidden in (
         "/advanced.html",
@@ -31,6 +30,10 @@ def test_sitemap_contains_only_core_public_surfaces() -> None:
         "/press-review.html",
         "/regional-routes.html",
         "/agent-context/",
+        "/evidence.html",
+        "/evidence-map.html",
+        "/radar.html",
+        "/ask.html",
         "/api/",
         "/synthesis-",
         "/recommendation-",
@@ -77,6 +80,10 @@ def test_secure_server_emits_fail_closed_noindex_header_for_internal_surfaces() 
         '"/review-qa.html"',
         '"/press-review.html"',
         '"/regional-routes.html"',
+        '"/evidence.html"',
+        '"/evidence-map.html"',
+        '"/radar.html"',
+        '"/ask.html"',
         '"/agent-context/"',
         '"/api/"',
     ):

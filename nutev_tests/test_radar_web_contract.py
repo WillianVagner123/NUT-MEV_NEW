@@ -5,11 +5,13 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "apps" / "nutev-web"
 
 
-def test_radar_is_first_class_in_main_navigation() -> None:
+def test_radar_is_hibernated_under_advanced_laboratory() -> None:
     index = (WEB / "index.html").read_text(encoding="utf-8")
+    advanced = (WEB / "advanced.html").read_text(encoding="utf-8")
     radar = (WEB / "radar.html").read_text(encoding="utf-8")
-    assert 'href="/radar.html"' in index
-    assert "Evidence Radar" in index
+    assert 'href="/radar.html"' not in index
+    assert 'href="/radar.html"' in advanced
+    assert '<meta name="robots" content="noindex,nofollow">' in radar
     assert "Evidence Radar" in radar
     assert 'id="summaryCards"' in radar
     assert 'id="priorityBoard"' in radar

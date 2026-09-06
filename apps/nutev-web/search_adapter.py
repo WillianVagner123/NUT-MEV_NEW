@@ -113,6 +113,19 @@ def _provider_call(provider: str, query: str, limit: int) -> Callable[[], Any]:
     raise ValueError(f"Provider não suportado no modo web direto: {provider}")
 
 
+def _query_relevance_score(classification: dict[str, Any]) -> float:
+    match = classification.get("query_match") or {}
+    considered = {str(value) for value in (match.get("terms_considered") or []) if str(value)}
+    title_hits = {str(value) for value in (match.get("title_hits") or []) if str(value)}
+    abstract_hits = {str(value) for value in (match.get("abstract_hits") or []) if str(value)}
+    if not considered:
+        return 0.0
+    covered = (title_hits | abstract_hits) & considered
+    coverage = len(covered) / max(1, len(considered))
+    score = len(title_hits & considered) * 18.0 + len(abstract_hits & considered) * 6.0 + coverage * 25.0
+    return round(min(100.0, score), 2)
+
+
 def _score_rows(rows: list[dict[str, Any]], *, query: str | None = None) -> list[dict[str, Any]]:
     taxonomy, taxonomy_meta = load_canonical_taxonomy(REPO_ROOT / "config")
     profile = _read_profile()
@@ -131,11 +144,26 @@ def _score_rows(rows: list[dict[str, Any]], *, query: str | None = None) -> list
             guardrails=guardrails,
             primary_dimension_order=primary_dimension_order,
         )
-        scored["search_classification"] = classify_search_record(scored, query=query)
+        effective_query = str(scored.get("provider_query") or query or "").strip()
+        classification = classify_search_record(scored, query=effective_query)
+        query_relevance = _query_relevance_score(classification)
+        nutev_priority = max(0.0, min(float(scored.get("reference_score") or 0.0), 100.0))
+        scored["search_classification"] = classification
+        scored["query_relevance_score"] = query_relevance
+        scored["nutev_priority_score"] = round(nutev_priority, 2)
+        scored["ranking_score_breakdown"] = {
+            "query_relevance": query_relevance,
+            "nutev_priority": round(nutev_priority, 2),
+            "query_weight": 0.8,
+            "nutev_priority_weight": 0.2,
+        }
+        scored["reference_score"] = round(query_relevance * 0.8 + nutev_priority * 0.2, 2)
         ranked.append(scored)
     ranked.sort(
         key=lambda item: (
             -float(item.get("reference_score") or 0.0),
+            -float(item.get("query_relevance_score") or 0.0),
+            -float(item.get("nutev_priority_score") or 0.0),
             str(item.get("title") or "").casefold(),
         )
     )
