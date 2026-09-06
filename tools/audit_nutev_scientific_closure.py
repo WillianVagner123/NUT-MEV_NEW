@@ -10,6 +10,9 @@ MASTER_PATH = ROOT / "config" / "nutev" / "article1_search_master_v1.json"
 DRAFT_PATH = ROOT / "config" / "nutev" / "article1_query_draft_v1.json"
 PRESS_PATH = ROOT / "config" / "nutev" / "article1_press_review_v1.json"
 WEB = ROOT / "apps" / "nutev-web"
+PRESS_COMPILER = ROOT / "src" / "nutev" / "science" / "article1_press.py"
+PRESS_PACKAGE_BUILDER = ROOT / "tools" / "build_article1_press_query_package.py"
+PRESS_DELTA_RUNNER = ROOT / "tools" / "run_article1_press_delta_tests.py"
 FROZEN_RUNTIME_SHA = "6aa7a5fe6009776e611ca3e1506486606b05f4f6"
 
 
@@ -73,7 +76,10 @@ def main() -> int:
     )
 
     if press_status == "PASS":
-        require(press.get("status") == "PASS", "Search Master says PRESS PASS without canonical PRESS PASS record.")
+        require(
+            press.get("status") == "PASS",
+            "Search Master says PRESS PASS without canonical PRESS PASS record.",
+        )
         require(bool(press.get("reviewer")), "PRESS PASS requires a recorded human reviewer.")
         require(bool(press.get("reviewed_at")), "PRESS PASS requires a human review timestamp.")
         require(bool(press.get("press_decision")), "PRESS PASS requires an explicit human decision.")
@@ -99,16 +105,62 @@ def main() -> int:
         )
     else:
         require(
-            c4.get("decision") in {"PENDING_HUMAN_DECISION", "ADOPT_C4", "REVISE_C4", "REJECT_C4"},
+            c4.get("decision")
+            in {"PENDING_HUMAN_DECISION", "ADOPT_C4", "REVISE_C4", "REJECT_C4"},
             "C4 has an invalid decision state.",
         )
 
     provider_validation = press.get("provider_native_validation") or {}
     for provider in ("pubmed", "lilacs_bvs", "scielo", "scopus", "web_of_science"):
-        require(provider in provider_validation, f"Missing provider-native validation slot: {provider}.")
+        require(
+            provider in provider_validation,
+            f"Missing provider-native validation slot: {provider}.",
+        )
     for provider in ("scopus", "web_of_science"):
         record = provider_validation.get(provider) or {}
-        require(record.get("simulation_forbidden") is True, f"{provider} must remain explicitly non-simulatable.")
+        require(
+            record.get("simulation_forbidden") is True,
+            f"{provider} must remain explicitly non-simulatable.",
+        )
+
+    # Technical PRESS tooling may prepare candidates and run technical deltas, but it cannot
+    # silently promote those artifacts into scientific approvals.
+    for path in (PRESS_COMPILER, PRESS_PACKAGE_BUILDER, PRESS_DELTA_RUNNER):
+        require(path.is_file(), f"Missing Article 1 PRESS technical tooling: {path.name}")
+    if PRESS_COMPILER.is_file():
+        compiler = read(PRESS_COMPILER)
+        for token in (
+            '"PREFREEZE_CANDIDATE_ONLY"',
+            '"CANDIDATE_NOT_NATIVE_VALIDATED"',
+            '"candidate_is_not_native_validation": True',
+            '"candidate_is_not_press_pass": True',
+            '"candidate_is_not_query_freeze": True',
+            '"candidate_is_not_formal_search": True',
+            '"candidate_is_not_prisma_event": True',
+            '"delta_test_results_require_human_interpretation": True',
+        ):
+            require(token in compiler, f"PRESS compiler guardrail missing: {token}")
+        require(
+            '"scopus", "web_of_science"' in compiler,
+            "PRESS compiler must explicitly mark Scopus/Web of Science as non-simulatable.",
+        )
+    if PRESS_DELTA_RUNNER.is_file():
+        runner = read(PRESS_DELTA_RUNNER)
+        for token in (
+            '"technical_run_is_not_press_pass": True',
+            '"press_status_changed": False',
+            '"gf10_authorized": False',
+            '"query_freeze_performed": False',
+            '"formal_search_performed": False',
+            '"prisma_event_emitted": False',
+            '"eligibility_decisions_created": False',
+            '"human_interpretation_required": True',
+        ):
+            require(token in runner, f"PRESS delta runner guardrail missing: {token}")
+        require(
+            'choices=("pubmed",)' in runner,
+            "Automated live delta execution must remain limited to the implemented PubMed client until other formal providers are truly executable.",
+        )
 
     # Gate ordering is strict and fail-closed.
     if gf10:
@@ -152,7 +204,8 @@ def main() -> int:
     press_profiles = load_json(WEB / "press-review-profiles.json")
     active_profile = (press_profiles.get("profiles") or [{}])[0]
     require(
-        active_profile.get("source_search_master") == "config/nutev/article1_search_master_v1.json",
+        active_profile.get("source_search_master")
+        == "config/nutev/article1_search_master_v1.json",
         "Active PRESS UI profile must point to the current Article 1 Search Master.",
     )
     require(
@@ -193,7 +246,10 @@ def main() -> int:
     # Scientific validation runtime remains frozen until the independent human benchmark closes.
     freeze_doc = read(ROOT / "validation" / "VALIDATION_FREEZE.md")
     benchmark_tool = read(ROOT / "tools" / "verify_benchmark_freeze_chain.py")
-    require(FROZEN_RUNTIME_SHA in freeze_doc, "Validation freeze document no longer names the frozen runtime SHA.")
+    require(
+        FROZEN_RUNTIME_SHA in freeze_doc,
+        "Validation freeze document no longer names the frozen runtime SHA.",
+    )
     require(
         f'FROZEN_RUNTIME_SHA = "{FROZEN_RUNTIME_SHA}"' in benchmark_tool,
         "Benchmark freeze-chain tool no longer pins the frozen runtime SHA.",
