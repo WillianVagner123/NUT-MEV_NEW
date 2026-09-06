@@ -18,7 +18,11 @@ def test_press_profile_tracks_current_search_master_and_downstream_gate() -> Non
     assert profile["source_query_draft"] == "config/nutev/article1_query_draft_v1.json"
     assert profile["source_press_record"] == "config/nutev/article1_press_review_v1.json"
     assert profile["gate_status_before_review"] == "NOT_YET_RECORDED_AS_PASS"
-    assert "não autoriza automaticamente" in profile["freeze_guardrail"].lower()
+    guardrail = profile["freeze_guardrail"].lower()
+    assert "ainda não autoriza" in guardrail
+    assert "gf-10" in guardrail
+    assert "freeze" in guardrail
+    assert "prisma" in guardrail
 
 
 def test_press_profile_exposes_current_routes_without_fabricating_provider_queries() -> None:
