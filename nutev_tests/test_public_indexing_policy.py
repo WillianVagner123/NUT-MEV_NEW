@@ -23,6 +23,9 @@ def test_sitemap_contains_only_core_public_surfaces() -> None:
         f"{DOMAIN}/radar.html",
     ]
     for forbidden in (
+        "/advanced.html",
+        "/scientific-dashboard.html",
+        "/review.html",
         "/validation/",
         "/review-qa.html",
         "/press-review.html",
@@ -39,6 +42,9 @@ def test_robots_declares_sitemap_and_excludes_internal_workflow_surfaces() -> No
     robots = read("robots.txt")
     assert f"Sitemap: {DOMAIN}/sitemap.xml" in robots
     for path in (
+        "/advanced.html",
+        "/scientific-dashboard.html",
+        "/review.html",
         "/validation/",
         "/review-qa.html",
         "/press-review.html",
@@ -46,6 +52,10 @@ def test_robots_declares_sitemap_and_excludes_internal_workflow_surfaces() -> No
         "/strategy.html",
         "/quality.html",
         "/review-routes.html",
+        "/intelligence.html",
+        "/evidence-claims.html",
+        "/claim-appraisal.html",
+        "/evidence-sets.html",
         "/ai-context.html",
         "/agent-context/",
         "/synthesis-",
@@ -71,3 +81,10 @@ def test_secure_server_emits_fail_closed_noindex_header_for_internal_surfaces() 
         '"/api/"',
     ):
         assert path in server
+
+
+def test_advanced_laboratory_has_page_level_noindex_defense() -> None:
+    advanced = read("advanced.html")
+    assert '<meta name="robots" content="noindex,nofollow">' in advanced
+    assert "Workflow tipo Rayyan / revisão sistemática" in advanced
+    assert "hibernado" in advanced
