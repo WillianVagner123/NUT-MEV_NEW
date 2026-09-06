@@ -31,6 +31,8 @@ The core product must answer:
 
 Search-time classification may use provider article type, title/abstract signals, canonical NutEV taxonomy and query overlap. It is an indexing aid and must remain explainable.
 
+Literal query-overlap explanations are lexical and token-bounded. They must not claim a match from a substring inside another token (for example, `men` inside `women` or `rat` inside `strategy`). This explanation layer does not change retrieval or NutEV ranking; it only describes literal overlap that can be demonstrated from the record text.
+
 It must not silently become:
 
 - eligibility/inclusion decision;
