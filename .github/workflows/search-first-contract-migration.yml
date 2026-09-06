@@ -1,0 +1,127 @@
+name: search-first-contract-migration
+
+on:
+  push:
+    branches:
+      - feat/search-classification-first-product
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-contracts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Migrate legacy home contracts to preserved advanced surfaces
+        run: |
+          set -euo pipefail
+          if grep -q "search-first-contract-migration-v1" nutev_tests/test_nutev_web_contract.py; then
+            echo "Contracts already migrated."
+            exit 0
+          fi
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          def replace(path: str, old: str, new: str, *, minimum: int = 1) -> None:
+              file = root / path
+              text = file.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count < minimum:
+                  raise RuntimeError(f'{path}: expected at least {minimum} occurrences of {old!r}, found {count}')
+              file.write_text(text.replace(old, new), encoding='utf-8', newline='\n')
+
+          advanced_files = [
+              'nutev_tests/test_claim_evaluation_appraisal_web_contract.py',
+              'nutev_tests/test_evidence_claim_review_web_contract.py',
+              'nutev_tests/test_evidence_set_construction_web_contract.py',
+              'nutev_tests/test_governed_publication_manifest_web_contract.py',
+              'nutev_tests/test_governed_synthesis_release_web_contract.py',
+              'nutev_tests/test_human_synthesis_review_ui.py',
+              'nutev_tests/test_recommendation_candidate_drafting_web_contract.py',
+              'nutev_tests/test_recommendation_human_validation_web_contract.py',
+              'nutev_tests/test_review_control_center_ui.py',
+              'nutev_tests/test_synthesis_governance_web_contract.py',
+          ]
+          for path in advanced_files:
+              replace(path, 'read("index.html")', 'read("advanced.html")')
+
+          # Tests that load the home through Path expressions rather than the local read helper.
+          for path in [
+              'nutev_tests/test_press_review_web_contract.py',
+              'nutev_tests/test_review_strategy_qa_contract.py',
+              'nutev_tests/test_scientific_intelligence_ui.py',
+          ]:
+              file = root / path
+              text = file.read_text(encoding='utf-8')
+              original = text
+              text = text.replace('(WEB_ROOT / "index.html").read_text(encoding="utf-8")', '(WEB_ROOT / "advanced.html").read_text(encoding="utf-8")')
+              text = text.replace('(WEB / "index.html").read_text(encoding="utf-8")', '(WEB / "advanced.html").read_text(encoding="utf-8")')
+              text = text.replace('read(WEB / "index.html")', 'read(WEB / "advanced.html")')
+              if text == original:
+                  raise RuntimeError(f'{path}: no advanced-surface migration applied')
+              file.write_text(text, encoding='utf-8', newline='\n')
+
+          # Scientific dashboard behavior moved intact to the preserved advanced dashboard.
+          replace('nutev_tests/test_dashboard_interactive_drilldown.py', 'home = read("index.html")', 'home = read("scientific-dashboard.html")')
+          replace('nutev_tests/test_scientific_dashboard_ui.py', 'home = read("index.html")', 'home = read("scientific-dashboard.html")', minimum=2)
+          replace('nutev_tests/test_scientific_dashboard_ui.py', 'assert "Scientific Overview" in home', 'assert "Painel científico avançado" in home')
+          replace('nutev_tests/test_scientific_dashboard_ui.py', 'assert "Search Workspace" in search', 'assert "NutEV Search" in search')
+
+          # Main web contract now treats search/classification as product home and validation as advanced.
+          web_contract = root / 'nutev_tests/test_nutev_web_contract.py'
+          text = web_contract.read_text(encoding='utf-8')
+          old = '''    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")\n    search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")\n    app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")\n    assert "Scientific Overview" in index\n    assert 'href="/search.html"' in index\n    assert "Buscar evidências" in search\n    assert "/validation/" in index\n'''
+          new = '''    index = (WEB_ROOT / "index.html").read_text(encoding="utf-8")\n    advanced = (WEB_ROOT / "advanced.html").read_text(encoding="utf-8")\n    search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")\n    app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")\n    assert "NutEV Evidence Engine" in index\n    assert 'href="/search.html"' in index\n    assert "Buscar artigos" in search\n    assert "/validation/" in advanced\n'''
+          if old not in text:
+              raise RuntimeError('test_nutev_web_contract.py: old primary product contract not found')
+          text = text.replace(old, new, 1)
+          text += '\n# search-first-contract-migration-v1\n'
+          web_contract.write_text(text, encoding='utf-8', newline='\n')
+
+          # Keep the explicit exhaustive-search compatibility sentence.
+          search = root / 'apps/nutev-web/search.html'
+          text = search.read_text(encoding='utf-8')
+          needle = '<strong>Busca global · sem teto = sem teto interno do NutEV.</strong>'
+          replacement = '<strong>Busca global · sem teto = sem teto interno do NutEV.</strong> Não há corte interno de 100, 300 ou outro número.'
+          if needle not in text:
+              raise RuntimeError('search.html: global-search note anchor missing')
+          search.write_text(text.replace(needle, replacement, 1), encoding='utf-8', newline='\n')
+
+          # Preserve the product label expected by the radar contract without restoring review navigation.
+          home = root / 'apps/nutev-web/index.html'
+          text = home.read_text(encoding='utf-8')
+          if '<strong>⌁ Radar</strong>' in text:
+              text = text.replace('<strong>⌁ Radar</strong>', '<strong>⌁ Evidence Radar</strong>', 1)
+          elif 'Evidence Radar' not in text:
+              raise RuntimeError('index.html: radar card anchor missing')
+          home.write_text(text, encoding='utf-8', newline='\n')
+
+          # Progressive search test mock accepts the query passed by the explainable classifier.
+          progress_test = root / 'nutev_tests/test_nutev_web_progress.py'
+          text = progress_test.read_text(encoding='utf-8')
+          old = '''        lambda rows: [\n            {**row, "reference_score": 1.0, "reference_rank": index}\n'''
+          new = '''        lambda rows, **_kwargs: [\n            {**row, "reference_score": 1.0, "reference_rank": index}\n'''
+          if old not in text:
+              raise RuntimeError('test_nutev_web_progress.py: score mock anchor missing')
+          progress_test.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+          PY
+
+          python -m pip install --quiet -r requirements/nutev-ci.txt
+          python -m pip install --quiet --no-deps -e .
+          node --check apps/nutev-web/app.js
+          node --check apps/nutev-web/product-ui.js
+          PYTHONPATH=src python -m pytest -q nutev_tests
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/nutev-web/index.html apps/nutev-web/search.html nutev_tests
+          git commit -m "test(product): migrate hibernated workflow contracts off the home"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
