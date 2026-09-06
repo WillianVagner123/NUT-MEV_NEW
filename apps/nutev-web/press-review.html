@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>PRESS Workspace — NutEV</title>
+  <title>Revisão PRESS — NutEV</title>
   <meta name="description" content="Pacote e registro de revisão PRESS independente para estratégias eletrônicas versionadas.">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
@@ -38,9 +38,15 @@
 
     <main class="main">
       <header class="topbar">
-        <div><h1>PRESS Workspace</h1><p>Pacote de revisão externa, parecer independente e gate de materialidade sem alterar silenciosamente as queries.</p></div>
+        <div><h1>Revisão PRESS</h1><p>Pacote de revisão externa, parecer independente e gate de materialidade sem alterar silenciosamente as queries.</p></div>
         <span class="status-pill" id="pressHealth">carregando…</span>
       </header>
+
+      <nav class="strategy-flow" aria-label="Fluxo de revisão da estratégia">
+        <a href="/review-qa.html"><strong>1 · QA</strong><small>Verificar estrutura, sentinelas e comportamento da estratégia.</small></a>
+        <span class="active" aria-current="step"><strong>2 · PRESS</strong><small>Submeter a estratégia versionada a revisão independente.</small></span>
+        <a href="/regional-routes.html"><strong>3 · Rotas regionais</strong><small>Validar LILACS/BVS e SciELO quando a execução exigir interface oficial.</small></a>
+      </nav>
 
       <section class="press-layout">
         <div class="card press-card">
@@ -84,8 +90,14 @@
           <div id="pressGate" class="qa-state">Aguardando parecer completo.</div>
         </div>
       </section>
+
+      <div class="strategy-flow-actions">
+        <a class="ghost" href="/review-qa.html">← Etapa anterior: QA</a>
+        <a class="ghost" href="/regional-routes.html">Próxima etapa: rotas regionais →</a>
+      </div>
     </main>
   </div>
+  <script type="module" src="./product-ui.js"></script>
   <script type="module" src="./press-review.js"></script>
 </body>
 </html>
