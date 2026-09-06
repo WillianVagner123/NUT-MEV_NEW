@@ -48,6 +48,9 @@ const GLOSSARY=[
   ['Proveniência','Rastro que liga um dado, trecho, decisão ou resultado à sua origem, versão e contexto de processamento.']
 ]
 
+const STRATEGY_FLOW_STORAGE_KEY='nutev_strategy_flow:article1-scientific-closure-v1'
+const STRATEGY_FLOW_KEYS=['qa','press','regional']
+
 function escapeHtml(value){
   return String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;')
 }
@@ -123,6 +126,14 @@ function explainResultCap(){
   note.textContent=`Exibindo ${returned.toLocaleString('pt-BR')} de ${unique.toLocaleString('pt-BR')} referências únicas. Este modo possui limite de apresentação; use a busca sem teto para recuperar o conjunto completo.`
 }
 
+function markStaticKpis(){
+  document.querySelectorAll('#summary .summary-grid .kpi').forEach(kpi=>{
+    kpi.classList.add('static-kpi')
+    kpi.setAttribute('role','group')
+    kpi.setAttribute('title','Indicador informativo; não abre detalhamento.')
+  })
+}
+
 function ensureSkipLink(){
   if(document.querySelector('.skip-link'))return
   const target=document.querySelector('main.main,main,.workspace-body')
@@ -167,6 +178,93 @@ function ensureGlossary(){
   })
 }
 
+function readStrategyFlowState(){
+  try{return JSON.parse(localStorage.getItem(STRATEGY_FLOW_STORAGE_KEY)||'{}')||{}}
+  catch{return{}}
+}
+
+function updateStrategyFlowState(step,patch={}){
+  if(!STRATEGY_FLOW_KEYS.includes(step))return null
+  const current=readStrategyFlowState()
+  const next={...current,[step]:{...(current[step]||{}),...patch,updated_at:new Date().toISOString()}}
+  try{localStorage.setItem(STRATEGY_FLOW_STORAGE_KEY,JSON.stringify(next))}catch{}
+  window.dispatchEvent(new CustomEvent('nutev:strategy-flow-update',{detail:{step,state:next}}))
+  return next[step]
+}
+
+window.NutEVStrategyFlow={
+  key:STRATEGY_FLOW_STORAGE_KEY,
+  read:readStrategyFlowState,
+  update:updateStrategyFlowState
+}
+
+function flowStatus(key,value={}){
+  const status=String(value.status||'')
+  if(key==='qa'){
+    if(status==='TECHNICAL_PASS'){
+      const done=Number(value.human_classifications_done||0),total=Number(value.human_classifications_total||0)
+      return{tone:'done',label:total&&done>=total?'QA técnico concluído · amostra classificada':'QA técnico concluído · revisão humana pendente'}
+    }
+    if(status==='REVIEW_REQUIRED')return{tone:'warn',label:'revisão técnica necessária'}
+    if(status==='READY')return{tone:'ready',label:'run elegível · QA ainda não executado'}
+    if(status==='PENDING_RUN')return{tone:'pending',label:'aguardando run elegível'}
+    return{tone:'pending',label:'ainda não executado'}
+  }
+  if(key==='press'){
+    if(status==='PRESS_REVIEW_COMPLETE_PENDING_CANONICAL_REGISTRATION')return{tone:'done',label:'parecer concluído · registro canônico pendente'}
+    if(status==='REVISION_REQUIRED')return{tone:'warn',label:'alteração material · revisar estratégia'}
+    if(status==='PRESS_FAIL')return{tone:'warn',label:'PRESS não aprovado'}
+    if(status==='PRESS_IN_REVIEW')return{tone:'ready',label:'parecer humano em revisão'}
+    if(status==='READY_FOR_HUMAN_REVIEW')return{tone:'ready',label:'pacote pronto para revisão humana'}
+    return{tone:'pending',label:'revisão humana ainda não registrada'}
+  }
+  if(key==='regional'){
+    if(status==='PASS')return{tone:'done',label:'rotas documentadas · GF-01 candidato'}
+    if(status==='REVIEW_REQUIRED')return{tone:'warn',label:'evidência regional incompleta'}
+    if(status==='READY_FOR_EVIDENCE')return{tone:'ready',label:'aguardando evidência das rotas oficiais'}
+    return{tone:'pending',label:'rotas ainda não avaliadas'}
+  }
+  return{tone:'pending',label:'pendente'}
+}
+
+function decorateStrategyFlow(){
+  const flow=document.querySelector('.strategy-flow')
+  if(!flow)return
+  const state=readStrategyFlowState()
+  const nodes=[...flow.children].slice(0,3)
+  nodes.forEach((node,index)=>{
+    const key=STRATEGY_FLOW_KEYS[index]
+    const result=flowStatus(key,state[key]||{})
+    let marker=node.querySelector('.strategy-flow-state')
+    if(!marker){marker=document.createElement('em');marker.className='strategy-flow-state';node.appendChild(marker)}
+    marker.className=`strategy-flow-state ${result.tone}`
+    marker.textContent=result.label
+    node.classList.toggle('done',result.tone==='done')
+  })
+}
+
+function strategyGuideCopy(){
+  const path=location.pathname.replace(/\/+$/,'')||'/'
+  if(path==='/review-qa.html')return 'QA verifica execução, sentinelas e amostras. PASS técnico continua diferente de decisão científica humana.'
+  if(path==='/press-review.html')return 'PRESS exige revisor humano independente. Parecer concluído continua diferente de GF-10, freeze e PRISMA.'
+  if(path==='/regional-routes.html')return 'GF-01 documenta as rotas técnicas regionais. Completar esta etapa não autoriza freeze nem busca formal.'
+  return ''
+}
+
+function ensureStrategyFlowGuide(){
+  const flow=document.querySelector('.strategy-flow')
+  if(!flow)return
+  let guide=document.querySelector('#nutevStrategyFlowGuide')
+  if(!guide){
+    guide=document.createElement('div')
+    guide.id='nutevStrategyFlowGuide'
+    guide.className='strategy-flow-guide'
+    flow.parentNode.insertBefore(guide,flow)
+  }
+  const copy=strategyGuideCopy()
+  guide.innerHTML=`<strong>Roteiro operacional, não atalho de gate.</strong><span>A sequência orienta o trabalho; os gates permanecem independentes e nenhuma etapa autoriza automaticamente a decisão científica seguinte.${copy?` ${escapeHtml(copy)}`:''}</span>`
+}
+
 async function renderBuildIdentity(){
   try{
     const response=await fetch('/api/version',{cache:'no-store'})
@@ -189,13 +287,19 @@ function applyProductUi(root=document){
   normalizeNavigation()
   translateInternalEnums(root)
   explainResultCap()
+  markStaticKpis()
   ensureSkipLink()
   ensureGlossary()
+  ensureStrategyFlowGuide()
+  decorateStrategyFlow()
 }
 
 ensureProductStyles()
 applyProductUi()
 renderBuildIdentity()
+
+window.addEventListener('nutev:strategy-flow-update',()=>decorateStrategyFlow())
+window.addEventListener('storage',event=>{if(event.key===STRATEGY_FLOW_STORAGE_KEY)decorateStrategyFlow()})
 
 const observer=new MutationObserver(mutations=>{
   let changed=false
