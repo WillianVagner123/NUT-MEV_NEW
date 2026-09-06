@@ -54,6 +54,50 @@ Only a real human review may justify a PRESS PASS. Software must never write PAS
 
 Counts alone do not decide a term. Incremental records require human relevance review.
 
+## Technical PRESS tooling
+
+The current query draft is now executable as a deterministic **pre-freeze technical package** without promoting any scientific gate.
+
+`src/nutev/science/article1_press.py`:
+
+- reads only the explicit B-NORM/C1/C2/C3/C4 blocks already present in the current draft;
+- compiles candidate strings separately for PubMed, LILACS/BVS, SciELO, Scopus and Web of Science;
+- never labels those strings as provider-native validated;
+- builds the exact five preregistered delta comparisons;
+- makes D05 explicitly incremental by querying C4 outside the union of the non-C4 routes;
+- keeps Scopus and Web of Science marked as non-simulatable.
+
+To inspect the exact candidate package without running any provider:
+
+```bash
+PYTHONPATH=src python tools/build_article1_press_query_package.py
+```
+
+To save the package:
+
+```bash
+PYTHONPATH=src python tools/build_article1_press_query_package.py \
+  --output project_output_reference/scientific/press/article1/PRESS_QUERY_CANDIDATES.json
+```
+
+`tools/run_article1_press_delta_tests.py` is deliberately narrower. It currently supports live automated execution only against the implemented PubMed client. Other formal providers remain candidate/manual validation paths until a real executable provider path exists.
+
+Plan-only mode, with no network:
+
+```bash
+PYTHONPATH=src python tools/run_article1_press_delta_tests.py
+```
+
+Technical PubMed execution:
+
+```bash
+PYTHONPATH=src python tools/run_article1_press_delta_tests.py \
+  --execute \
+  --sample-size 25
+```
+
+A live technical run records counts and a bounded sample, but its terminal state is only `TECHNICAL_DELTA_RUN_COMPLETE_HUMAN_REVIEW_PENDING` when all provider calls complete. It never changes the canonical PRESS worksheet, never authorizes GF-10, never freezes a query, never creates eligibility decisions and never emits PRISMA.
+
 ## C4 decision
 
 After its stress test, C4 must receive one explicit human decision:
@@ -126,7 +170,8 @@ Formal design-specific RoB and certainty layers are future scientific work after
 - lose the generic-appraisal boundary of ClaimEvaluation;
 - turn Recommendation Adoption into strength/GRADE/RoB/clinical recommendation/meta-analysis;
 - move the frozen scientific-validation runtime silently;
-- omit the formal-provider slots or allow Scopus/WoS simulation.
+- omit the formal-provider slots or allow Scopus/WoS simulation;
+- remove the fail-closed guardrails from the technical PRESS compiler/runner.
 
 ## Production verification
 
@@ -136,4 +181,4 @@ Repository deployment code is not proof of the SHA currently serving production.
 
 The next scientific gate is not another feature phase.
 
-It is completion of the PRESS evidence package and human review, beginning with the five registered delta tests and the explicit C4 decision, while preserving all formal-search fields as false until their prerequisites genuinely close.
+It is completion of the PRESS evidence package and human review. Technically, the system can now generate the current provider candidates and execute the five PubMed delta tests; scientifically, the incremental samples still require human review, C4 still requires an explicit human decision, provider-native translations still require real-provider validation and all formal-search fields remain false until those prerequisites genuinely close.
