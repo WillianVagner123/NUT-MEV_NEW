@@ -65,4 +65,4 @@ def test_context_is_refreshed_on_container_boot_without_blocking_web_start() -> 
 
     assert "build_article1_agent_context.py" in dockerfile
     assert "dashboard will run in partial mode" in dockerfile
-    assert "exec python apps/nutev-web/server.py" in dockerfile
+    assert "exec python apps/nutev-web/secure_server.py" in dockerfile
