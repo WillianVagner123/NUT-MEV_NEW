@@ -21,6 +21,8 @@ jobs:
       - name: Merge current main while preserving search-first surface
         run: |
           set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           if git merge-base --is-ancestor origin/main HEAD; then
             echo "Branch already contains current main."
@@ -94,19 +96,28 @@ jobs:
               raise RuntimeError(f'activeNavKey replacement count={count}')
           product.write_text(text, encoding='utf-8', newline='\n')
 
-          # Remove review-first hardcoded nav from the two primary pages; product-ui.js owns it.
+          # product-ui.js owns primary navigation on search/library pages.
           for name in ('search.html','articles.html'):
               path = Path('apps/nutev-web') / name
               html = path.read_text(encoding='utf-8')
-              html, count = re.subn(r'<nav aria-label="Navegação principal">.*?</nav>', '<nav aria-label="Navegação principal"></nav>', html, count=1, flags=re.S)
-              if count != 1:
-                  raise RuntimeError(f'{name}: primary nav replacement count={count}')
+              if '<nav aria-label="Navegação principal"></nav>' not in html:
+                  html, count = re.subn(
+                      r'<nav(?:\s+aria-label="Navegação principal")?[^>]*>.*?</nav>',
+                      '<nav aria-label="Navegação principal"></nav>',
+                      html,
+                      count=1,
+                      flags=re.S,
+                  )
+                  if count != 1:
+                      raise RuntimeError(f'{name}: primary nav replacement count={count}')
               path.write_text(html, encoding='utf-8', newline='\n')
 
           search = Path('apps/nutev-web/search.html')
           html = search.read_text(encoding='utf-8')
-          html = html.replace('id="globalSearchBtn" class="global-search" title=', 'id="globalSearchBtn" class="global-search" aria-describedby="globalSearchNote" title=')
-          html = html.replace('<div class="global-search-note"><strong>Busca ampla', '<div id="globalSearchNote" class="global-search-note"><strong>Busca ampla')
+          if 'aria-describedby="globalSearchNote"' not in html:
+              html = html.replace('id="globalSearchBtn" class="global-search" title=', 'id="globalSearchBtn" class="global-search" aria-describedby="globalSearchNote" title=')
+          if 'id="globalSearchNote"' not in html:
+              html = html.replace('<div class="global-search-note"><strong>Busca ampla', '<div id="globalSearchNote" class="global-search-note"><strong>Busca ampla')
           search.write_text(html, encoding='utf-8', newline='\n')
 
           styles = Path('apps/nutev-web/styles.css')
@@ -137,7 +148,5 @@ jobs:
             nutev_tests/test_product_shell_remediation.py \
             nutev_tests/test_product_flow_p2.py
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "merge: reconcile search-first product with guided strategy flow"
           git push origin "HEAD:${GITHUB_REF_NAME}"
