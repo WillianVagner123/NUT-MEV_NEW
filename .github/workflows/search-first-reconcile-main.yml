@@ -96,7 +96,6 @@ jobs:
               raise RuntimeError(f'activeNavKey replacement count={count}')
           product.write_text(text, encoding='utf-8', newline='\n')
 
-          # product-ui.js owns primary navigation on search/library pages.
           for name in ('search.html','articles.html'):
               path = Path('apps/nutev-web') / name
               html = path.read_text(encoding='utf-8')
@@ -116,8 +115,10 @@ jobs:
           html = search.read_text(encoding='utf-8')
           if 'aria-describedby="globalSearchNote"' not in html:
               html = html.replace('id="globalSearchBtn" class="global-search" title=', 'id="globalSearchBtn" class="global-search" aria-describedby="globalSearchNote" title=')
+          html = html.replace('>Busca ampla</button>', '>Busca global · sem teto</button>')
+          html = html.replace('<strong>Busca ampla =', '<strong>Busca global · sem teto =')
           if 'id="globalSearchNote"' not in html:
-              html = html.replace('<div class="global-search-note"><strong>Busca ampla', '<div id="globalSearchNote" class="global-search-note"><strong>Busca ampla')
+              html = html.replace('<div class="global-search-note"><strong>Busca global · sem teto', '<div id="globalSearchNote" class="global-search-note"><strong>Busca global · sem teto')
           search.write_text(html, encoding='utf-8', newline='\n')
 
           styles = Path('apps/nutev-web/styles.css')
