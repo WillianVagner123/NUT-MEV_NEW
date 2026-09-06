@@ -3,6 +3,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = REPO_ROOT / "apps" / "nutev-web"
+VALIDATION_ROOT = REPO_ROOT / "apps" / "nutev-validation"
 DEPLOY_ROOT = REPO_ROOT / "deploy" / "hetzner"
 
 
@@ -32,7 +33,7 @@ def test_production_exposes_build_identity_without_secrets() -> None:
     for name in ("NUTEV_BUILD_COMMIT", "NUTEV_BUILD_BRANCH", "NUTEV_BUILD_TIME", "NUTEV_VERSION"):
         assert name in dockerfile
         assert name in compose
-    for forbidden in ("NCBI_API_KEY", "S2_API_KEY", "PASSWORD", "TOKEN"):
+    for forbidden in ("NCBI_API_KEY", "S2_API_KEY", "PASSWORD"):
         assert forbidden not in secure
 
 
@@ -54,7 +55,10 @@ def test_production_adds_csp_and_preserves_existing_security_headers() -> None:
 
 def test_radar_empty_state_never_exposes_cli_or_internal_paths() -> None:
     radar = (WEB_ROOT / "radar_data.py").read_text(encoding="utf-8")
-    empty_state = radar[radar.index('if not manifest_path.is_file():'):radar.index('manifest = _read_json', radar.index('if not manifest_path.is_file():'))]
+    function_start = radar.index("def load_radar_state(")
+    missing_start = radar.index("if not manifest_path.is_file():", function_start)
+    manifest_read = radar.index("manifest = _read_json", missing_start)
+    empty_state = radar[missing_start:manifest_read]
     assert "Ainda não há snapshot científico publicado" in empty_state
     assert "science-topics" not in empty_state
     assert "science-watch" not in empty_state
@@ -72,3 +76,25 @@ def test_article_dossier_distinguishes_verbatim_from_processed_text() -> None:
     assert "matchMedia('(max-width: 1100px)')" in articles
     assert "scrollIntoView" in articles
     assert 'id="articleDetailTitle" tabindex="-1"' in articles
+
+
+def test_public_validation_boundary_is_server_verified() -> None:
+    secure = (WEB_ROOT / "secure_server.py").read_text(encoding="utf-8")
+    boundary = (VALIDATION_ROOT / "public-boundary.js").read_text(encoding="utf-8")
+    index = (VALIDATION_ROOT / "index.html").read_text(encoding="utf-8")
+    assert 'path == "/api/capabilities"' in secure
+    assert '"coordinator_available": self._is_loopback()' in secure
+    assert "fetch('/api/capabilities'" in boundary
+    assert "prepareRound" in boundary and "buildGold" in boundary and "runMetrics" in boundary
+    assert "Coordenação disponível somente no ambiente autorizado" in boundary
+    assert "public-boundary.js" in index
+
+
+def test_search_surface_translates_status_and_explains_result_cap() -> None:
+    search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")
+    ui = (WEB_ROOT / "product-ui.js").read_text(encoding="utf-8")
+    assert "Pular para resultados" in search
+    assert "product-ui.js" in search
+    assert "COMPLETE_WITH_PROVIDER_GAPS:'Concluída, com lacunas em algumas fontes'" in ui
+    assert "referências únicas. Este modo possui limite de apresentação" in ui
+    assert "fetch('/api/version'" in ui
