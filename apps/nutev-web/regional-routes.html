@@ -32,6 +32,12 @@
         <span class="status-pill" id="regionalHealth">carregando…</span>
       </header>
 
+      <nav class="strategy-flow" aria-label="Fluxo de revisão da estratégia">
+        <a href="/review-qa.html"><strong>1 · QA</strong><small>Verificar estrutura, sentinelas e comportamento da estratégia.</small></a>
+        <a href="/press-review.html"><strong>2 · PRESS</strong><small>Submeter a estratégia versionada a revisão independente.</small></a>
+        <span class="active" aria-current="step"><strong>3 · Rotas regionais</strong><small>Validar LILACS/BVS e SciELO quando a execução exigir interface oficial.</small></span>
+      </nav>
+
       <section class="regional-layout">
         <div class="card regional-card">
           <div class="section-head"><div><h2>1. Perfil pré-freeze</h2><p>O sistema preserva as queries canônicas e exige evidência auditável da execução humana/visual.</p></div><button id="refreshRegional" type="button" class="ghost">Atualizar</button></div>
@@ -50,8 +56,14 @@
           <div id="regionalGate" class="qa-state">Aguardando evidência das duas rotas.</div>
         </div>
       </section>
+
+      <div class="strategy-flow-actions">
+        <a class="ghost" href="/press-review.html">← Etapa anterior: PRESS</a>
+        <a class="ghost" href="/validation/">Ir para validação científica →</a>
+      </div>
     </main>
   </div>
+  <script type="module" src="./product-ui.js"></script>
   <script type="module" src="./regional-routes.js"></script>
 </body>
 </html>
