@@ -123,8 +123,13 @@ jobs:
           python-version: "3.12"
       - name: Compile Python source and tools
         run: python -m compileall -q src tools nutev_tests
-      - name: Check Scientific Workspace JavaScript syntax
+      - name: Check web JavaScript syntax
         run: |
+          node --check apps/nutev-web/app.js
+          node --check apps/nutev-web/product-ui.js
+          node --check apps/nutev-web/saved-library.js
+          node --check apps/nutev-web/search-library-ui.js
+          node --check apps/nutev-web/saved-library-ui.js
           node --check apps/nutev-web/intelligence.js
           node --check apps/nutev-web/synthesis-review.js
           node --check apps/nutev-web/synthesis-brief.js

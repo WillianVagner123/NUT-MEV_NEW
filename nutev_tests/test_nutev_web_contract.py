@@ -20,15 +20,16 @@ def test_web_app_exposes_dashboard_search_and_validation_without_csv_ui() -> Non
         assert forbidden not in search.casefold()
 
 
-def test_global_search_is_a_first_class_exhaustive_action() -> None:
+def test_global_search_is_a_first_class_maximum_coverage_action() -> None:
     search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
     css = (WEB_ROOT / "styles.css").read_text(encoding="utf-8")
     progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
     assert 'id="globalSearchBtn"' in search
-    assert "Busca global" in search
+    assert "Cobertura máxima disponível" in search
     assert "sem teto interno" in search
     assert "Não há corte interno de 100, 300 ou outro número" in search
+    assert "limite demonstrável de cada provider" in search
     assert "GLOBAL_EXHAUSTIVE_SENTINEL=0" in app
     assert "state.providers.map(p=>p.id)" in app
     assert "runSearch({global:true})" in app
