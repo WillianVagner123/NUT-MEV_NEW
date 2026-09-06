@@ -1,0 +1,83 @@
+name: article1-press-human-review-materialize
+
+on:
+  push:
+    branches:
+      - feat/article1-press-human-review-gate
+
+permissions:
+  contents: write
+
+jobs:
+  materialize-human-review-sample:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+
+      - name: Download immutable PubMed delta artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --location \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9996495101/zip" \
+            --output /tmp/article1-press-delta.zip
+          mkdir -p /tmp/article1-press-delta
+          unzip -q /tmp/article1-press-delta.zip -d /tmp/article1-press-delta
+          test -f /tmp/article1-press-delta/DELTA_TEST_RUN.json
+
+      - name: Materialize durable human-review sample
+        run: |
+          set -euo pipefail
+          OUT="evidence/article1_press/article1_press_20260906T202201Z"
+          python tools/extract_article1_press_human_review_samples.py \
+            --run /tmp/article1-press-delta/DELTA_TEST_RUN.json \
+            --output-dir "${OUT}" \
+            --expected-run-sha256 2ffae67debc73bfb29e271ee1f46ac3332760704188f6be3f08817d63253b63d \
+            --compact
+          rm -rf /tmp/article1-review-packets
+          python tools/build_article1_press_human_review_packets.py \
+            --sample "${OUT}/HUMAN_REVIEW_SAMPLE_MANIFEST.json" \
+            --output-dir /tmp/article1-review-packets \
+            --compact
+          python tools/validate_article1_press_human_review.py \
+            --manifest /tmp/article1-review-packets/REVIEW_PACKET_MANIFEST.json \
+            --reviewer-a /tmp/article1-review-packets/REVIEWER_A.csv \
+            --reviewer-b /tmp/article1-review-packets/REVIEWER_B.csv \
+            --compact > /tmp/article1-review-validation.json
+          python - <<'PY'
+          import json
+          result=json.load(open('/tmp/article1-review-validation.json', encoding='utf-8'))
+          assert result['status'] == 'PENDING_REVIEW', result
+          assert result['guardrails']['press_pass_created'] is False
+          assert result['guardrails']['gf10_authorized'] is False
+          assert all(v['precision'] is None for v in result['final_per_delta'].values())
+          PY
+
+      - name: Commit sample only when changed
+        run: |
+          set -euo pipefail
+          OUT="evidence/article1_press/article1_press_20260906T202201Z"
+          git add \
+            "${OUT}/HUMAN_REVIEW_SAMPLE_MANIFEST.json" \
+            "${OUT}/HUMAN_REVIEW_SAMPLE_D02.csv" \
+            "${OUT}/HUMAN_REVIEW_SAMPLE_D03.csv" \
+            "${OUT}/HUMAN_REVIEW_SAMPLE_D04.csv" \
+            "${OUT}/HUMAN_REVIEW_SAMPLE_D05.csv"
+          if git diff --cached --quiet; then
+            echo "Human-review sample already materialized; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "data(science): materialize Article 1 PRESS human review sample"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
