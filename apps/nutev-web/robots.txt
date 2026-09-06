@@ -4,6 +4,13 @@ Disallow: /validation/
 Disallow: /review-qa.html
 Disallow: /press-review.html
 Disallow: /regional-routes.html
+Disallow: /strategy.html
+Disallow: /quality.html
+Disallow: /review-routes.html
+Disallow: /ai-context.html
+Disallow: /agent-context/
 Disallow: /synthesis-
 Disallow: /recommendation-
 Disallow: /api/
+
+Sitemap: https://nutev.mindsperformance.com.br/sitemap.xml
