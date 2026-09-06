@@ -125,7 +125,7 @@ function resultHtml(result){
     ${outcomes.length?`<div class="provenance"><strong>Outcome:</strong> ${esc(outcomes.join(' · '))}</div>`:''}
     ${numbers.length?`<div class="result-numbers">${numbers.map(value=>`<span class="result-number">${esc(value)}</span>`).join('')}</div>`:''}
     <blockquote class="source-quote">${esc(result.result_text||'')}</blockquote>
-    <div class="provenance">Trecho-fonte rastreável · não é EvidenceClaim validado.</div>
+    <div class="provenance"><strong>Texto processado/extraído pelo pipeline.</strong> Não é citação literal da fonte e não é EvidenceClaim validado.</div>
   </article>`;
 }
 
@@ -136,7 +136,7 @@ function excerptHtml(excerpt){
   return `<article class="quote-card">
     <div class="quote-head"><span class="quote-kind">${esc(kindLabels[excerpt.kind]||excerpt.kind)}</span><span>${esc(location)}</span></div>
     <blockquote class="source-quote">${esc(excerpt.verbatim_excerpt||'')}</blockquote>
-    <div class="provenance">${esc(ids)}${ids?' · ':''}SHA ${esc(String(excerpt.excerpt_sha256||'').slice(0,12))}…</div>
+    <div class="provenance"><strong>Fonte (verbatim).</strong> ${esc(ids)}${ids?' · ':''}SHA ${esc(String(excerpt.excerpt_sha256||'').slice(0,12))}…</div>
   </article>`;
 }
 
@@ -167,7 +167,7 @@ function detailHtml(data){
   const effectiveClass=profile?.primary_document_class||card.document_class;
   const chips=[identity.year,classLabels[effectiveClass]||effectiveClass,providerLabels[identity.source_provider]||identity.source_provider,fullTextLabels[card.full_text_status]||card.full_text_status,tierLabel(priority.reference_tier),priority.reference_rank?`rank #${fmt(priority.reference_rank)}`:'',priority.reference_score!==null&&priority.reference_score!==undefined?`score ${fmtScore(priority.reference_score)}`:''].filter(Boolean);
   return `<div class="detail-head">
-    <h2>${esc(identity.title||'Sem título')}</h2>
+    <h2 id="articleDetailTitle" tabindex="-1">${esc(identity.title||'Sem título')}</h2>
     <div class="detail-ref">${esc(reference.reference_stub||'Referência incompleta')}</div>
     <div class="detail-chips">${chips.map(value=>`<span class="mini-pill">${esc(value)}</span>`).join('')}</div>
   </div>
@@ -183,6 +183,14 @@ function detailHtml(data){
   </section>`;
 }
 
+function focusDetailOnSingleColumn(){
+  if(!window.matchMedia('(max-width: 1100px)').matches)return;
+  const detail=$('#articleDetail');
+  const title=$('#articleDetailTitle');
+  detail?.scrollIntoView({behavior:'smooth',block:'start'});
+  title?.focus({preventScroll:true});
+}
+
 async function openArticle(documentId){
   state.selected=documentId;
   document.querySelectorAll('.article-row').forEach(row=>row.classList.toggle('active',row.dataset.documentId===documentId));
@@ -192,6 +200,7 @@ async function openArticle(documentId){
     const data=await response.json();
     if(!response.ok)throw new Error(data.message||data.error||'Artigo não encontrado');
     $('#articleDetail').innerHTML=detailHtml(data);
+    requestAnimationFrame(focusDetailOnSingleColumn);
   }catch(error){
     $('#articleDetail').innerHTML=`<div class="detail-placeholder"><strong>Não foi possível abrir o artigo.</strong><p>${esc(error.message)}</p></div>`;
   }

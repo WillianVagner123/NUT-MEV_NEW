@@ -74,6 +74,9 @@ jobs:
           git reset --hard "$TARGET_SHA"
 
           IMAGE="nutev:${TARGET_SHA}"
+          BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          BUILD_BRANCH="main"
+          VERSION="${TARGET_SHA:0:12}"
           COMPOSE=(docker compose --env-file deploy/hetzner/.env -f deploy/hetzner/compose.yaml)
 
           OLD_CONTAINER="$("${COMPOSE[@]}" ps -q nutev 2>/dev/null || true)"
@@ -84,6 +87,9 @@ jobs:
 
           docker build \
             --build-arg NUTEV_BUILD_COMMIT="$TARGET_SHA" \
+            --build-arg NUTEV_BUILD_BRANCH="$BUILD_BRANCH" \
+            --build-arg NUTEV_BUILD_TIME="$BUILD_TIME" \
+            --build-arg NUTEV_VERSION="$VERSION" \
             -f deploy/hetzner/Dockerfile \
             -t "$IMAGE" .
 
@@ -111,6 +117,8 @@ jobs:
             docker logs nutev-preflight || true
             exit 1
           fi
+          PREFLIGHT_COMMIT="$(curl -fsS http://127.0.0.1:18765/api/version | python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit", ""))')"
+          test "$PREFLIGHT_COMMIT" = "$TARGET_SHA"
           cleanup_preflight
           trap - EXIT
 
@@ -136,6 +144,16 @@ jobs:
             exit 1
           fi
 
+          DEPLOYED_COMMIT="$(curl -fsS http://127.0.0.1:8765/api/version | python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit", ""))')"
+          if [[ "$DEPLOYED_COMMIT" != "$TARGET_SHA" ]]; then
+            echo "Build identity mismatch: expected $TARGET_SHA, got $DEPLOYED_COMMIT" >&2
+            if docker image inspect nutev:rollback >/dev/null 2>&1; then
+              NUTEV_IMAGE=nutev:rollback "${COMPOSE[@]}" up -d --no-build nutev caddy
+            fi
+            exit 1
+          fi
+
           echo "NutEV deployed successfully at commit $TARGET_SHA"
+          curl -fsS http://127.0.0.1:8765/api/version
           docker image prune -f --filter "until=168h" >/dev/null 2>&1 || true
           REMOTE

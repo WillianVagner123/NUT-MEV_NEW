@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /validation/
+Disallow: /review-qa.html
+Disallow: /press-review.html
+Disallow: /regional-routes.html
+Disallow: /synthesis-
+Disallow: /recommendation-
+Disallow: /api/
