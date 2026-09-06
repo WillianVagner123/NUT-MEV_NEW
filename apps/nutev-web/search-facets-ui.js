@@ -162,9 +162,17 @@ function renderFilteredResults(){
 }
 
 function enhance(){
-  const summary=$('#summary');if(!latestSearch||!summary||summary.classList.contains('hidden'))return;
+  const summary=$('#summary');
+  const existingWorkspace=$('#resultFacetWorkspace');
+  if(!summary)return;
+  if(summary.classList.contains('hidden')){
+    existingWorkspace?.classList.add('hidden');
+    return;
+  }
+  if(!latestSearch)return;
   const workspace=ensureWorkspace();if(!workspace)return;
   if(workspace.dataset.searchKey!==currentSearchKey)populateWorkspace();
+  workspace.classList.remove('hidden');
   renderFilteredResults();
 }
 
