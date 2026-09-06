@@ -12,6 +12,17 @@
   "workflow_artifact_id": 9996495101,
   "source_commit": "630f7a02862ffd6bbfdd6016f83ea9d7bf87ad9f",
   "main_parent_commit": "31af38d55988caac81303e81b6b6f3af451406ad",
+  "sample_manifest_path": "evidence/article1_press/article1_press_20260906T202201Z/SAMPLE_MANIFEST.json",
+  "sample_custody_status": "PERSISTED_IDENTIFIERS_ONLY",
+  "sample_artifact_digest": "sha256:10edddf5b16edd677cfe893c33dad0172c2b60da488de0b76abff10eca50d7de",
+  "sample_artifact_expires_at": "2026-10-06T20:22:37Z",
+  "persisted_incremental_sample_counts": {
+    "D01": 0,
+    "D02": 25,
+    "D03": 25,
+    "D04": 25,
+    "D05": 25
+  },
   "guardrails": {
     "technical_run_is_not_press_pass": true,
     "press_status_changed": false,
@@ -20,7 +31,9 @@
     "formal_search_performed": false,
     "prisma_event_emitted": false,
     "eligibility_decisions_created": false,
-    "human_interpretation_required": true
+    "human_interpretation_required": true,
+    "sample_identifiers_persisted": true,
+    "sample_manifest_is_not_human_review": true
   },
   "delta_counts": [
     {
