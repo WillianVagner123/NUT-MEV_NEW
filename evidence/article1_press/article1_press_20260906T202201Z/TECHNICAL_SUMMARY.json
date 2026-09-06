@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "record_type": "NUTEV_ARTICLE1_PRESS_DELTA_TECHNICAL_EVIDENCE",
+  "run_id": "article1_press_20260906T202201Z",
+  "created_at": "2026-09-06T20:22:37.428049+00:00",
+  "provider": "pubmed",
+  "draft_version": "article1-query-draft-v1",
+  "technical_status": "TECHNICAL_DELTA_RUN_COMPLETE_HUMAN_REVIEW_PENDING",
+  "sample_size": 25,
+  "run_sha256": "2ffae67debc73bfb29e271ee1f46ac3332760704188f6be3f08817d63253b63d",
+  "workflow_run_id": 34057757287,
+  "workflow_artifact_id": 9996495101,
+  "source_commit": "630f7a02862ffd6bbfdd6016f83ea9d7bf87ad9f",
+  "main_parent_commit": "31af38d55988caac81303e81b6b6f3af451406ad",
+  "guardrails": {
+    "technical_run_is_not_press_pass": true,
+    "press_status_changed": false,
+    "gf10_authorized": false,
+    "query_freeze_performed": false,
+    "formal_search_performed": false,
+    "prisma_event_emitted": false,
+    "eligibility_decisions_created": false,
+    "human_interpretation_required": true
+  },
+  "delta_counts": [
+    {
+      "id": "D01",
+      "route": "B-NORM",
+      "comparison": "baseline vs + food based orthographic variant",
+      "baseline": {"status": "completed", "total_found": 138913, "total_returned": 25},
+      "variant": {"status": "completed", "total_found": 138913, "total_returned": 25},
+      "incremental": {"status": "empty", "total_found": 0, "total_returned": 0},
+      "human_interpretation_required": true
+    },
+    {
+      "id": "D02",
+      "route": "B-NORM",
+      "comparison": "baseline vs + healthy eating",
+      "baseline": {"status": "completed", "total_found": 138913, "total_returned": 25},
+      "variant": {"status": "completed", "total_found": 139576, "total_returned": 25},
+      "incremental": {"status": "completed", "total_found": 663, "total_returned": 25},
+      "human_interpretation_required": true
+    },
+    {
+      "id": "D03",
+      "route": "C1-CARE-PROCESS",
+      "comparison": "with vs without meal plan*",
+      "baseline": {"status": "completed", "total_found": 4053, "total_returned": 25},
+      "variant": {"status": "completed", "total_found": 4586, "total_returned": 25},
+      "incremental": {"status": "completed", "total_found": 533, "total_returned": 25},
+      "human_interpretation_required": true
+    },
+    {
+      "id": "D04",
+      "route": "C3-IMPLEMENTATION",
+      "comparison": "standalone yield and precision sample",
+      "baseline": null,
+      "variant": {"status": "completed", "total_found": 1855, "total_returned": 25},
+      "incremental": {"status": "completed", "total_found": 1855, "total_returned": 25},
+      "human_interpretation_required": true
+    },
+    {
+      "id": "D05",
+      "route": "C4-SOCIAL-CONTEXT",
+      "comparison": "incremental yield and precision sample",
+      "baseline": {"status": "completed", "total_found": 143873, "total_returned": 25},
+      "variant": {"status": "completed", "total_found": 149928, "total_returned": 25},
+      "incremental": {"status": "completed", "total_found": 6055, "total_returned": 25},
+      "human_interpretation_required": true
+    }
+  ],
+  "human_review_state": "PENDING",
+  "press_pass_inferred": false,
+  "gf10_authorized": false,
+  "query_freeze_performed": false,
+  "formal_search_performed": false,
+  "prisma_event_emitted": false
+}
