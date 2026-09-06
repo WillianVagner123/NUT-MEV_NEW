@@ -15,7 +15,10 @@ def test_core_product_surfaces_load_shared_product_ui() -> None:
         "index.html",
         "search.html",
         "articles.html",
+        "evidence.html",
+        "evidence-map.html",
         "radar.html",
+        "ask.html",
         "review-qa.html",
         "press-review.html",
         "regional-routes.html",
@@ -29,24 +32,9 @@ def test_core_product_surfaces_load_shared_product_ui() -> None:
 def test_canonical_navigation_is_search_classification_first() -> None:
     script = read(WEB / "product-ui.js")
     nav = script.split("const NAV_GROUPS=", 1)[1].split("const GLOSSARY=", 1)[0]
-    for label in (
-        "Início",
-        "Buscar artigos",
-        "Biblioteca",
-        "Mapa de evidências",
-        "Radar",
-        "Perguntar ao corpus",
-        "Minhas buscas",
-        "Laboratório avançado",
-    ):
+    for label in ("Início", "Buscar artigos", "Biblioteca", "Minhas buscas", "Laboratório avançado"):
         assert label in nav
-    for hibernated in (
-        "PRESS",
-        "Review Control",
-        "Review Routes",
-        "Validação científica",
-        "QA",
-    ):
+    for hibernated in ("Mapa de evidências", "Radar", "Perguntar ao corpus", "PRESS", "Review Control", "Review Routes", "Validação científica", "QA"):
         assert hibernated not in nav
     assert "normalizeNavigation" in script
     assert 'aria-current="page"' in script
@@ -65,20 +53,14 @@ def test_search_and_home_present_search_classification_as_primary_product() -> N
     assert "Workflow tipo Rayyan / revisão sistemática" in advanced
     assert "hibernado" in advanced
 
-def test_glossary_explains_scientific_terms_without_rewriting_raw_code() -> None:
+def test_glossary_explains_search_terms_without_leaking_hibernated_workflows() -> None:
     script = read(WEB / "product-ui.js")
     css = read(WEB / "product-ui.css")
-    for term in (
-        "ResultBundle",
-        "EvidenceClaim",
-        "EvidenceSet",
-        "PRESS",
-        "Pré-freeze",
-        "Freeze",
-        "PRISMA",
-        "Proveniência",
-    ):
-        assert term in script
+    glossary = script.split("const GLOSSARY=", 1)[1].split("const STRATEGY_FLOW_STORAGE_KEY", 1)[0]
+    for term in ("Busca progressiva", "Provider", "Deduplicação", "Ranking", "Proveniência"):
+        assert term in glossary
+    for hidden in ("PRESS", "PRISMA", "EvidenceClaim", "EvidenceSet", "Freeze"):
+        assert hidden not in glossary
     assert "code,pre,script,style,textarea" in script
     assert "glossary-trigger" in css
     assert "glossary-dialog" in css

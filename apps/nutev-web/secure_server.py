@@ -36,6 +36,10 @@ _IP_STARTS: dict[str, deque[float]] = defaultdict(deque)
 _JOB_OWNERS: dict[str, str] = {}
 
 NOINDEX_EXACT_PATHS = {
+    "/ask.html",
+    "/radar.html",
+    "/evidence-map.html",
+    "/evidence.html",
     "/validation",
     "/review-qa.html",
     "/press-review.html",
