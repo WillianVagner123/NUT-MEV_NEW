@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "record_type": "NUTEV_ARTICLE1_PRESS_REVIEW",
+  "record_version": "article1-press-review-v1",
+  "status": "DRAFT",
+  "scope": "Article 1 formal-search strategy pre-freeze review",
+  "source": {
+    "main_commit": "473c5c573dc12a96bbe5a4adb9a259a1567bff40",
+    "search_master": "config/nutev/article1_search_master_v1.json",
+    "search_master_git_blob_sha": "d88a04f9519b486e644bddbee3be7430f76be6e2",
+    "query_draft": "config/nutev/article1_query_draft_v1.json",
+    "query_draft_git_blob_sha": "6b7f18e11b0afe596514131b5026269e06812fca"
+  },
+  "question": "Quais parâmetros nutricionais, competências alimentares e contextos sociais da alimentação são atualmente recomendados, estruturados e utilizados por diretrizes e modelos operacionais para orientar avaliação, aconselhamento, prescrição e monitoramento alimentar aplicáveis à Medicina do Estilo de Vida?",
+  "human_review_required": true,
+  "reviewer": null,
+  "reviewed_at": null,
+  "press_decision": null,
+  "allowed_statuses": [
+    "DRAFT",
+    "IN_REVIEW",
+    "REVISION_REQUIRED",
+    "PASS",
+    "FAIL"
+  ],
+  "review_items": [
+    {
+      "id": "P01",
+      "topic": "research-question translation",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P02",
+      "topic": "Boolean and block logic",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P03",
+      "topic": "database field syntax and truncation",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P04",
+      "topic": "controlled vocabulary and free-text balance",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P05",
+      "topic": "spelling and phrase variants",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P06",
+      "topic": "limits and filters",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P07",
+      "topic": "known-item and sentinel recovery",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P08",
+      "topic": "incremental yield for PRESS-only terms",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P09",
+      "topic": "manual relevance sample of incremental records",
+      "status": "PENDING",
+      "comment": null
+    },
+    {
+      "id": "P10",
+      "topic": "cross-database translation fidelity",
+      "status": "PENDING",
+      "comment": null
+    }
+  ],
+  "delta_tests": [
+    {
+      "id": "D01",
+      "route": "B-NORM",
+      "comparison": "baseline vs + food based orthographic variant",
+      "status": "PENDING",
+      "counts": null,
+      "incremental_sample": null,
+      "manual_precision": null,
+      "human_interpretation_required": true
+    },
+    {
+      "id": "D02",
+      "route": "B-NORM",
+      "comparison": "baseline vs + healthy eating",
+      "status": "PENDING",
+      "counts": null,
+      "incremental_sample": null,
+      "manual_precision": null,
+      "human_interpretation_required": true
+    },
+    {
+      "id": "D03",
+      "route": "C1-CARE-PROCESS",
+      "comparison": "with vs without meal plan*",
+      "status": "PENDING",
+      "counts": null,
+      "incremental_sample": null,
+      "manual_precision": null,
+      "human_interpretation_required": true
+    },
+    {
+      "id": "D04",
+      "route": "C3-IMPLEMENTATION",
+      "comparison": "standalone yield and precision sample",
+      "status": "PENDING",
+      "counts": null,
+      "incremental_sample": null,
+      "manual_precision": null,
+      "human_interpretation_required": true
+    },
+    {
+      "id": "D05",
+      "route": "C4-SOCIAL-CONTEXT",
+      "comparison": "incremental yield and precision sample",
+      "status": "PENDING",
+      "counts": null,
+      "incremental_sample": null,
+      "manual_precision": null,
+      "human_interpretation_required": true
+    }
+  ],
+  "c4_social_context": {
+    "status": "PRESS_ONLY_CANDIDATE_NOT_APPROVED",
+    "decision": "PENDING_HUMAN_DECISION",
+    "allowed_decisions": [
+      "ADOPT_C4",
+      "REVISE_C4",
+      "REJECT_C4"
+    ],
+    "terms_to_stress_test": [
+      "social context*",
+      "social determinant*",
+      "social environment*",
+      "food environment*",
+      "social support",
+      "commensality",
+      "family meal*",
+      "shared meal*"
+    ]
+  },
+  "provider_native_validation": {
+    "pubmed": {
+      "role": "formal_bibliographic_provider",
+      "status": "PENDING_PRESS_AND_NATIVE_VALIDATION",
+      "exact_query": null
+    },
+    "lilacs_bvs": {
+      "role": "formal_bibliographic_provider",
+      "status": "PENDING_PRESS_AND_NATIVE_VALIDATION",
+      "exact_query": null
+    },
+    "scielo": {
+      "role": "formal_bibliographic_provider",
+      "status": "PENDING_PRESS_AND_NATIVE_VALIDATION",
+      "exact_query": null
+    },
+    "scopus": {
+      "role": "formal_bibliographic_provider",
+      "status": "PENDING_LICENSED_PROVIDER_VALIDATION",
+      "exact_query": null,
+      "simulation_forbidden": true
+    },
+    "web_of_science": {
+      "role": "formal_bibliographic_provider",
+      "status": "PENDING_LICENSED_PROVIDER_VALIDATION",
+      "exact_query": null,
+      "simulation_forbidden": true
+    },
+    "europe_pmc": {
+      "role": "discovery_supplementary_qa",
+      "status": "NOT_A_FORMAL_SUBSTITUTE"
+    },
+    "openalex": {
+      "role": "discovery_supplementary_qa",
+      "status": "NOT_A_FORMAL_SUBSTITUTE"
+    },
+    "crossref": {
+      "role": "discovery_supplementary_qa",
+      "status": "NOT_A_FORMAL_SUBSTITUTE"
+    },
+    "doaj": {
+      "role": "discovery_supplementary_qa",
+      "status": "NOT_A_FORMAL_SUBSTITUTE"
+    },
+    "semantic_scholar": {
+      "role": "discovery_supplementary_qa",
+      "status": "NOT_A_FORMAL_SUBSTITUTE"
+    }
+  },
+  "downstream_gate": {
+    "gate_id": "GF-10",
+    "authorized": false,
+    "authorization_requires": [
+      "PRESS status PASS recorded by a human reviewer",
+      "all required delta tests completed",
+      "C4 explicitly decided",
+      "provider-native syntax validated",
+      "known-item and sentinel testing satisfactory",
+      "cross-database translations reviewed"
+    ]
+  },
+  "guardrails": {
+    "pass_must_be_human": true,
+    "no_automatic_press_pass": true,
+    "no_automatic_gf10_authorization": true,
+    "no_automatic_query_freeze": true,
+    "no_formal_search_before_freeze": true,
+    "no_prisma_before_formal_search": true,
+    "discovery_is_not_formal_search": true,
+    "route_is_not_inclusion": true,
+    "scopus_web_of_science_must_not_be_simulated": true
+  }
+}
