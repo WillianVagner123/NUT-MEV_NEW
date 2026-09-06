@@ -937,7 +937,8 @@
         "hypertension",
         "dyslipidemia",
         "cvd",
-        "metabolic_syndrome"
+        "metabolic_syndrome",
+        "fatty_liver"
       ],
       "document_type_keys": [
         "trials",
