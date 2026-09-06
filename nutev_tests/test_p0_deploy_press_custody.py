@@ -25,6 +25,23 @@ def test_manual_hetzner_deploy_is_main_only_and_does_not_require_autodeploy_flag
     ) in workflow
 
 
+def test_hetzner_ssh_key_is_normalized_validated_and_probed_before_deploy() -> None:
+    workflow = read(WORKFLOW)
+    configure_at = workflow.index("- name: Configure SSH")
+    probe_at = workflow.index("- name: Verify SSH access")
+    deploy_at = workflow.index("- name: Deploy verified commit to Hetzner")
+
+    assert configure_at < probe_at < deploy_at
+    assert 'raw.replace("\\r\\n", "\\n").replace("\\r", "\\n")' in workflow
+    assert 'raw.replace("\\\\n", "\\n")' in workflow
+    assert "ssh-keygen -y -P '' -f ~/.ssh/id_ed25519" in workflow
+    assert "not a valid unencrypted private SSH key" in workflow
+    assert "-o BatchMode=yes" in workflow
+    assert "-o IdentitiesOnly=yes" in workflow
+    assert "-o ConnectTimeout=15" in workflow
+    assert "ssh-ok" in workflow
+
+
 def test_hetzner_documentation_matches_workflow_configuration_surface() -> None:
     workflow = read(WORKFLOW)
     doc = read(DEPLOY_DOC)
@@ -35,7 +52,8 @@ def test_hetzner_documentation_matches_workflow_configuration_surface() -> None:
         assert f"vars.{variable}" in workflow
         assert variable in doc
     assert "secrets.HETZNER_SSH_KEY" in workflow
-    assert "HETZNER_SSH_KEY" in doc
+    assert "complete **private** SSH key" in doc
+    assert "Load key ... error in libcrypto" in doc
     assert "does not disable an explicit manual deploy from `main`" in doc
 
 

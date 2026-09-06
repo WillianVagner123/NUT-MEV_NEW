@@ -51,9 +51,42 @@ jobs:
           set -euo pipefail
           PORT="${HETZNER_PORT:-22}"
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$HETZNER_SSH_KEY" > ~/.ssh/id_ed25519
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          raw = os.environ["HETZNER_SSH_KEY"].strip()
+          # GitHub secrets may be pasted with Windows CRLF or with literal \n
+          # sequences when copied through another secret manager. Normalize both
+          # representations without logging key material.
+          raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+          if "\\n" in raw and "\n" not in raw:
+              raw = raw.replace("\\n", "\n")
+          raw = raw.strip() + "\n"
+          Path.home().joinpath(".ssh", "id_ed25519").write_text(raw, encoding="utf-8")
+          PY
+
           chmod 600 ~/.ssh/id_ed25519
+          if ! ssh-keygen -y -P '' -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub 2>/dev/null; then
+            echo "::error::HETZNER_SSH_KEY is not a valid unencrypted private SSH key. Store the complete OpenSSH/PEM private key in the HETZNER environment secret; do not store the .pub key." >&2
+            exit 1
+          fi
+          chmod 600 ~/.ssh/id_ed25519.pub
           ssh-keyscan -p "$PORT" -H "$HETZNER_HOST" >> ~/.ssh/known_hosts
+
+      - name: Verify SSH access
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${HETZNER_PORT:-22}"
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o ConnectTimeout=15 \
+            -p "$PORT" \
+            "$HETZNER_USER@$HETZNER_HOST" \
+            'printf "ssh-ok\n"' | grep -qx 'ssh-ok'
 
       - name: Deploy verified commit to Hetzner
         shell: bash
@@ -63,7 +96,12 @@ jobs:
           APP_DIR_Q=$(printf '%q' "$HETZNER_APP_DIR")
           TARGET_SHA_Q=$(printf '%q' "$TARGET_SHA")
 
-          ssh -p "$PORT" "$HETZNER_USER@$HETZNER_HOST" \
+          ssh \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o ConnectTimeout=15 \
+            -p "$PORT" \
+            "$HETZNER_USER@$HETZNER_HOST" \
             "APP_DIR=$APP_DIR_Q TARGET_SHA=$TARGET_SHA_Q bash -s" <<'REMOTE'
           set -euo pipefail
 
