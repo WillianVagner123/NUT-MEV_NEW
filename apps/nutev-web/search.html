@@ -9,26 +9,28 @@
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./exact-strategy.css">
+  <link rel="stylesheet" href="./product-ui.css">
 </head>
 <body>
+  <a class="skip-link" href="#results">Pular para resultados</a>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
-      <nav>
+      <nav aria-label="Navegação principal">
         <div class="nav-group-label">Overview</div>
-        <a class="nav-item" href="/"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+        <a class="nav-item" href="/"><span class="nav-icon" aria-hidden="true">◫</span><span>Dashboard</span></a>
         <div class="nav-group-label">Evidence</div>
-        <button class="nav-item active" data-view="search"><span class="nav-icon">⌕</span><span>Search</span></button>
-        <a class="nav-item" href="/articles.html"><span class="nav-icon">▤</span><span>Corpus</span></a>
-        <a class="nav-item" href="/radar.html"><span class="nav-icon">⌁</span><span>Evidence Radar</span></a>
+        <button class="nav-item active" data-view="search"><span class="nav-icon" aria-hidden="true">⌕</span><span>Search</span></button>
+        <a class="nav-item" href="/articles.html"><span class="nav-icon" aria-hidden="true">▤</span><span>Corpus</span></a>
+        <a class="nav-item" href="/radar.html"><span class="nav-icon" aria-hidden="true">⌁</span><span>Evidence Radar</span></a>
         <div class="nav-group-label">Strategy</div>
-        <a class="nav-item" href="/review-qa.html"><span class="nav-icon">◎</span><span>QA</span></a>
-        <a class="nav-item" href="/press-review.html"><span class="nav-icon">▣</span><span>PRESS</span></a>
+        <a class="nav-item" href="/review-qa.html"><span class="nav-icon" aria-hidden="true">◎</span><span>QA</span></a>
+        <a class="nav-item" href="/press-review.html"><span class="nav-icon" aria-hidden="true">▣</span><span>PRESS</span></a>
         <div class="nav-group-label">Validation</div>
-        <a class="nav-item" href="/validation/"><span class="nav-icon">✓</span><span>Scientific validation</span></a>
+        <a class="nav-item" href="/validation/"><span class="nav-icon" aria-hidden="true">✓</span><span>Scientific validation</span></a>
         <div class="nav-group-label">System</div>
-        <button class="nav-item" data-view="history"><span class="nav-icon">◷</span><span>Search runs</span></button>
-        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon">◇</span><span>AI Context</span></a>
+        <button class="nav-item" data-view="history"><span class="nav-icon" aria-hidden="true">◷</span><span>Search runs</span></button>
+        <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon" aria-hidden="true">◇</span><span>AI Context</span></a>
       </nav>
       <div class="sidebar-note">A busca prioriza leitura. Não substitui avaliação metodológica, triagem humana nem decisão científica.</div>
     </aside>
@@ -120,8 +122,8 @@
         </div>
 
         <div id="searchState" class="hidden"></div>
-        <section id="summary" class="hidden"></section>
-        <section id="results" class="results"></section>
+        <section id="summary" class="hidden" aria-label="Resumo da busca"></section>
+        <section id="results" class="results" aria-label="Resultados da busca"></section>
       </section>
 
       <section id="historyView" class="view hidden">
@@ -130,5 +132,6 @@
     </main>
   </div>
   <script type="module" src="./app.js"></script>
+  <script type="module" src="./product-ui.js"></script>
 </body>
 </html>
