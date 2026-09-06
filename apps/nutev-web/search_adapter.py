@@ -17,28 +17,35 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from nutev.reference_identity import dedupe_records
+from nutev.search.brave_optional import search_brave
 from nutev.search.crossref import search_crossref
 from nutev.search.doaj import search_doaj
 from nutev.search.europepmc import search_europepmc
+from nutev.search.google_pse import search_google_pse
 from nutev.search.openalex import search_openalex
 from nutev.search.pubmed import PubMedClient
 from nutev.search.semantic_scholar import search_semantic_scholar
+from nutev.search.serpapi_optional import search_serpapi
 from nutev.taxonomy import load_canonical_taxonomy
 from tools.rank_references import score_record
 from tools.run_latin_sources import run as run_latin_sources
 
-PROVIDER_ORDER = (
+DIRECT_PROVIDERS = (
     "pubmed",
     "europepmc",
     "openalex",
     "crossref",
     "doaj",
     "semantic_scholar",
+    "google_pse",
+    "brave",
+    "serpapi",
+)
+LATIN_PROVIDERS = (
     "lilacs_bvs_native",
     "scielo_native",
 )
-DIRECT_PROVIDERS = PROVIDER_ORDER[:6]
-LATIN_PROVIDERS = PROVIDER_ORDER[6:]
+PROVIDER_ORDER = DIRECT_PROVIDERS + LATIN_PROVIDERS
 PROVIDER_LABELS = {
     "pubmed": "PubMed",
     "europepmc": "Europe PMC",
@@ -46,8 +53,16 @@ PROVIDER_LABELS = {
     "crossref": "Crossref",
     "doaj": "DOAJ",
     "semantic_scholar": "Semantic Scholar",
+    "google_pse": "Google Programmable Search",
+    "brave": "Brave Search",
+    "serpapi": "SerpAPI / Google",
     "lilacs_bvs_native": "LILACS / BVS",
     "scielo_native": "SciELO",
+}
+OPTIONAL_WEB_CAPS = {
+    "google_pse": 100,
+    "brave": 20,
+    "serpapi": 100,
 }
 MAX_QUERY_LENGTH = 500
 MAX_PER_PROVIDER = 100
@@ -88,6 +103,25 @@ def _normalize_provider_result(value: Any) -> tuple[list[dict[str, Any]], str, i
     return rows, ("completed" if rows else "empty"), len(rows), ""
 
 
+def _cap_aware_optional_result(
+    provider: str,
+    requested_limit: int,
+    cap: int,
+    call: Callable[[], Any],
+) -> Any:
+    """Preserve provider caps instead of falsely claiming exhaustive coverage."""
+
+    result = call()
+    rows = list(getattr(result, "rows", None) or [])
+    status = str(getattr(result, "status", "") or "")
+    if requested_limit > cap and len(rows) >= cap and status == "completed":
+        result.status = "partial"
+        note = f"connector_limit_reached:{provider}:{cap}"
+        previous = str(getattr(result, "error", "") or "").strip()
+        result.error = f"{previous}; {note}" if previous else note
+    return result
+
+
 def _provider_call(provider: str, query: str, limit: int) -> Callable[[], Any]:
     if provider == "pubmed":
         return lambda: PubMedClient().search(
@@ -109,6 +143,30 @@ def _provider_call(provider: str, query: str, limit: int) -> Callable[[], Any]:
         return lambda: search_doaj(query, page_size=min(100, max(25, limit)), max_results=limit)
     if provider == "semantic_scholar":
         return lambda: search_semantic_scholar(query, page_size=min(100, max(25, limit)), max_results=limit)
+    if provider == "google_pse":
+        cap = OPTIONAL_WEB_CAPS[provider]
+        return lambda: _cap_aware_optional_result(
+            provider,
+            limit,
+            cap,
+            lambda: search_google_pse(query, limit=min(limit, cap)),
+        )
+    if provider == "brave":
+        cap = OPTIONAL_WEB_CAPS[provider]
+        return lambda: _cap_aware_optional_result(
+            provider,
+            limit,
+            cap,
+            lambda: search_brave(query, limit=min(limit, cap)),
+        )
+    if provider == "serpapi":
+        cap = OPTIONAL_WEB_CAPS[provider]
+        return lambda: _cap_aware_optional_result(
+            provider,
+            limit,
+            cap,
+            lambda: search_serpapi(query, limit=min(limit, cap)),
+        )
     raise ValueError(f"Provider não suportado no modo web direto: {provider}")
 
 
@@ -345,16 +403,20 @@ def search_evidence(
     returned = ranked[:max_results]
     failed = [item["provider"] for item in provider_status if item["status"] == "failed"]
     unavailable = [item["provider"] for item in provider_status if item["status"] == "unavailable"]
+    partial = [item["provider"] for item in provider_status if item["status"] == "partial"]
+    skipped = [item["provider"] for item in provider_status if item["status"] == "skipped"]
 
     result = {
         "schema_version": 2,
         "search_id": search_id,
         "query": question,
         "created_at": _now(),
-        "status": "COMPLETE_WITH_PROVIDER_GAPS" if (failed or unavailable) else "COMPLETE",
+        "status": "COMPLETE_WITH_PROVIDER_GAPS" if (failed or unavailable or partial or skipped) else "COMPLETE",
         "providers": provider_status,
         "failed_providers": failed,
         "unavailable_providers": unavailable,
+        "partial_providers": partial,
+        "skipped_providers": skipped,
         "records_before_dedup": len(combined),
         "unique_records": len(unique),
         "returned_records": len(returned),
@@ -362,6 +424,8 @@ def search_evidence(
         "ranking_warning": "Ranking é prioridade de leitura; não representa recomendação clínica, elegibilidade científica ou qualidade metodológica.",
         "latin_summary_path": latin_summary_path,
         "interactive_limitations": [
+            "Google Programmable Search, Brave Search e SerpAPI são fontes web opcionais: sem credenciais, ficam registradas como skipped; ausência de credencial nunca é interpretada como ausência de literatura.",
+            "Os conectores web opcionais preservam seus limites próprios (Google PSE até 100, Brave até 20 e SerpAPI até 100 registros por query no conector atual); atingir o limite é registrado como cobertura parcial, não como exaustão demonstrada.",
             "LILACS/BVS e SciELO usam as interfaces públicas nativas; bloqueios HTTP são registrados como indisponibilidade e nunca substituídos por resultados fabricados.",
             "Scopus e Web of Science não são simulados e exigem acesso licenciado separado.",
         ],
