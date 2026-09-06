@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>PRESS Workspace — NutEV</title>
-  <meta name="description" content="Pacote e registro de revisão PRESS independente para estratégias eletrônicas versionadas.">
+  <meta name="description" content="Pacote e registro de revisão PRESS independente para o desenho de busca pré-freeze do Artigo 1.">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./exact-strategy.css">
@@ -33,31 +33,31 @@
         <a class="nav-item" href="/search.html?view=history"><span class="nav-icon">◷</span><span>Search runs</span></a>
         <a class="nav-item" href="/agent-context/article1/SEARCH_SUMMARY.md"><span class="nav-icon">◇</span><span>AI Context</span></a>
       </nav>
-      <div class="sidebar-note">PRESS é revisão independente da estratégia. Não autoriza freeze, busca formal ou PRISMA por si só.</div>
+      <div class="sidebar-note">PRESS é revisão humana independente da estratégia. Mesmo um parecer favorável não autoriza automaticamente GF-10, freeze, busca formal ou PRISMA.</div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div><h1>PRESS Workspace</h1><p>Pacote de revisão externa, parecer independente e gate de materialidade sem alterar silenciosamente as queries.</p></div>
+        <div><h1>PRESS Workspace</h1><p>Revisão independente do desenho B-NORM + C1/C2/C3/C4 antes da autorização GF-10 e do query freeze.</p></div>
         <span class="status-pill" id="pressHealth">carregando…</span>
       </header>
 
       <section class="press-layout">
         <div class="card press-card">
-          <div class="section-head"><div><h2>Contexto da revisão</h2><p>Artigo 1 — revisão de escopo orientada à prática.</p></div></div>
+          <div class="section-head"><div><h2>Contexto da revisão</h2><p>Artigo 1 — fechamento científico da estratégia pré-freeze.</p></div></div>
           <div class="qa-state"><strong>Pergunta central:</strong> Quais parâmetros nutricionais, competências alimentares e contextos sociais da alimentação são atualmente recomendados, estruturados e utilizados por diretrizes e modelos operacionais para orientar avaliação, aconselhamento, prescrição e monitoramento alimentar aplicáveis à Medicina do Estilo de Vida?</div>
-          <div class="press-warning"><strong>Arquitetura:</strong> B-NORM e C-STRUCT são rotas complementares e permanecem logicamente separadas. O PRESS deve revisar cada rota e a coerência do conjunto sem fundi-las silenciosamente.</div>
+          <div class="press-warning"><strong>Arquitetura atual:</strong> B-NORM é a rota normativa. C-STRUCT foi decomposta em C1 Care Process, C2 Competency/Literacy, C3 Implementation e C4 Social Context. C4 permanece candidato PRESS-only até decisão humana explícita.</div>
         </div>
 
         <div class="card press-card">
-          <div class="section-head"><div><h2>1. Pacote canônico</h2><p>B-NORM + C-STRUCT com versão, query exata, histórico e evidência de PILOT.</p></div><button id="refreshPress" class="ghost" type="button">Atualizar</button></div>
+          <div class="section-head"><div><h2>1. Pacote canônico</h2><p>Search Master + query draft atuais, com delta tests e pendências provider-native preservadas sem inventar execução.</p></div><button id="refreshPress" class="ghost" type="button">Atualizar</button></div>
           <div id="pressProfileState" class="qa-state">Carregando perfil PRESS…</div>
           <div id="pressPackage"></div>
           <div class="press-actions"><button id="downloadPackageBtn" class="ghost" type="button" disabled>Exportar pacote para revisor</button></div>
         </div>
 
         <div class="card press-card">
-          <div class="section-head"><div><h2>2. Identificação do revisor</h2><p>O gate GF-03 exige revisão PRESS independente.</p></div></div>
+          <div class="section-head"><div><h2>2. Identificação do revisor</h2><p>O PRESS atual exige parecer humano independente. O próximo gate é GF-10, que continua separado.</p></div></div>
           <div class="press-form-grid">
             <label>Nome do revisor<input id="reviewerName" type="text" autocomplete="name" placeholder="Nome completo"></label>
             <label>Instituição / vínculo<input id="reviewerAffiliation" type="text" placeholder="Instituição ou vínculo profissional"></label>
@@ -73,15 +73,15 @@
         </div>
 
         <div class="card press-card">
-          <div class="section-head"><div><h2>4. Parecer final</h2><p>Alteração material força retorno ao ciclo de versionamento + PILOT.</p></div></div>
+          <div class="section-head"><div><h2>4. Parecer final</h2><p>Alteração material impede PASS e exige revisão dos testes/estratégias afetados.</p></div></div>
           <div class="press-decision-grid">
             <label>Decisão<select id="pressDecision"><option value="">— selecionar —</option></select></label>
-            <label>Estratégia afetada<select id="affectedStrategy"><option value="NONE">Nenhuma / ambas apenas em observações</option><option value="B-NORM-PUBMED">B-NORM-PUBMED</option><option value="C-STRUCT-PUBMED">C-STRUCT-PUBMED</option><option value="BOTH">Ambas</option></select></label>
+            <label>Estratégia afetada<select id="affectedStrategy"><option value="NONE">Nenhuma específica / observação geral</option><option value="B-NORM">B-NORM</option><option value="C1-CARE-PROCESS">C1 Care Process</option><option value="C2-COMPETENCY-LITERACY">C2 Competency/Literacy</option><option value="C3-IMPLEMENTATION">C3 Implementation</option><option value="C4-SOCIAL-CONTEXT">C4 Social Context</option><option value="MULTIPLE">Múltiplas rotas</option></select></label>
           </div>
           <label>Comentários finais<textarea id="finalComments" rows="6" placeholder="Síntese do parecer, termos ausentes, erros, redundâncias, justificativas e recomendações."></textarea></label>
           <label>Alterações sugeridas<textarea id="suggestedChanges" rows="6" placeholder="Se houver alteração proposta, descreva exatamente o que deve mudar. Não edite a query aqui."></textarea></label>
-          <div class="press-actions"><button id="evaluatePressBtn" class="primary" type="button">Avaliar gate PRESS</button><button id="downloadReviewBtn" class="ghost" type="button" disabled>Exportar parecer JSON</button></div>
-          <div id="pressGate" class="qa-state">Aguardando parecer completo.</div>
+          <div class="press-actions"><button id="evaluatePressBtn" class="primary" type="button">Avaliar parecer PRESS</button><button id="downloadReviewBtn" class="ghost" type="button" disabled>Exportar parecer JSON</button></div>
+          <div id="pressGate" class="qa-state">Aguardando parecer completo. GF-10 permanece bloqueado até o fechamento dos demais requisitos.</div>
         </div>
       </section>
     </main>
