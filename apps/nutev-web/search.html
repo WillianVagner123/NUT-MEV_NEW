@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./dashboard.css">
   <link rel="stylesheet" href="./exact-strategy.css">
   <link rel="stylesheet" href="./product-ui.css">
+  <link rel="stylesheet" href="./saved-library.css">
 </head>
 <body>
   <a class="skip-link" href="#results">Pular para resultados</a>
@@ -79,7 +80,7 @@
                 <label>Strategy ID<input id="strategyId" type="text" placeholder="Ex.: B-NORM-PUBMED"></label>
                 <label>Versão<input id="strategyVersion" type="text" placeholder="Ex.: v0.7"></label>
               </div>
-              <div class="term-help"><strong>Selecione abaixo apenas as bases que possuem uma string aprovada.</strong> Para cada base selecionada, cole a consulta exatamente como deve ser enviada. Em modo exato, “Busca global” remove o teto apenas dessas bases; não adiciona providers sem query.</div>
+              <div class="term-help"><strong>Selecione abaixo apenas as bases que possuem uma string aprovada.</strong> Para cada base selecionada, cole a consulta exatamente como deve ser enviada. Em modo exato, “Cobertura máxima” remove o teto apenas dessas bases; não adiciona providers sem query.</div>
               <div id="exactQueryBuilder" class="exact-query-builder"></div>
             </div>
 
@@ -100,10 +101,10 @@
           </details>
           <div class="search-actions">
             <button id="searchBtn" class="primary">Buscar artigos</button>
-            <button id="globalSearchBtn" class="global-search" aria-describedby="globalSearchNote" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Busca global · sem teto</button>
+            <button id="globalSearchBtn" class="global-search" aria-describedby="globalSearchNote" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Cobertura máxima disponível</button>
             <span id="searchHint">carregando fontes…</span>
           </div>
-          <div id="globalSearchNote" class="global-search-note"><strong>Busca global · sem teto = sem teto interno do NutEV.</strong> Não há corte interno de 100, 300 ou outro número. Consulta as fontes selecionadas até o limite demonstrável de cada provider. Limites ou bloqueios impostos pela própria fonte continuam explícitos.</div>
+          <div id="globalSearchNote" class="global-search-note"><strong>Cobertura máxima disponível = sem teto interno do NutEV.</strong> Não há corte interno de 100, 300 ou outro número. Consulta as fontes selecionadas até o limite demonstrável de cada provider. Limites, bloqueios ou cobertura parcial impostos pela própria fonte continuam explícitos.</div>
         </div>
 
         <div id="searchState" class="hidden"></div>
@@ -116,6 +117,7 @@
       </section>
     </main>
   </div>
+  <script type="module" src="./search-library-ui.js"></script>
   <script type="module" src="./app.js"></script>
   <script type="module" src="./product-ui.js"></script>
 </body>
