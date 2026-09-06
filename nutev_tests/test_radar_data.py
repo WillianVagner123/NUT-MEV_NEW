@@ -101,67 +101,40 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, Path]]:
                 "full_text_count": 1,
                 "semantic_count": 1,
                 "relational_count": 0,
-                "latest_year": 2024,
-                "flags": ["low_provider_diversity", "relational_incomplete"],
-                "active_search_priority": "P3_LOW",
-                "active_search_required": True,
+                "latest_year": 2025,
+                "flags": [],
+                "active_search_priority": "P4_MONITOR",
+                "active_search_required": False,
             },
         ],
     )
     _write_json(
         plan_path,
         {
-            "schema_version": 2,
-            "plan_type": "NUTEV_ACTIVE_TOPIC_SEARCH_PLAN",
-            "profile_id": "radar-test",
-            "searches": [
-                {
-                    "topic_id": "food_competence",
-                    "provider": "pubmed",
-                    "query": "nutrition AND food literacy",
-                    "execution": "EXECUTABLE_STATUS_AWARE",
-                },
-                {
-                    "topic_id": "food_competence",
-                    "provider": "scopus",
-                    "query": "nutrition AND food literacy",
-                    "execution": "MANUAL_LICENSED",
-                },
-                {
-                    "topic_id": "implementation",
-                    "provider": "pubmed",
-                    "query": "nutrition AND monitoring",
-                    "execution": "EXECUTABLE_STATUS_AWARE",
-                },
-            ],
+            "schema_version": 1,
+            "plan_type": "NUTEV_TOPIC_ACTIVE_SEARCH_PLAN",
+            "profile": {"profile_id": "radar-test", "version": "1.0.0-prefreeze"},
+            "providers": ["pubmed", "scopus"],
         },
     )
     _write_jsonl(
         runs_path,
         [
             {
+                "run_id": "r1",
                 "topic_id": "food_competence",
                 "provider": "pubmed",
                 "status": "completed",
-                "total_found": 12,
-                "total_returned": 3,
-                "error": None,
+                "manual": False,
+                "records": 2,
             },
             {
+                "run_id": "r2",
                 "topic_id": "food_competence",
                 "provider": "scopus",
                 "status": "planned_not_executed",
-                "total_found": None,
-                "total_returned": 0,
-                "error": "manual_licensed_provider",
-            },
-            {
-                "topic_id": "implementation",
-                "provider": "pubmed",
-                "status": "empty",
-                "total_found": 0,
-                "total_returned": 0,
-                "error": None,
+                "manual": True,
+                "records": 0,
             },
         ],
     )
@@ -172,13 +145,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, Path]]:
             "audit_type": "NUTEV_TOPIC_COMPETENCY_AUDIT",
             "status": "PASS",
             "created_at": "2026-08-27T18:00:00+00:00",
-            "profile": {
-                "path": str(profile_path),
-                "profile_id": "radar-test",
-                "version": "1.0.0-prefreeze",
-                "status": "PREFREEZE",
-                "sha256": _sha(profile_path),
-            },
+            "profile": {"path": str(profile_path), "sha256": _sha(profile_path)},
             "outputs": {
                 "topic_assignments": {"path": str(assignments_path), "sha256": _sha(assignments_path)},
                 "topic_audits": {"path": str(audits_path), "sha256": _sha(audits_path)},
@@ -282,7 +249,10 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, Path]]:
 def test_radar_returns_not_ready_without_topic_audit(tmp_path: Path) -> None:
     result = load_radar_state(topic_dir=tmp_path / "topics", watch_dir=tmp_path / "watch")
     assert result["status"] == "not_ready"
-    assert "science-topics" in result["next_commands"][0]
+    assert "Ainda não há snapshot científico publicado" in result["message"]
+    assert "paths" not in result
+    assert "next_commands" not in result
+    assert "project_output_reference" not in json.dumps(result)
 
 
 def test_radar_builds_verified_summary_and_topic_dossiers(tmp_path: Path) -> None:
