@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>NutEV Search — Busca e classificação de artigos</title>
+  <title>Busca NutEV — Busca e classificação de artigos</title>
   <meta name="description" content="Motor de busca científica do NutEV para encontrar, deduplicar, ranquear e classificar artigos.">
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./dashboard.css">
@@ -23,7 +23,7 @@
     </aside>
 
     <main class="main">
-      <header class="topbar"><div><h1 id="pageTitle">NutEV Search</h1><p id="pageSubtitle">Busque, deduplique, ranqueie e classifique artigos em múltiplas fontes científicas.</p></div><span class="status-pill" id="health">verificando engine…</span></header>
+      <header class="topbar"><div><h1 id="pageTitle">Busca NutEV</h1><p id="pageSubtitle">Busque, deduplique, ranqueie e classifique artigos em múltiplas fontes científicas.</p></div><span class="status-pill" id="health">verificando motor…</span></header>
 
       <section id="searchView" class="view">
         <div class="hero card">
@@ -32,8 +32,8 @@
 
           <div class="search-mode-switch" role="radiogroup" aria-label="Modo de busca">
             <label><input type="radio" name="searchMode" value="quick" checked><span><strong>Busca rápida</strong><small>Pergunta livre em múltiplas fontes.</small></span></label>
-            <label><input type="radio" name="searchMode" value="advanced"><span><strong>Busca avançada</strong><small>PCC/PICO/PECO, MeSH/DeCS e query por fonte.</small></span></label>
-            <label><input type="radio" name="searchMode" value="exact"><span><strong>Estratégia exata</strong><small>String literal e versionada para usuários experts.</small></span></label>
+            <label><input type="radio" name="searchMode" value="advanced"><span><strong>Busca avançada</strong><small>PCC/PICO/PECO, MeSH/DeCS e consulta por fonte.</small></span></label>
+            <label><input type="radio" name="searchMode" value="exact"><span><strong>Estratégia exata</strong><small>String literal e versionada para usuários avançados.</small></span></label>
           </div>
 
           <section id="strategyBuilder" class="strategy-builder hidden">
@@ -41,9 +41,9 @@
               <div class="strategy-head">
                 <div>
                   <strong>Busca avançada</strong>
-                  <p>O NutEV compila uma query por base a partir dos termos que você informar. MeSH/DeCS só entram quando forem explicitamente fornecidos.</p>
+                  <p>O NutEV compila uma consulta por base a partir dos termos que você informar. MeSH/DeCS só entram quando forem explicitamente fornecidos.</p>
                 </div>
-                <label>Framework
+                <label>Estrutura
                   <select id="frameworkSelect">
                     <option value="PCC" selected>PCC</option>
                     <option value="PICO">PICO</option>
@@ -61,14 +61,14 @@
               <div class="strategy-head">
                 <div>
                   <strong>Estratégia exata</strong>
-                  <p>Use este modo para consultas literais já versionadas. O NutEV preserva operadores, campos, headings, filtros e datas sem reescrever a string.</p>
+                  <p>Use este modo para consultas literais já versionadas. O NutEV preserva operadores, campos, descritores, filtros e datas sem reescrever a string.</p>
                 </div>
               </div>
               <div class="exact-meta-grid">
                 <label>ID da estratégia<input id="strategyId" type="text" placeholder="Ex.: creatina-cognicao-pubmed"></label>
                 <label>Versão<input id="strategyVersion" type="text" placeholder="Ex.: v1.0"></label>
               </div>
-              <div class="term-help"><strong>Selecione apenas as bases para as quais você definiu uma string.</strong> Cole a consulta exatamente como deve ser enviada. Em modo exato, “Cobertura máxima” remove o teto apenas dessas bases; não adiciona providers sem query.</div>
+              <div class="term-help"><strong>Selecione apenas as bases para as quais você definiu uma string.</strong> Cole a consulta exatamente como deve ser enviada. Em modo exato, “Cobertura máxima” remove o teto apenas dessas bases; não adiciona fontes sem consulta.</div>
               <div id="exactQueryBuilder" class="exact-query-builder"></div>
               <div class="expert-governance-note">Classes de execução e autorizações científicas ficam no <a href="/advanced.html">Laboratório avançado</a>; elas não são concedidas por esta busca.</div>
             </div>
@@ -93,7 +93,7 @@
             <button id="globalSearchBtn" class="global-search" aria-describedby="globalSearchNote" title="Remove o teto interno nas fontes selecionadas; em modo comum seleciona todas as fontes conectadas">Cobertura máxima disponível</button>
             <span id="searchHint">carregando fontes…</span>
           </div>
-          <div id="globalSearchNote" class="global-search-note"><strong>Cobertura máxima disponível = sem teto interno do NutEV.</strong> Não há corte interno de 100, 300 ou outro número. Consulta as fontes selecionadas até o limite demonstrável de cada provider. Limites, bloqueios ou cobertura parcial impostos pela própria fonte continuam explícitos.</div>
+          <div id="globalSearchNote" class="global-search-note"><strong>Cobertura máxima disponível = sem teto interno do NutEV.</strong> Não há corte interno de 100, 300 ou outro número. Consulta as fontes selecionadas até o limite demonstrável de cada fonte. Limites, bloqueios ou cobertura parcial impostos pela própria fonte continuam explícitos.</div>
         </div>
 
         <div id="searchState" class="hidden"></div>
