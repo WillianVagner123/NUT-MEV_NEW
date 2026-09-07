@@ -257,7 +257,7 @@ def compile_query_plan(
             "controlled_vocabulary_terms": None,
             "warnings": [
                 "Modo exato: a consulta de cada base é preservada literalmente; o NutEV não reescreve campos, operadores, headings, filtros ou janela temporal.",
-                "FORMAL é apenas uma classificação de execução; a interface não substitui autorização de freeze/gates científicos externos.",
+                "A classe técnica de execução é metadado de auditoria; a interface de busca não concede autorização científica nem altera gates externos.",
             ],
         }
 
@@ -278,7 +278,7 @@ def compile_query_plan(
             },
             "controlled_vocabulary_terms": 0,
             "warnings": [
-                "Sem estratégia estruturada: a pergunta é enviada como texto aos providers.",
+                "Busca rápida: a pergunta é enviada como texto aos providers.",
                 "NutEV não inventa MeSH/DeCS automaticamente neste modo.",
             ],
         }
@@ -312,8 +312,8 @@ def compile_query_plan(
         "provider_queries": provider_queries,
         "controlled_vocabulary_terms": controlled_count,
         "warnings": [
-            "A estratégia é compilada somente a partir dos termos explicitamente aprovados pelo usuário.",
-            "MeSH/DeCS não são inventados por heurística: devem ser inseridos ou aprovados antes da execução.",
+            "A estratégia é compilada somente a partir dos termos explicitamente informados pelo usuário.",
+            "MeSH/DeCS não são inventados por heurística: devem ser informados explicitamente antes da execução.",
             "Providers sem dialeto controlado explícito recebem projeção booleana em texto livre, registrada no audit trail.",
         ],
     }
