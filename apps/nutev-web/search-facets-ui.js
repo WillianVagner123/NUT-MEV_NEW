@@ -1,14 +1,7 @@
+import{canonicalDocumentClass,documentClassLabel}from'./document-classes.js';
+
 const nativeFetch=window.fetch.bind(window);
 const RESULT_BATCH=100;
-const CLASS_LABELS={
-  evidence_synthesis:'Síntese de evidência',
-  guidance:'Diretriz / guidance',
-  primary_randomized:'Ensaio randomizado',
-  primary_observational:'Estudo observacional',
-  primary_qualitative:'Estudo qualitativo',
-  review:'Revisão',
-  unclassified:'Não classificado',
-};
 const PROVIDER_LABELS={
   pubmed:'PubMed',europepmc:'Europe PMC',openalex:'OpenAlex',crossref:'Crossref',doaj:'DOAJ',semantic_scholar:'Semantic Scholar',lilacs_bvs_native:'LILACS/BVS',scielo_native:'SciELO',
 };
@@ -32,10 +25,12 @@ function taxonomyLabel(value){return String(value||'').split('.').filter(Boolean
 function providerLabel(value){return PROVIDER_LABELS[value]||value||'Fonte não informada'}
 
 function inferredClass(record){
-  const explicit=record?.search_classification?.document_class;if(explicit)return explicit;
-  const value=`${record?.article_type||''} ${record?.document_type_applied||''} ${record?.title||''}`.toLocaleLowerCase();
+  const explicit=record?.search_classification?.document_class;if(explicit)return canonicalDocumentClass(explicit);
+  const structured=record?.document_type_applied;if(structured&&canonicalDocumentClass(structured)!=='unclassified')return canonicalDocumentClass(structured);
+  const value=`${record?.article_type||''} ${structured||''} ${record?.title||''}`.toLocaleLowerCase();
   if(value.includes('systematic review')||value.includes('meta-analysis')||value.includes('meta analysis'))return'evidence_synthesis';
   if(value.includes('guideline')||value.includes('consensus statement')||value.includes('position statement'))return'guidance';
+  if(value.includes('competency framework')||value.includes('curriculum framework')||value.includes('implementation framework')||value.includes('implementation evaluation')||value.includes('implementation study'))return'framework_implementation';
   if(value.includes('randomized')||value.includes('randomised'))return'primary_randomized';
   if(value.includes('cohort')||value.includes('cross-sectional')||value.includes('case-control'))return'primary_observational';
   if(value.includes('qualitative'))return'primary_qualitative';
@@ -88,7 +83,7 @@ function populateWorkspace(){
   const workspace=ensureWorkspace();if(!workspace||!latestSearch)return;
   const records=latestSearch.results||[];
   const years=countedOptions(records,yearValue,value=>value).sort((a,b)=>Number(b.value)-Number(a.value));
-  const classes=countedOptions(records,inferredClass,value=>CLASS_LABELS[value]||value).sort((a,b)=>a.label.localeCompare(b.label,'pt-BR'));
+  const classes=countedOptions(records,inferredClass,documentClassLabel).sort((a,b)=>a.label.localeCompare(b.label,'pt-BR'));
   const providers=countedOptions(records,providerValue,providerLabel).sort((a,b)=>a.label.localeCompare(b.label,'pt-BR'));
   const taxonomies=countedOptions(records,taxonomyValue,taxonomyLabel).sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,'pt-BR'));
   workspace.dataset.searchKey=currentSearchKey;
@@ -150,7 +145,7 @@ function rankingSignals(record){
 function resultCard(entry,viewPosition){
   const record=entry.record;const href=record.doi?`https://doi.org/${String(record.doi).replace(/^https?:\/\/doi\.org\//i,'').replace(/^doi:/i,'')}`:(record.url||'');
   const id=record.pmid?`PMID ${record.pmid}`:(record.doi?`DOI ${record.doi}`:'');const classification=record.search_classification||{};const klass=inferredClass(record);const confidence=classification.confidence||'low';const taxonomy=classification.taxonomy_primary||record.taxonomy_primary||'';const reasons=whyMatched(record);const ranking=rankingSignals(record);const signals=(classification.signals||[]).map(item=>`${item.field}: ${item.value}`);const originalRank=record.reference_rank?`rank final #${record.reference_rank}`:'';
-  return `<article class="result-card" data-result-index="${entry.index}"><div class="result-top"><div class="rank" title="Posição na visualização atual">${viewPosition}</div><div style="flex:1"><h3>${esc(record.title||'(sem título)')}</h3><div class="meta"><span>${esc(record.journal||'—')}</span><span>${esc(record.year||'—')}</span><span>${esc(providerLabel(providerValue(record)))}</span><span>${esc(id)}</span>${originalRank?`<span>${esc(originalRank)}</span>`:''}</div><div class="classification-row"><span class="class-pill">${esc(CLASS_LABELS[klass]||klass)}</span><span class="confidence-pill">Confiança da classificação: ${esc(CONFIDENCE_LABELS[confidence]||confidence)}</span>${taxonomy?`<span class="taxonomy-pill">${esc(taxonomyLabel(taxonomy))}</span>`:''}</div></div><div class="score"><strong>${number(record.reference_score,0).toFixed(1)}</strong><span>ranking final</span></div></div>${reasons.length?`<div class="why-match"><strong>Por que foi recuperado</strong><span>${reasons.map(esc).join(' · ')}</span></div>`:''}${ranking.length?`<div class="why-match"><strong>Sinais do ranking final</strong><span>${ranking.map(esc).join(' · ')}</span></div>`:''}${signals.length?`<div class="result-signals"><strong>Como foi classificado:</strong> ${signals.map(esc).join(' · ')}</div>`:''}${record.abstract?`<div class="abstract">${esc(record.abstract).slice(0,900)}${String(record.abstract).length>900?'…':''}</div>`:''}${href?`<div class="links"><a href="${esc(href)}" target="_blank" rel="noopener noreferrer">Abrir fonte ↗</a></div>`:''}</article>`;
+  return `<article class="result-card" data-result-index="${entry.index}"><div class="result-top"><div class="rank" title="Posição na visualização atual">${viewPosition}</div><div style="flex:1"><h3>${esc(record.title||'(sem título)')}</h3><div class="meta"><span>${esc(record.journal||'—')}</span><span>${esc(record.year||'—')}</span><span>${esc(providerLabel(providerValue(record)))}</span><span>${esc(id)}</span>${originalRank?`<span>${esc(originalRank)}</span>`:''}</div><div class="classification-row"><span class="class-pill">${esc(documentClassLabel(klass))}</span><span class="confidence-pill">Confiança da classificação: ${esc(CONFIDENCE_LABELS[confidence]||confidence)}</span>${taxonomy?`<span class="taxonomy-pill">${esc(taxonomyLabel(taxonomy))}</span>`:''}</div></div><div class="score"><strong>${number(record.reference_score,0).toFixed(1)}</strong><span>ranking final</span></div></div>${reasons.length?`<div class="why-match"><strong>Por que foi recuperado</strong><span>${reasons.map(esc).join(' · ')}</span></div>`:''}${ranking.length?`<div class="why-match"><strong>Sinais do ranking final</strong><span>${ranking.map(esc).join(' · ')}</span></div>`:''}${signals.length?`<div class="result-signals"><strong>Como foi classificado:</strong> ${signals.map(esc).join(' · ')}</div>`:''}${record.abstract?`<div class="abstract">${esc(record.abstract).slice(0,900)}${String(record.abstract).length>900?'…':''}</div>`:''}${href?`<div class="links"><a href="${esc(href)}" target="_blank" rel="noopener noreferrer">Abrir fonte ↗</a></div>`:''}</article>`;
 }
 
 function renderFilteredResults(){
