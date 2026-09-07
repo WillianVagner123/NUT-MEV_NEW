@@ -19,7 +19,7 @@
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark">N</div><div><strong>NutEV</strong><span>Evidence Engine</span></div></div>
       <nav aria-label="Navegação principal"></nav>
-      <div class="sidebar-note">Busque artigos, veja a classificação automática e entenda por que cada resultado apareceu. Métodos de revisão ficam no Laboratório avançado.</div>
+      <div class="sidebar-note">Busque artigos, veja a classificação automática e entenda por que cada resultado apareceu. Controles metodológicos avançados ficam no Laboratório.</div>
     </aside>
 
     <main class="main">
@@ -30,22 +30,18 @@
           <label for="question">O que você quer encontrar na literatura?</label>
           <textarea id="question" rows="3" placeholder="Ex.: creatina e cognição em idosos · dieta mediterrânea e mortalidade cardiovascular · proteína durante perda de peso"></textarea>
 
-          <div class="review-mode-switch">
-            <label><input id="structuredReviewToggle" type="checkbox"> <strong>Busca avançada</strong></label>
-            <span>Opcional: use PCC/PICO/PECO ou uma estratégia exata por base quando precisar de controle metodológico fino.</span>
+          <div class="search-mode-switch" role="radiogroup" aria-label="Modo de busca">
+            <label><input type="radio" name="searchMode" value="quick" checked><span><strong>Busca rápida</strong><small>Pergunta livre em múltiplas fontes.</small></span></label>
+            <label><input type="radio" name="searchMode" value="advanced"><span><strong>Busca avançada</strong><small>PCC/PICO/PECO, MeSH/DeCS e query por fonte.</small></span></label>
+            <label><input type="radio" name="searchMode" value="exact"><span><strong>Estratégia exata</strong><small>String literal e versionada para usuários experts.</small></span></label>
           </div>
 
           <section id="strategyBuilder" class="strategy-builder hidden">
-            <div class="strategy-type-switch">
-              <label><input type="radio" name="strategyType" value="structured" checked> Construtor PCC/PICO/PECO</label>
-              <label><input type="radio" name="strategyType" value="exact"> Estratégia exata por base</label>
-            </div>
-
             <div id="structuredStrategyPanel">
               <div class="strategy-head">
                 <div>
-                  <strong>Construtor de estratégia</strong>
-                  <p>O NutEV compila uma query por base. Ele não inventa vocabulário controlado: MeSH/DeCS precisam estar explicitamente aprovados nesta estratégia.</p>
+                  <strong>Busca avançada</strong>
+                  <p>O NutEV compila uma query por base a partir dos termos que você informar. MeSH/DeCS só entram quando forem explicitamente fornecidos.</p>
                 </div>
                 <label>Framework
                   <select id="frameworkSelect">
@@ -64,30 +60,22 @@
             <div id="exactStrategyPanel" class="hidden">
               <div class="strategy-head">
                 <div>
-                  <strong>Estratégia eletrônica exata</strong>
-                  <p>Use este modo para estratégias já versionadas/revisadas. O NutEV preserva literalmente operadores, campos, headings, filtros e datas; não converte nem simplifica a string.</p>
+                  <strong>Estratégia exata</strong>
+                  <p>Use este modo para consultas literais já versionadas. O NutEV preserva operadores, campos, headings, filtros e datas sem reescrever a string.</p>
                 </div>
-                <label>Classe da execução
-                  <select id="runClassSelect">
-                    <option value="PREFLIGHT">PREFLIGHT</option>
-                    <option value="PILOT" selected>PILOT</option>
-                    <option value="DEVELOPMENT">DEVELOPMENT</option>
-                    <option value="SUPPLEMENTARY">SUPPLEMENTARY</option>
-                    <option value="FORMAL">FORMAL</option>
-                  </select>
-                </label>
               </div>
               <div class="exact-meta-grid">
-                <label>Strategy ID<input id="strategyId" type="text" placeholder="Ex.: B-NORM-PUBMED"></label>
-                <label>Versão<input id="strategyVersion" type="text" placeholder="Ex.: v0.7"></label>
+                <label>ID da estratégia<input id="strategyId" type="text" placeholder="Ex.: creatina-cognicao-pubmed"></label>
+                <label>Versão<input id="strategyVersion" type="text" placeholder="Ex.: v1.0"></label>
               </div>
-              <div class="term-help"><strong>Selecione abaixo apenas as bases que possuem uma string aprovada.</strong> Para cada base selecionada, cole a consulta exatamente como deve ser enviada. Em modo exato, “Cobertura máxima” remove o teto apenas dessas bases; não adiciona providers sem query.</div>
+              <div class="term-help"><strong>Selecione apenas as bases para as quais você definiu uma string.</strong> Cole a consulta exatamente como deve ser enviada. Em modo exato, “Cobertura máxima” remove o teto apenas dessas bases; não adiciona providers sem query.</div>
               <div id="exactQueryBuilder" class="exact-query-builder"></div>
+              <div class="expert-governance-note">Classes de execução e autorizações científicas ficam no <a href="/advanced.html">Laboratório avançado</a>; elas não são concedidas por esta busca.</div>
             </div>
 
             <div class="strategy-actions">
               <button id="compileStrategyBtn" type="button" class="ghost">Visualizar estratégia por base</button>
-              <span id="strategyStatus">A estratégia só será usada quando este modo estiver ativado.</span>
+              <span id="strategyStatus">Escolha Busca avançada ou Estratégia exata para configurar a consulta.</span>
             </div>
             <div id="strategyPreview" class="strategy-preview hidden"></div>
           </section>
@@ -114,7 +102,7 @@
       </section>
 
       <section id="historyView" class="view hidden">
-        <div class="card"><div class="section-head"><div><h2>Search runs</h2><p>Runs persistidos pelo NutEV Evidence Engine.</p></div><button id="refreshHistory" class="ghost">Atualizar</button></div><div id="historyList"></div></div>
+        <div class="card"><div class="section-head"><div><h2>Minhas buscas</h2><p>Buscas persistidas pelo NutEV Evidence Engine.</p></div><button id="refreshHistory" class="ghost">Atualizar</button></div><div id="historyList"></div></div>
       </section>
     </main>
   </div>
