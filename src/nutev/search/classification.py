@@ -4,6 +4,8 @@ import re
 import unicodedata
 from typing import Any, Mapping
 
+from nutev.search.document_classes import canonical_document_class
+
 _CLASS_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "evidence_synthesis",
@@ -24,6 +26,18 @@ _CLASS_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "position statement",
             "scientific statement",
             "standards of care",
+        ),
+    ),
+    (
+        "framework_implementation",
+        (
+            "competency framework",
+            "competency-based curriculum",
+            "competency based curriculum",
+            "curriculum framework",
+            "implementation framework",
+            "implementation evaluation",
+            "implementation study",
         ),
     ),
     (
@@ -165,7 +179,7 @@ def _classification_source(record: Mapping[str, Any]) -> tuple[str, str, list[di
     for document_class, patterns in _CLASS_PATTERNS:
         for pattern in patterns:
             if pattern in article_type:
-                return document_class, "high", [{"field": "article_type", "value": pattern}]
+                return canonical_document_class(document_class), "high", [{"field": "article_type", "value": pattern}]
 
     for document_class, patterns in _CLASS_PATTERNS:
         signals: list[dict[str, str]] = []
@@ -175,7 +189,7 @@ def _classification_source(record: Mapping[str, Any]) -> tuple[str, str, list[di
             elif pattern in abstract:
                 signals.append({"field": "abstract", "value": pattern})
         if signals:
-            return document_class, "medium", signals[:3]
+            return canonical_document_class(document_class), "medium", signals[:3]
 
     return "unclassified", "low", []
 

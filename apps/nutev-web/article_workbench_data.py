@@ -7,6 +7,8 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
+from nutev.search.document_classes import canonical_document_class, document_classes_for_canonical
+
 
 APP_ROOT = Path(__file__).resolve().parent
 REPO_ROOT = APP_ROOT.parents[1]
@@ -204,8 +206,11 @@ def load_article_page(
             conditions.append("source_provider = ?")
             parameters.append(source_provider)
         if document_class:
-            conditions.append("document_class = ?")
-            parameters.append(document_class)
+            members = document_classes_for_canonical(document_class)
+            if members:
+                placeholders = ",".join("?" for _ in members)
+                conditions.append(f"document_class IN ({placeholders})")
+                parameters.extend(members)
         if full_text_status:
             conditions.append("full_text_status = ?")
             parameters.append(full_text_status)
@@ -293,6 +298,11 @@ def load_article_page(
         else:
             primary = int(last["year"] or 0)
         next_cursor = _encode_cursor(sort_mode, primary, str(last["document_id"]))
+    articles: list[dict[str, Any]] = []
+    for row in visible:
+        article = dict(row)
+        article["canonical_document_class"] = canonical_document_class(article.get("document_class"))
+        articles.append(article)
     return {
         "status": "ready",
         "total_filtered": total,
@@ -306,7 +316,7 @@ def load_article_page(
             "tier": tier,
             "sort": sort_mode,
         },
-        "articles": [dict(row) for row in visible],
+        "articles": articles,
         "performance": {
             "server_side_filtering": True,
             "server_side_priority_sort": priority_ready,
@@ -375,9 +385,17 @@ def load_article_detail(
             review_profile = json.loads(raw_review)
         except json.JSONDecodeError:
             review_profile = None
+    card = json.loads(card_row["card_json"])
+    effective_document_class = (
+        (review_profile or {}).get("primary_document_class")
+        or card.get("document_class")
+        or "unclassified"
+    )
     return {
         "status": "ready",
-        "card": json.loads(card_row["card_json"]),
+        "card": card,
+        "canonical_document_class": canonical_document_class(effective_document_class),
+        "document_subtype": str(effective_document_class),
         "bank_priority": {
             "reference_rank": card_row["reference_rank"],
             "reference_score": card_row["reference_score"],

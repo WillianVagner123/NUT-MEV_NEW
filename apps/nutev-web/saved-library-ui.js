@@ -1,6 +1,6 @@
+import{canonicalDocumentClass,documentClassLabel,documentSubtypeLabel}from'./document-classes.js';
 import{countSavedArticles,getSavedArticle,listSavedArticles,removeSavedArticle,sourceUrlFor}from'./saved-library.js';
 
-const classLabels={evidence_synthesis:'Síntese de evidência',guidance:'Diretriz / guidance',primary_randomized:'Ensaio randomizado',primary_observational:'Estudo observacional',primary_qualitative:'Estudo qualitativo',review:'Revisão',unclassified:'Não classificado',food_based_dietary_guideline:'Guia alimentar / FBDG',clinical_practice_guideline:'Diretriz clínica',consensus_statement:'Consenso',position_statement:'Position / scientific statement',framework_model:'Framework / modelo operacional',competency_curriculum:'Competências / currículo',implementation_evaluation:'Implementação / viabilidade'};
 const providerLabels={pubmed:'PubMed',europepmc:'Europe PMC',openalex:'OpenAlex',crossref:'Crossref',doaj:'DOAJ',semantic_scholar:'Semantic Scholar',lilacs_bvs_native:'LILACS/BVS',scielo_native:'SciELO'};
 const confidenceLabels={high:'alta',medium:'média',low:'sinal insuficiente'};
 let selectedKey='';let debounce=null;
@@ -8,6 +8,7 @@ let selectedKey='';let debounce=null;
 const $=selector=>document.querySelector(selector);
 const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const fmtScore=value=>value===null||value===undefined||value===''?'—':Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2});
+function classPresentation(value){const canonical=canonicalDocumentClass(value);const primary=documentClassLabel(canonical);const subtype=documentSubtypeLabel(value);return{primary,subtype:subtype!==primary?subtype:''}}
 
 function installShell(){
   const topbar=document.querySelector('.articles-main .topbar');if(!topbar||document.querySelector('#savedCore'))return;
@@ -23,10 +24,10 @@ function installShell(){
 }
 
 function savedRow(item){
-  const article=item.article||{};
   const ids=[item.doi?`DOI ${item.doi}`:'',item.pmid?`PMID ${item.pmid}`:''].filter(Boolean);
   const latest=(item.provenance||[]).at(-1)||{};
-  const chips=[item.year,classLabels[item.document_class]||item.document_class,providerLabels[item.source_provider]||item.source_provider,item.classification_confidence?`classificação ${confidenceLabels[item.classification_confidence]||item.classification_confidence}`:''].filter(Boolean);
+  const classification=classPresentation(item.document_class);
+  const chips=[item.year,classification.primary,classification.subtype,providerLabels[item.source_provider]||item.source_provider,item.classification_confidence?`classificação ${confidenceLabels[item.classification_confidence]||item.classification_confidence}`:''].filter(Boolean);
   return `<article class="saved-core-row${selectedKey===item.key?' active':''}" data-saved-key="${esc(item.key)}">
     <button type="button" class="saved-core-open" data-open-saved="${esc(item.key)}"><strong>${esc(item.title||'Sem título')}</strong><div class="saved-core-meta">${chips.map(value=>`<span>${esc(value)}</span>`).join('')}</div>${ids.length?`<div class="saved-core-ids">${ids.map(value=>`<span>${esc(value)}</span>`).join('')}</div>`:''}${latest.search_query?`<div class="saved-core-origin">Busca: ${esc(latest.search_query)}</div>`:''}</button>
     <div class="saved-core-row-actions">${item.source_url?`<a href="${esc(item.source_url)}" target="_blank" rel="noopener noreferrer">Fonte ↗</a>`:''}<button class="ghost" type="button" data-remove-saved="${esc(item.key)}">Remover</button></div>
@@ -40,8 +41,8 @@ function provenanceHtml(entries){
 
 function savedDetailHtml(item){
   const article=item.article||{};const classification=article.search_classification||{};
-  const source=item.source_url||sourceUrlFor(article);
-  const chips=[item.year,item.journal,classLabels[item.document_class]||item.document_class,providerLabels[item.source_provider]||item.source_provider,item.classification_confidence?`Confiança da classificação: ${confidenceLabels[item.classification_confidence]||item.classification_confidence}`:'',classification.taxonomy_primary||item.taxonomy_primary].filter(Boolean);
+  const source=item.source_url||sourceUrlFor(article);const classInfo=classPresentation(item.document_class);
+  const chips=[item.year,item.journal,classInfo.primary,classInfo.subtype,providerLabels[item.source_provider]||item.source_provider,item.classification_confidence?`Confiança da classificação: ${confidenceLabels[item.classification_confidence]||item.classification_confidence}`:'',classification.taxonomy_primary||item.taxonomy_primary].filter(Boolean);
   const reasons=[];const match=classification.query_match||{};
   if((match.title_hits||[]).length)reasons.push(`título: ${(match.title_hits||[]).slice(0,6).join(', ')}`);
   if((match.abstract_hits||[]).length)reasons.push(`resumo: ${(match.abstract_hits||[]).slice(0,6).join(', ')}`);
