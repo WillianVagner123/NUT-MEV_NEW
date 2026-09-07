@@ -127,6 +127,7 @@ jobs:
         run: |
           node --check apps/nutev-web/app.js
           node --check apps/nutev-web/product-ui.js
+          node --check apps/nutev-web/document-classes.js
           node --check apps/nutev-web/saved-library.js
           node --check apps/nutev-web/search-library-ui.js
           node --check apps/nutev-web/saved-library-ui.js
