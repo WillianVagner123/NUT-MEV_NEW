@@ -43,17 +43,22 @@ def test_global_search_is_a_first_class_maximum_coverage_action() -> None:
     assert ".global-search" in css
 
 
-def test_structured_review_builder_is_first_class_and_auditable() -> None:
+def test_advanced_search_builder_is_first_class_and_auditable() -> None:
     search = (WEB_ROOT / "search.html").read_text(encoding="utf-8")
     app = (WEB_ROOT / "app.js").read_text(encoding="utf-8")
     server = (WEB_ROOT / "server.py").read_text(encoding="utf-8")
     progressive = (WEB_ROOT / "progress_search.py").read_text(encoding="utf-8")
     compiler = (WEB_ROOT / "query_compiler.py").read_text(encoding="utf-8")
-    assert 'id="structuredReviewToggle"' in search
+    assert 'name="searchMode"' in search
+    assert 'value="quick"' in search
+    assert 'value="advanced"' in search
+    assert 'value="exact"' in search
+    assert 'id="structuredReviewToggle"' not in search
     assert 'id="frameworkSelect"' in search
     assert "PCC" in search and "PICO" in search and "PECO" in search
     assert "mesh:Termo" in search
     assert "decs:Termo" in search
+    assert "function searchMode()" in app
     assert "/api/query/compile" in app
     assert 'path == "/api/query/compile"' in server
     assert "compile_query_plan" in server
@@ -116,7 +121,7 @@ def test_web_history_uses_persisted_engine_runs() -> None:
     assert "fetch('/api/searches?limit=50')" in app
     assert "params.get('view')==='history'" in app
     assert "localStorage" not in app
-    assert "Runs persistidos pelo NutEV Evidence Engine" in search
+    assert "Buscas persistidas pelo NutEV Evidence Engine" in search
 
 
 def test_validation_entry_uses_same_product_navigation_and_hides_technical_first_step() -> None:
